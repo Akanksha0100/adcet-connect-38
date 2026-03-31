@@ -40,6 +40,7 @@ const sidebarItems = [
   { label: "Achievements", path: "/dashboard/achievements", icon: Trophy },
   { label: "Geo Map", path: "/dashboard/geomap", icon: MapPin },
   { label: "Analytics", path: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Admin Panel", path: "/admin", icon: ShieldCheck, admin: true },
 ];
 
 const DashboardLayout = () => {
