@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
-  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft,
+  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck,
   Home, Info, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,7 @@ const sidebarItems = [
   { label: "Achievements", path: "/dashboard/achievements", icon: Trophy },
   { label: "Geo Map", path: "/dashboard/geomap", icon: MapPin },
   { label: "Analytics", path: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Admin Panel", path: "/admin", icon: ShieldCheck, admin: true },
 ];
 
 const DashboardLayout = () => {
@@ -134,7 +135,7 @@ const DashboardLayout = () => {
               className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:block"
             >
               <nav className="p-3 space-y-1">
-                {sidebarItems.map(item => (
+                {sidebarItems.filter(i => !(i as any).admin).map(item => (
                   <NavLink
                     key={item.path}
                     to={item.path}
@@ -146,6 +147,17 @@ const DashboardLayout = () => {
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
+
+                <div className="border-t border-border my-2 pt-2">
+                  <NavLink
+                    to="/admin"
+                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-accent hover:bg-accent/10 transition-colors font-medium"
+                    activeClassName="bg-accent/10"
+                  >
+                    <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+                    <span>Admin Panel</span>
+                  </NavLink>
+                </div>
               </nav>
             </motion.aside>
           )}
