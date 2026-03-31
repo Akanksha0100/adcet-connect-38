@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
-  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft,
+  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck,
   Home, Info, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
