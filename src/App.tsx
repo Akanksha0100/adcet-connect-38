@@ -16,6 +16,18 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
 
+// Admin
+import AdminLayout from "./components/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UserApprovalsPage from "./pages/admin/UserApprovalsPage";
+import EventApprovalsPage from "./pages/admin/EventApprovalsPage";
+import JobApprovalsPage from "./pages/admin/JobApprovalsPage";
+import AchievementsAdminPage from "./pages/admin/AchievementsAdminPage";
+import DonationsAdminPage from "./pages/admin/DonationsAdminPage";
+import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
+import ReportsPage from "./pages/admin/ReportsPage";
+import SettingsPage from "./pages/admin/SettingsPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +48,17 @@ const App = () => (
             <Route path="geomap" element={<GeoMapPage />} />
             <Route path="analytics" element={<AnalyticsPage />} />
             <Route path="alumni" element={<AlumniDirectoryPage />} />
+          </Route>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="approvals" element={<UserApprovalsPage />} />
+            <Route path="events" element={<EventApprovalsPage />} />
+            <Route path="jobs" element={<JobApprovalsPage />} />
+            <Route path="achievements" element={<AchievementsAdminPage />} />
+            <Route path="donations" element={<DonationsAdminPage />} />
+            <Route path="analytics" element={<AdminAnalyticsPage />} />
+            <Route path="reports" element={<ReportsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
