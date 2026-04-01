@@ -1,18 +1,26 @@
 import { motion } from "framer-motion";
-import { Search, MapPin, Clock, Briefcase, Building2, ExternalLink } from "lucide-react";
+import { Search, MapPin, Clock, Briefcase, Building2, Users2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 const jobs = [
-  { id: 1, title: "Frontend Developer", company: "Infosys", location: "Pune", type: "Full-time", mode: "Hybrid", exp: "0-2 yrs", postedBy: "Rahul Patil (2018)", deadline: "Mar 20, 2026", skills: ["React", "TypeScript", "Tailwind"] },
-  { id: 2, title: "Data Analyst", company: "TCS", location: "Mumbai", type: "Full-time", mode: "On-site", exp: "1-3 yrs", postedBy: "Sneha Kulkarni (2019)", deadline: "Mar 25, 2026", skills: ["Python", "SQL", "Power BI"] },
-  { id: 3, title: "Backend Engineer Intern", company: "Startup XYZ", location: "Remote", type: "Internship", mode: "Remote", exp: "Fresher", postedBy: "Amit Joshi (2017)", deadline: "Apr 1, 2026", skills: ["Node.js", "MongoDB", "REST APIs"] },
-  { id: 4, title: "ML Engineer", company: "Google", location: "Bangalore", type: "Full-time", mode: "On-site", exp: "3-5 yrs", postedBy: "Priya Sharma (2016)", deadline: "Mar 30, 2026", skills: ["Python", "TensorFlow", "MLOps"] },
-  { id: 5, title: "UI/UX Designer", company: "Wipro", location: "Pune", type: "Contract", mode: "Hybrid", exp: "1-2 yrs", postedBy: "Kavita More (2020)", deadline: "Apr 5, 2026", skills: ["Figma", "Adobe XD", "Prototyping"] },
-  { id: 6, title: "DevOps Engineer", company: "Persistent", location: "Pune", type: "Full-time", mode: "On-site", exp: "2-4 yrs", postedBy: "Suresh Patil (2015)", deadline: "Apr 10, 2026", skills: ["AWS", "Docker", "Kubernetes"] },
+  { id: 1, title: "Frontend Developer", company: "Infosys", location: "Pune", type: "Full-time", mode: "Hybrid", exp: "0-2 yrs", postedBy: "Rahul Patil (2018)", deadline: "Mar 20, 2026", skills: ["React", "TypeScript", "Tailwind"], vacancies: 12, filled: 5 },
+  { id: 2, title: "Data Analyst", company: "TCS", location: "Mumbai", type: "Full-time", mode: "On-site", exp: "1-3 yrs", postedBy: "Sneha Kulkarni (2019)", deadline: "Mar 25, 2026", skills: ["Python", "SQL", "Power BI"], vacancies: 3, filled: 2 },
+  { id: 3, title: "Backend Engineer Intern", company: "Startup XYZ", location: "Remote", type: "Internship", mode: "Remote", exp: "Fresher", postedBy: "Amit Joshi (2017)", deadline: "Apr 1, 2026", skills: ["Node.js", "MongoDB", "REST APIs"], vacancies: 2, filled: 1 },
+  { id: 4, title: "ML Engineer", company: "Google", location: "Bangalore", type: "Full-time", mode: "On-site", exp: "3-5 yrs", postedBy: "Priya Sharma (2016)", deadline: "Mar 30, 2026", skills: ["Python", "TensorFlow", "MLOps"], vacancies: 25, filled: 8 },
+  { id: 5, title: "UI/UX Designer", company: "Wipro", location: "Pune", type: "Contract", mode: "Hybrid", exp: "1-2 yrs", postedBy: "Kavita More (2020)", deadline: "Apr 5, 2026", skills: ["Figma", "Adobe XD", "Prototyping"], vacancies: 5, filled: 3 },
+  { id: 6, title: "DevOps Engineer", company: "Persistent", location: "Pune", type: "Full-time", mode: "On-site", exp: "2-4 yrs", postedBy: "Suresh Patil (2015)", deadline: "Apr 10, 2026", skills: ["AWS", "Docker", "Kubernetes"], vacancies: 8, filled: 2 },
 ];
+
+function getHiringBadge(vacancies: number, filled: number) {
+  const remaining = vacancies - filled;
+  if (remaining <= 2) return { label: "Limited Hiring", className: "bg-destructive/10 text-destructive border-destructive/20" };
+  if (remaining >= 10) return { label: "Hiring Now 🔥", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" };
+  return { label: `${remaining} Vacancies`, className: "bg-accent/10 text-accent border-accent/20" };
+}
 
 const JobsPage = () => {
   return (
@@ -49,39 +57,61 @@ const JobsPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {jobs.map(job => (
-          <div key={job.id} className="card-elevated p-5 space-y-3 group hover:-translate-y-0.5 transition-transform">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-semibold text-foreground">{job.title}</h3>
-                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <Building2 className="h-3 w-3" /> {job.company}
-                </p>
+        {jobs.map(job => {
+          const badge = getHiringBadge(job.vacancies, job.filled);
+          const fillPercent = Math.round((job.filled / job.vacancies) * 100);
+
+          return (
+            <div key={job.id} className="card-elevated p-5 space-y-3 group hover:-translate-y-0.5 transition-transform">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground truncate">{job.title}</h3>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Building2 className="h-3 w-3 shrink-0" /> {job.company}
+                  </p>
+                </div>
+                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium shrink-0">{job.mode}</span>
               </div>
-              <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium">{job.mode}</span>
-            </div>
 
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>
-              <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.type}</span>
-              <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{job.exp}</span>
-            </div>
-
-            <div className="flex flex-wrap gap-1.5">
-              {job.skills.map(s => (
-                <Badge key={s} variant="secondary" className="text-xs font-normal">{s}</Badge>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <div className="text-xs text-muted-foreground">
-                <p>By: {job.postedBy}</p>
-                <p>Deadline: {job.deadline}</p>
+              {/* Hiring badge */}
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>{badge.label}</span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Users2 className="h-3 w-3" /> {job.vacancies} positions
+                </span>
               </div>
-              <Button size="sm" className="text-xs">Apply Now</Button>
+
+              {/* Positions filled bar */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{job.filled} filled</span>
+                  <span>{job.vacancies - job.filled} remaining</span>
+                </div>
+                <Progress value={fillPercent} className="h-1.5" />
+              </div>
+
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>
+                <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.type}</span>
+                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{job.exp}</span>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {job.skills.map(s => (
+                  <Badge key={s} variant="secondary" className="text-xs font-normal">{s}</Badge>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div className="text-xs text-muted-foreground">
+                  <p>By: {job.postedBy}</p>
+                  <p>Deadline: {job.deadline}</p>
+                </div>
+                <Button size="sm" className="text-xs">Apply Now</Button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </motion.div>
   );
