@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, GraduationCap, LogOut,
-  Search, User
+  Search, User, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -23,6 +23,7 @@ const sidebarItems = [
   { label: "Achievements", path: "/admin/achievements", icon: Trophy },
   { label: "Donations", path: "/admin/donations", icon: Heart },
   { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: "5" },
+  { label: "Geo Map", path: "/admin/geomap", icon: Globe },
   { label: "Analytics", path: "/admin/analytics", icon: BarChart3 },
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];

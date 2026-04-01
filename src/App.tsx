@@ -27,6 +27,7 @@ import DonationsAdminPage from "./pages/admin/DonationsAdminPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
+import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="achievements" element={<AchievementsAdminPage />} />
             <Route path="donations" element={<DonationsAdminPage />} />
             <Route path="analytics" element={<AdminAnalyticsPage />} />
+            <Route path="geomap" element={<AdminGeoMapPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
