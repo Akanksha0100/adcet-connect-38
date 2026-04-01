@@ -27,6 +27,7 @@ import DonationsAdminPage from "./pages/admin/DonationsAdminPage";
 import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
+import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
 
 const queryClient = new QueryClient();
 
