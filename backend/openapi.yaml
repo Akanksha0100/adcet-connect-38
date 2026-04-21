@@ -1,0 +1,735 @@
+openapi: 3.1.0
+info:
+  title: ADCET Alumni Portal API
+  version: 0.1.0
+  description: |
+    HTTP contract for the ADCET Alumni Portal backend.
+    Source of truth alongside `prisma/schema.prisma`.
+    Frontend and backend MUST stay consistent with this file.
+servers:
+  - url: http://localhost:4000/api/v1
+    description: Local
+
+tags:
+  - { name: Auth }
+  - { name: Users }
+  - { name: Profiles }
+  - { name: Events }
+  - { name: Jobs }
+  - { name: Achievements }
+  - { name: Donations }
+  - { name: Alumni Directory }
+  - { name: Geo }
+  - { name: Analytics }
+  - { name: Uploads }
+  - { name: Admin }
+  - { name: Notifications }
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ---------- AUTH ----------
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register a new user (PENDING until admin approves)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login with email + password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties: { refreshToken: { type: string } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      responses: { '204': { description: No Content } }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+
+  /auth/oauth/{provider}/start:
+    get:
+      tags: [Auth]
+      security: []
+      parameters:
+        - { in: path, name: provider, required: true, schema: { type: string, enum: [linkedin, github] } }
+      responses: { '302': { description: Redirect to provider } }
+
+  /auth/oauth/{provider}/callback:
+    get:
+      tags: [Auth]
+      security: []
+      parameters:
+        - { in: path, name: provider, required: true, schema: { type: string, enum: [linkedin, github] } }
+        - { in: query, name: code, schema: { type: string } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } } }
+
+  # ---------- USERS / PROFILES ----------
+  /users/me/preferences:
+    get:
+      tags: [Users]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserPreferences' } } } } }
+    patch:
+      tags: [Users]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/UserPreferences' } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserPreferences' } } } } }
+
+  /profiles/me:
+    get:
+      tags: [Profiles]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Profile' } } } } }
+    patch:
+      tags: [Profiles]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProfileInput' } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Profile' } } } } }
+
+  /profiles/{userId}:
+    get:
+      tags: [Profiles]
+      parameters: [ { in: path, name: userId, required: true, schema: { type: string } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Profile' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ---------- ALUMNI DIRECTORY ----------
+  /alumni:
+    get:
+      tags: [Alumni Directory]
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: department, schema: { type: string } }
+        - { in: query, name: graduationYear, schema: { type: integer } }
+        - { in: query, name: city, schema: { type: string } }
+        - { in: query, name: company, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20, maximum: 100 } }
+      responses:
+        '200':
+          description: OK
+          content: { application/json: { schema: { $ref: '#/components/schemas/PaginatedProfiles' } } }
+
+  # ---------- EVENTS ----------
+  /events:
+    get:
+      tags: [Events]
+      parameters:
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+        - { in: query, name: upcoming, schema: { type: boolean } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20 } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PaginatedEvents' } } } }
+    post:
+      tags: [Events]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/EventInput' } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } } }
+
+  /events/{id}:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    get:
+      tags: [Events]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } } }
+    patch:
+      tags: [Events]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/EventInput' } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } } }
+    delete:
+      tags: [Events]
+      responses: { '204': { description: No Content } }
+
+  /events/{id}/rsvp:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post:
+      tags: [Events]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { status: { $ref: '#/components/schemas/RsvpStatus' } }
+      responses: { '200': { description: OK } }
+
+  # ---------- JOBS ----------
+  /jobs:
+    get:
+      tags: [Jobs]
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: company, schema: { type: string } }
+        - { in: query, name: location, schema: { type: string } }
+        - { in: query, name: employmentType, schema: { $ref: '#/components/schemas/EmploymentType' } }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20 } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PaginatedJobs' } } } } }
+    post:
+      tags: [Jobs]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JobInput' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } } }
+
+  /jobs/{id}:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    get:
+      tags: [Jobs]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } } }
+    patch:
+      tags: [Jobs]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/JobInput' } } } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Job' } } } } }
+    delete:
+      tags: [Jobs]
+      responses: { '204': { description: No Content } }
+
+  /jobs/{id}/apply:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post:
+      tags: [Jobs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resumeKey: { type: string }
+                coverLetter: { type: string }
+      responses: { '201': { description: Created } }
+
+  # ---------- ACHIEVEMENTS ----------
+  /achievements:
+    get:
+      tags: [Achievements]
+      parameters:
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20 } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PaginatedAchievements' } } } } }
+    post:
+      tags: [Achievements]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AchievementInput' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Achievement' } } } } }
+
+  /achievements/{id}:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    patch:
+      tags: [Achievements]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AchievementInput' } } } }
+      responses: { '200': { description: OK } }
+    delete:
+      tags: [Achievements]
+      responses: { '204': { description: No Content } }
+
+  # ---------- DONATIONS ----------
+  /donations/campaigns:
+    get:
+      tags: [Donations]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/DonationCampaign' } } } } } }
+    post:
+      tags: [Donations]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DonationCampaignInput' } } } }
+      responses: { '201': { description: Created } }
+
+  /donations:
+    get:
+      tags: [Donations]
+      parameters:
+        - { in: query, name: campaignId, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/PaginatedDonations' } } } } }
+    post:
+      tags: [Donations]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/DonationInput' } } } }
+      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Donation' } } } } }
+
+  # ---------- GEO ----------
+  /geo/cities:
+    get:
+      tags: [Geo]
+      summary: Aggregate alumni count by city
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CityAggregate' }
+
+  /geo/cities/{city}/companies:
+    parameters: [ { in: path, name: city, required: true, schema: { type: string } } ]
+    get:
+      tags: [Geo]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/CompanyAggregate' }
+
+  # ---------- ANALYTICS ----------
+  /analytics/summary:
+    get:
+      tags: [Analytics]
+      responses: { '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/AnalyticsSummary' } } } } }
+
+  /analytics/timeseries:
+    get:
+      tags: [Analytics]
+      parameters:
+        - { in: query, name: metric, required: true, schema: { type: string, enum: [signups, donations, jobs, events] } }
+        - { in: query, name: bucket, schema: { type: string, enum: [day, week, month], default: month } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    bucket: { type: string, format: date }
+                    value: { type: integer }
+
+  # ---------- UPLOADS ----------
+  /uploads/presign:
+    post:
+      tags: [Uploads]
+      summary: Get a pre-signed URL for direct upload to object storage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, contentType, scope]
+              properties:
+                fileName: { type: string }
+                contentType: { type: string }
+                scope: { type: string, enum: [avatar, event, achievement, receipt, resume] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploadUrl: { type: string }
+                  key: { type: string }
+                  publicUrl: { type: string }
+                  expiresIn: { type: integer }
+
+  # ---------- ADMIN ----------
+  /admin/users/pending:
+    get:
+      tags: [Admin]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } } }
+
+  /admin/users/{id}/approve:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+
+  /admin/users/{id}/reject:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+
+  /admin/events/pending:
+    get: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/events/{id}/approve:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/events/{id}/reject:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+
+  /admin/jobs/pending:
+    get: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/jobs/{id}/approve:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/jobs/{id}/reject:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+
+  /admin/achievements/pending:
+    get: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/achievements/{id}/approve:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+  /admin/achievements/{id}/reject:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Admin], responses: { '200': { description: OK } } }
+
+  /admin/reports/{type}:
+    parameters: [ { in: path, name: type, required: true, schema: { type: string, enum: [users, events, jobs, donations] } } ]
+    get:
+      tags: [Admin]
+      responses:
+        '200':
+          description: CSV stream
+          content:
+            text/csv:
+              schema: { type: string, format: binary }
+
+  # ---------- NOTIFICATIONS ----------
+  /notifications:
+    get:
+      tags: [Notifications]
+      responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Notification' } } } } } }
+
+  /notifications/{id}/read:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post: { tags: [Notifications], responses: { '204': { description: No Content } } }
+
+# =====================================================================
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid credentials
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Not found
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Conflict
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }
+
+    AppRole: { type: string, enum: [ALUMNI, STUDENT, ADMIN, RECRUITER] }
+    ApprovalStatus: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+    DegreeType: { type: string, enum: [BE, ME, PHD, DIPLOMA] }
+    EmploymentType: { type: string, enum: [FULL_TIME, PART_TIME, INTERNSHIP, CONTRACT] }
+    RsvpStatus: { type: string, enum: [GOING, INTERESTED, NOT_GOING] }
+    DonationStatus: { type: string, enum: [PLEDGED, RECEIVED, CANCELLED] }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+
+    AuthTokens:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+
+    RegisterInput:
+      type: object
+      required: [email, password, firstName, lastName]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        firstName: { type: string }
+        lastName: { type: string }
+        department: { type: string }
+        degree: { $ref: '#/components/schemas/DegreeType' }
+        admissionYear: { type: integer }
+        graduationYear: { type: integer }
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        status: { $ref: '#/components/schemas/ApprovalStatus' }
+        roles: { type: array, items: { $ref: '#/components/schemas/AppRole' } }
+        createdAt: { type: string, format: date-time }
+
+    UserPreferences:
+      type: object
+      properties:
+        notificationsEmail: { type: boolean }
+        notificationsPush: { type: boolean }
+        darkMode: { type: boolean }
+        language: { type: string }
+
+    ProfileInput:
+      type: object
+      properties:
+        bio: { type: string }
+        phone: { type: string }
+        city: { type: string }
+        country: { type: string }
+        linkedinUrl: { type: string }
+        githubUrl: { type: string }
+        websiteUrl: { type: string }
+        department: { type: string }
+        degree: { $ref: '#/components/schemas/DegreeType' }
+        admissionYear: { type: integer }
+        graduationYear: { type: integer }
+        currentCompany: { type: string }
+        currentRole: { type: string }
+        avatarKey: { type: string }
+
+    Profile:
+      allOf:
+        - { $ref: '#/components/schemas/ProfileInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            userId: { type: string }
+            avatarUrl: { type: string }
+            user: { $ref: '#/components/schemas/User' }
+
+    PaginatedProfiles:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Profile' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    EventInput:
+      type: object
+      required: [title, description, startsAt]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        location: { type: string }
+        isOnline: { type: boolean }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        capacity: { type: integer }
+        coverKey: { type: string }
+
+    Event:
+      allOf:
+        - { $ref: '#/components/schemas/EventInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            status: { $ref: '#/components/schemas/ApprovalStatus' }
+            createdById: { type: string }
+            coverUrl: { type: string }
+            rsvpCount: { type: integer }
+            createdAt: { type: string, format: date-time }
+
+    PaginatedEvents:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Event' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    JobInput:
+      type: object
+      required: [title, company, description]
+      properties:
+        title: { type: string }
+        company: { type: string }
+        location: { type: string }
+        isRemote: { type: boolean }
+        employmentType: { $ref: '#/components/schemas/EmploymentType' }
+        experienceMin: { type: integer }
+        experienceMax: { type: integer }
+        salaryMin: { type: integer }
+        salaryMax: { type: integer }
+        currency: { type: string }
+        description: { type: string }
+        requirements: { type: string }
+        vacancies: { type: integer }
+        applyUrl: { type: string }
+        expiresAt: { type: string, format: date-time }
+
+    Job:
+      allOf:
+        - { $ref: '#/components/schemas/JobInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            status: { $ref: '#/components/schemas/ApprovalStatus' }
+            positionsFilled: { type: integer }
+            createdAt: { type: string, format: date-time }
+
+    PaginatedJobs:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Job' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    AchievementInput:
+      type: object
+      required: [title, description]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        occurredOn: { type: string, format: date }
+        imageKey: { type: string }
+
+    Achievement:
+      allOf:
+        - { $ref: '#/components/schemas/AchievementInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            userId: { type: string }
+            status: { $ref: '#/components/schemas/ApprovalStatus' }
+            imageUrl: { type: string }
+            createdAt: { type: string, format: date-time }
+
+    PaginatedAchievements:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Achievement' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    DonationCampaignInput:
+      type: object
+      required: [title, description, goalAmount, startsAt]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        goalAmount: { type: integer }
+        currency: { type: string }
+        coverKey: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+
+    DonationCampaign:
+      allOf:
+        - { $ref: '#/components/schemas/DonationCampaignInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            isActive: { type: boolean }
+            raisedAmount: { type: integer }
+            donorCount: { type: integer }
+
+    DonationInput:
+      type: object
+      required: [amount]
+      properties:
+        campaignId: { type: string }
+        amount: { type: integer, minimum: 1 }
+        currency: { type: string }
+        message: { type: string }
+        isAnonymous: { type: boolean }
+
+    Donation:
+      allOf:
+        - { $ref: '#/components/schemas/DonationInput' }
+        - type: object
+          properties:
+            id: { type: string }
+            userId: { type: string }
+            status: { $ref: '#/components/schemas/DonationStatus' }
+            createdAt: { type: string, format: date-time }
+
+    PaginatedDonations:
+      type: object
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Donation' } }
+        pagination: { $ref: '#/components/schemas/Pagination' }
+
+    CityAggregate:
+      type: object
+      properties:
+        city: { type: string }
+        country: { type: string }
+        alumniCount: { type: integer }
+        companies:
+          type: array
+          items: { $ref: '#/components/schemas/CompanyAggregate' }
+
+    CompanyAggregate:
+      type: object
+      properties:
+        company: { type: string }
+        alumniCount: { type: integer }
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        totalAlumni: { type: integer }
+        totalEvents: { type: integer }
+        totalJobs: { type: integer }
+        totalDonationsAmount: { type: integer }
+        pendingApprovals:
+          type: object
+          properties:
+            users: { type: integer }
+            events: { type: integer }
+            jobs: { type: integer }
+            achievements: { type: integer }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string }
+        type: { type: string }
+        title: { type: string }
+        body: { type: string }
+        readAt: { type: string, format: date-time, nullable: true }
+        createdAt: { type: string, format: date-time }

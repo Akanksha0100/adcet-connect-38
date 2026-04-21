@@ -1,0 +1,380 @@
+// ADCET Alumni Portal — Prisma schema
+// Source of truth for DB structure. Keep in sync with backend/openapi.yaml.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================================================================
+// ENUMS
+// =====================================================================
+
+enum AppRole {
+  ALUMNI
+  STUDENT
+  ADMIN
+  RECRUITER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DegreeType {
+  BE
+  ME
+  PHD
+  DIPLOMA
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+}
+
+enum RsvpStatus {
+  GOING
+  INTERESTED
+  NOT_GOING
+}
+
+enum DonationStatus {
+  PLEDGED
+  RECEIVED
+  CANCELLED
+}
+
+// =====================================================================
+// CORE: Users, Roles, Profiles
+// =====================================================================
+
+model User {
+  id              String         @id @default(uuid())
+  email           String         @unique
+  passwordHash    String?        // null when only OAuth login
+  firstName       String
+  lastName        String
+  status          ApprovalStatus @default(PENDING)
+  emailVerifiedAt DateTime?
+  lastLoginAt     DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  roles           UserRole[]
+  profile         Profile?
+  preferences     UserPreferences?
+  refreshTokens   RefreshToken[]
+  oauthAccounts   OAuthAccount[]
+
+  // Authored content
+  eventsCreated   Event[]        @relation("EventCreator")
+  jobsCreated     Job[]          @relation("JobCreator")
+  achievements    Achievement[]
+  donations       Donation[]
+  rsvps           EventRsvp[]
+  jobApplications JobApplication[]
+
+  @@index([status])
+}
+
+/// Roles live in a separate table to prevent privilege escalation via profile updates.
+model UserRole {
+  id     String  @id @default(uuid())
+  userId String
+  role   AppRole
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+}
+
+model OAuthAccount {
+  id           String   @id @default(uuid())
+  userId       String
+  provider     String   // "linkedin" | "github"
+  providerId   String
+  accessToken  String?
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Profile {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  bio             String?
+  avatarKey       String?     // storage object key
+  phone           String?
+  city            String?
+  country         String?     @default("India")
+  linkedinUrl     String?
+  githubUrl       String?
+  websiteUrl      String?
+
+  // Academic
+  department      String?
+  degree          DegreeType?
+  admissionYear   Int?
+  graduationYear  Int?
+  rollNumber      String?
+
+  // Current professional snapshot (denormalized for quick directory queries)
+  currentCompany  String?
+  currentRole     String?
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  experiences     WorkExperience[]
+  educations      Education[]
+  skills          ProfileSkill[]
+
+  @@index([city])
+  @@index([currentCompany])
+  @@index([graduationYear])
+}
+
+model WorkExperience {
+  id          String    @id @default(uuid())
+  profileId   String
+  company     String
+  title       String
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  isCurrent   Boolean   @default(false)
+  description String?
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([company])
+}
+
+model Education {
+  id          String    @id @default(uuid())
+  profileId   String
+  institution String
+  degree      String
+  field       String?
+  startYear   Int
+  endYear     Int?
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model Skill {
+  id       String         @id @default(uuid())
+  name     String         @unique
+  profiles ProfileSkill[]
+}
+
+model ProfileSkill {
+  profileId String
+  skillId   String
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill     Skill   @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, skillId])
+}
+
+model UserPreferences {
+  userId               String  @id
+  notificationsEmail   Boolean @default(true)
+  notificationsPush    Boolean @default(true)
+  darkMode             Boolean @default(false)
+  language             String  @default("en")
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// =====================================================================
+// EVENTS
+// =====================================================================
+
+model Event {
+  id          String         @id @default(uuid())
+  title       String
+  description String
+  location    String?
+  isOnline    Boolean        @default(false)
+  startsAt    DateTime
+  endsAt      DateTime?
+  capacity    Int?
+  coverKey    String?
+  status      ApprovalStatus @default(PENDING)
+  createdById String
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdBy   User           @relation("EventCreator", fields: [createdById], references: [id])
+  rsvps       EventRsvp[]
+
+  @@index([status, startsAt])
+}
+
+model EventRsvp {
+  id      String     @id @default(uuid())
+  eventId String
+  userId  String
+  status  RsvpStatus @default(GOING)
+  createdAt DateTime @default(now())
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+// =====================================================================
+// JOBS
+// =====================================================================
+
+model Job {
+  id              String         @id @default(uuid())
+  title           String
+  company         String
+  location        String?
+  isRemote        Boolean        @default(false)
+  employmentType  EmploymentType @default(FULL_TIME)
+  experienceMin   Int?           // years
+  experienceMax   Int?
+  salaryMin       Int?
+  salaryMax       Int?
+  currency        String         @default("INR")
+  description     String
+  requirements    String?
+  vacancies       Int            @default(1)
+  positionsFilled Int            @default(0)
+  applyUrl        String?
+  status          ApprovalStatus @default(PENDING)
+  expiresAt       DateTime?
+  createdById     String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  createdBy       User             @relation("JobCreator", fields: [createdById], references: [id])
+  applications    JobApplication[]
+
+  @@index([status, createdAt])
+  @@index([company])
+}
+
+model JobApplication {
+  id        String   @id @default(uuid())
+  jobId     String
+  userId    String
+  resumeKey String?
+  coverLetter String?
+  createdAt DateTime @default(now())
+
+  job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, userId])
+}
+
+// =====================================================================
+// ACHIEVEMENTS
+// =====================================================================
+
+model Achievement {
+  id          String         @id @default(uuid())
+  userId      String
+  title       String
+  description String
+  category    String?        // "Award", "Promotion", "Publication", ...
+  occurredOn  DateTime?
+  imageKey    String?
+  status      ApprovalStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+// =====================================================================
+// DONATIONS
+// =====================================================================
+
+model DonationCampaign {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  goalAmount  Int
+  currency    String     @default("INR")
+  coverKey    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+
+  donations   Donation[]
+}
+
+model Donation {
+  id           String         @id @default(uuid())
+  campaignId   String?
+  userId       String
+  amount       Int
+  currency     String         @default("INR")
+  message      String?
+  status       DonationStatus @default(PLEDGED)
+  receiptKey   String?
+  isAnonymous  Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+
+  campaign     DonationCampaign? @relation(fields: [campaignId], references: [id])
+  user         User              @relation(fields: [userId], references: [id])
+
+  @@index([campaignId])
+  @@index([userId])
+}
+
+// =====================================================================
+// NOTIFICATIONS / AUDIT
+// =====================================================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "event.approved", "job.new", ...
+  title     String
+  body      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?
+  action    String   // "user.approve", "event.reject", ...
+  entity    String   // "User" | "Event" | ...
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([actorId])
+}
