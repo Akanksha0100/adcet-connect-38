@@ -1,119 +1,210 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, MapPin, Clock, Briefcase, Building2, Users2 } from "lucide-react";
+import { Search, MapPin, Briefcase, Building2, Users2, Plus, Loader2, BriefcaseBusiness } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { LoadingGrid } from "@/components/LoadingGrid";
+import { EmptyState } from "@/components/EmptyState";
 
-const jobs = [
-  { id: 1, title: "Frontend Developer", company: "Infosys", location: "Pune", type: "Full-time", mode: "Hybrid", exp: "0-2 yrs", postedBy: "Rahul Patil (2018)", deadline: "Mar 20, 2026", skills: ["React", "TypeScript", "Tailwind"], vacancies: 12, filled: 5 },
-  { id: 2, title: "Data Analyst", company: "TCS", location: "Mumbai", type: "Full-time", mode: "On-site", exp: "1-3 yrs", postedBy: "Sneha Kulkarni (2019)", deadline: "Mar 25, 2026", skills: ["Python", "SQL", "Power BI"], vacancies: 3, filled: 2 },
-  { id: 3, title: "Backend Engineer Intern", company: "Startup XYZ", location: "Remote", type: "Internship", mode: "Remote", exp: "Fresher", postedBy: "Amit Joshi (2017)", deadline: "Apr 1, 2026", skills: ["Node.js", "MongoDB", "REST APIs"], vacancies: 2, filled: 1 },
-  { id: 4, title: "ML Engineer", company: "Google", location: "Bangalore", type: "Full-time", mode: "On-site", exp: "3-5 yrs", postedBy: "Priya Sharma (2016)", deadline: "Mar 30, 2026", skills: ["Python", "TensorFlow", "MLOps"], vacancies: 25, filled: 8 },
-  { id: 5, title: "UI/UX Designer", company: "Wipro", location: "Pune", type: "Contract", mode: "Hybrid", exp: "1-2 yrs", postedBy: "Kavita More (2020)", deadline: "Apr 5, 2026", skills: ["Figma", "Adobe XD", "Prototyping"], vacancies: 5, filled: 3 },
-  { id: 6, title: "DevOps Engineer", company: "Persistent", location: "Pune", type: "Full-time", mode: "On-site", exp: "2-4 yrs", postedBy: "Suresh Patil (2015)", deadline: "Apr 10, 2026", skills: ["AWS", "Docker", "Kubernetes"], vacancies: 8, filled: 2 },
-];
+interface Job {
+  id: string;
+  title: string;
+  company: string;
+  location?: string | null;
+  isRemote?: boolean;
+  employmentType?: "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
+  experienceMin?: number | null;
+  experienceMax?: number | null;
+  description: string;
+  vacancies?: number | null;
+  positionsFilled?: number | null;
+  applyUrl?: string | null;
+  expiresAt?: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+}
+interface Paginated<T> { items: T[] }
 
-function getHiringBadge(vacancies: number, filled: number) {
-  const remaining = vacancies - filled;
+function hiringBadge(vacancies?: number | null, filled?: number | null) {
+  if (!vacancies) return { label: "Open", className: "bg-accent/10 text-accent border-accent/20" };
+  const remaining = vacancies - (filled ?? 0);
   if (remaining <= 2) return { label: "Limited Hiring", className: "bg-destructive/10 text-destructive border-destructive/20" };
   if (remaining >= 10) return { label: "Hiring Now 🔥", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" };
   return { label: `${remaining} Vacancies`, className: "bg-accent/10 text-accent border-accent/20" };
 }
 
 const JobsPage = () => {
+  const [q, setQ] = useState("");
+  const [employmentType, setEmploymentType] = useState<string>("all");
+  const [location, setLocation] = useState("");
+  const qc = useQueryClient();
+
+  const jobs = useQuery({
+    queryKey: ["jobs", { q, employmentType, location }],
+    queryFn: () => api.get<Paginated<Job>>("/jobs", {
+      q: q || undefined,
+      employmentType: employmentType === "all" ? undefined : employmentType,
+      location: location || undefined,
+      pageSize: 30,
+    }),
+  });
+
+  const apply = useMutation({
+    mutationFn: (id: string) => api.post(`/jobs/${id}/apply`, { coverLetter: "" }),
+    onSuccess: () => toast({ title: "Application submitted" }),
+    onError: (e: any) => toast({ title: "Apply failed", description: e?.message, variant: "destructive" }),
+  });
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Jobs & Opportunities</h1>
-        <p className="text-muted-foreground text-sm mt-1">Browse jobs posted by alumni and partner companies</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Jobs & Opportunities</h1>
+          <p className="text-muted-foreground text-sm mt-1">Browse jobs posted by alumni and partner companies</p>
+        </div>
+        <CreateJobDialog onCreated={() => qc.invalidateQueries({ queryKey: ["jobs"] })} />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search jobs, skills, companies..." className="pl-9" />
+          <Input placeholder="Search jobs, companies..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <Select>
-          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Job Type" /></SelectTrigger>
+        <Select value={employmentType} onValueChange={setEmploymentType}>
+          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="full-time">Full-time</SelectItem>
-            <SelectItem value="internship">Internship</SelectItem>
-            <SelectItem value="contract">Contract</SelectItem>
+            <SelectItem value="FULL_TIME">Full-time</SelectItem>
+            <SelectItem value="PART_TIME">Part-time</SelectItem>
+            <SelectItem value="INTERNSHIP">Internship</SelectItem>
+            <SelectItem value="CONTRACT">Contract</SelectItem>
           </SelectContent>
         </Select>
-        <Select>
-          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Location" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Locations</SelectItem>
-            <SelectItem value="remote">Remote</SelectItem>
-            <SelectItem value="pune">Pune</SelectItem>
-            <SelectItem value="mumbai">Mumbai</SelectItem>
-            <SelectItem value="bangalore">Bangalore</SelectItem>
-          </SelectContent>
-        </Select>
+        <Input placeholder="Location" className="w-full sm:w-40" value={location} onChange={(e) => setLocation(e.target.value)} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {jobs.map(job => {
-          const badge = getHiringBadge(job.vacancies, job.filled);
-          const fillPercent = Math.round((job.filled / job.vacancies) * 100);
+      {jobs.isLoading && <LoadingGrid />}
+      {!jobs.isLoading && (jobs.data?.items.length ?? 0) === 0 && (
+        <EmptyState icon={BriefcaseBusiness} title="No jobs found" />
+      )}
 
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {jobs.data?.items.map((job) => {
+          const badge = hiringBadge(job.vacancies, job.positionsFilled);
+          const fillPercent = job.vacancies
+            ? Math.round(((job.positionsFilled ?? 0) / job.vacancies) * 100)
+            : 0;
           return (
-            <div key={job.id} className="card-elevated p-5 space-y-3 group hover:-translate-y-0.5 transition-transform">
+            <div key={job.id} className="card-elevated p-5 space-y-3 hover:-translate-y-0.5 transition-transform">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{job.title}</h3>
                   <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <Building2 className="h-3 w-3 shrink-0" /> {job.company}
+                    <Building2 className="h-3 w-3" /> {job.company}
                   </p>
                 </div>
-                <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium shrink-0">{job.mode}</span>
+                {job.isRemote && (
+                  <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium">Remote</span>
+                )}
               </div>
 
-              {/* Hiring badge */}
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>{badge.label}</span>
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Users2 className="h-3 w-3" /> {job.vacancies} positions
-                </span>
+                {job.vacancies != null && (
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Users2 className="h-3 w-3" /> {job.vacancies} positions
+                  </span>
+                )}
               </div>
 
-              {/* Positions filled bar */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{job.filled} filled</span>
-                  <span>{job.vacancies - job.filled} remaining</span>
+              {job.vacancies != null && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{job.positionsFilled ?? 0} filled</span>
+                    <span>{job.vacancies - (job.positionsFilled ?? 0)} remaining</span>
+                  </div>
+                  <Progress value={fillPercent} className="h-1.5" />
                 </div>
-                <Progress value={fillPercent} className="h-1.5" />
-              </div>
+              )}
 
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>
-                <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.type}</span>
-                <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{job.exp}</span>
+                {job.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>}
+                {job.employmentType && <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.employmentType.replace("_", "-").toLowerCase()}</span>}
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {job.skills.map(s => (
-                  <Badge key={s} variant="secondary" className="text-xs font-normal">{s}</Badge>
-                ))}
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <div className="text-xs text-muted-foreground">
-                  <p>By: {job.postedBy}</p>
-                  <p>Deadline: {job.deadline}</p>
-                </div>
-                <Button size="sm" className="text-xs">Apply Now</Button>
+              <div className="flex items-center justify-end pt-2 border-t border-border">
+                <Button size="sm" className="text-xs" disabled={apply.isPending} onClick={() => apply.mutate(job.id)}>
+                  {apply.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply Now"}
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
     </motion.div>
+  );
+};
+
+const CreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    title: "", company: "", location: "", description: "",
+    employmentType: "FULL_TIME" as Job["employmentType"], vacancies: "",
+  });
+  const create = useMutation({
+    mutationFn: () => api.post("/jobs", {
+      ...form,
+      vacancies: form.vacancies ? Number(form.vacancies) : undefined,
+    }),
+    onSuccess: () => {
+      toast({ title: "Job submitted", description: "Awaiting admin approval." });
+      setOpen(false); onCreated();
+      setForm({ title: "", company: "", location: "", description: "", employmentType: "FULL_TIME", vacancies: "" });
+    },
+    onError: (e: any) => toast({ title: "Could not post job", description: e?.message, variant: "destructive" }),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Post Job</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Post a Job</DialogTitle></DialogHeader>
+        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Title</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Company</Label><Input required value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Location</Label><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Vacancies</Label><Input type="number" min={1} value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Type</Label>
+            <Select value={form.employmentType} onValueChange={(v) => setForm({ ...form, employmentType: v as Job["employmentType"] })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="FULL_TIME">Full-time</SelectItem>
+                <SelectItem value="PART_TIME">Part-time</SelectItem>
+                <SelectItem value="INTERNSHIP">Internship</SelectItem>
+                <SelectItem value="CONTRACT">Contract</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={create.isPending}>{create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Submit"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

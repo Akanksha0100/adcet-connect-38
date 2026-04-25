@@ -1,105 +1,148 @@
 import { motion } from "framer-motion";
-import { Users, Briefcase, Calendar, Heart, Trophy, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Users, Briefcase, Calendar, Heart, Trophy } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Link } from "react-router-dom";
 
-const stats = [
-  { label: "Total Alumni", value: "12,450", change: "+245", icon: Users, color: "stat-blue" },
-  { label: "Active Jobs", value: "328", change: "+18", icon: Briefcase, color: "stat-emerald" },
-  { label: "Upcoming Events", value: "12", change: "+3", icon: Calendar, color: "stat-amber" },
-  { label: "Donations", value: "₹8.5L", change: "+₹45K", icon: Heart, color: "stat-rose" },
-];
+interface AnalyticsOverview {
+  totalAlumni?: number;
+  totalEvents?: number;
+  totalJobs?: number;
+  totalDonationsAmount?: number;
+  pendingApprovals?: { users: number; events: number; jobs: number; achievements: number };
+}
 
-const recentAchievements = [
-  { name: "Priya Sharma", batch: "2019", title: "Published Research in IEEE", category: "Academic" },
-  { name: "Rahul Patil", batch: "2018", title: "Founded AI Startup", category: "Entrepreneurship" },
-  { name: "Sneha Kulkarni", batch: "2020", title: "Google Summer of Code", category: "Technical" },
-];
+interface EventItem {
+  id: string;
+  title: string;
+  startsAt: string;
+  isOnline?: boolean;
+  location?: string | null;
+}
 
-const upcomingEvents = [
-  { name: "Alumni Meet 2026", date: "Mar 15, 2026", type: "Meetup", mode: "Offline" },
-  { name: "Web Dev Workshop", date: "Mar 8, 2026", type: "Workshop", mode: "Online" },
-  { name: "Career Fair", date: "Mar 22, 2026", type: "Career", mode: "Hybrid" },
-];
+interface AchievementItem {
+  id: string;
+  title: string;
+  category?: string | null;
+  user?: { firstName?: string; lastName?: string };
+}
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.08 } },
-};
+interface Paginated<T> { items: T[]; pagination?: unknown }
 
-const item = {
-  hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
-};
+const formatINR = (n?: number) =>
+  typeof n === "number" ? `₹${n.toLocaleString("en-IN")}` : "—";
 
 const DashboardHome = () => {
-  return (
-    <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
-      <motion.div variants={item}>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Welcome back, John! Here's what's happening.</p>
-      </motion.div>
+  const { user } = useAuth();
 
-      {/* Stats Grid */}
-      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="stat-card group cursor-pointer hover:-translate-y-0.5">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 rounded-xl bg-${stat.color}/10 flex items-center justify-center`}>
-                <stat.icon className={`h-5 w-5 text-${stat.color}`} />
-              </div>
-              <span className="text-xs font-medium text-accent flex items-center gap-0.5">
-                {stat.change} <ArrowUpRight className="h-3 w-3" />
-              </span>
+  const overview = useQuery({
+    queryKey: ["analytics", "overview"],
+    queryFn: () => api.get<AnalyticsOverview>("/analytics/overview"),
+  });
+
+  const events = useQuery({
+    queryKey: ["events", "upcoming"],
+    queryFn: () => api.get<Paginated<EventItem>>("/events", { upcoming: true, pageSize: 5 }),
+  });
+
+  const achievements = useQuery({
+    queryKey: ["achievements", "recent"],
+    queryFn: () =>
+      api.get<Paginated<AchievementItem>>("/achievements", { status: "APPROVED", pageSize: 5 }),
+  });
+
+  const stats = [
+    { label: "Total Alumni", value: overview.data?.totalAlumni?.toLocaleString() ?? "—", icon: Users },
+    { label: "Active Jobs", value: overview.data?.totalJobs?.toLocaleString() ?? "—", icon: Briefcase },
+    { label: "Events", value: overview.data?.totalEvents?.toLocaleString() ?? "—", icon: Calendar },
+    { label: "Donations", value: formatINR(overview.data?.totalDonationsAmount), icon: Heart },
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Welcome back{user ? `, ${user.firstName}` : ""}! Here's what's happening.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <div key={s.label} className="stat-card group cursor-pointer hover:-translate-y-0.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
+              <s.icon className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-            <p className="text-sm text-muted-foreground">{stat.label}</p>
+            {overview.isLoading ? (
+              <Skeleton className="h-7 w-20" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">{s.value}</p>
+            )}
+            <p className="text-sm text-muted-foreground">{s.label}</p>
           </div>
         ))}
-      </motion.div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upcoming Events */}
-        <motion.div variants={item} className="card-elevated p-6">
+        <div className="card-elevated p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Upcoming Events</h2>
-            <button className="text-sm text-accent hover:underline">View all</button>
+            <Link to="/dashboard/events" className="text-sm text-accent hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {upcomingEvents.map((event) => (
-              <div key={event.name} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
+            {events.isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            {!events.isLoading && (events.data?.items.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No upcoming events.</p>
+            )}
+            {events.data?.items.slice(0, 3).map((e) => (
+              <div key={e.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
                   <Calendar className="h-4 w-4 text-accent" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{event.name}</p>
-                  <p className="text-xs text-muted-foreground">{event.date}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{e.title}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(e.startsAt).toLocaleDateString()}</p>
                 </div>
-                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{event.mode}</span>
+                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                  {e.isOnline ? "Online" : e.location ?? "Offline"}
+                </span>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
-        {/* Featured Achievements */}
-        <motion.div variants={item} className="card-elevated p-6">
+        <div className="card-elevated p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Featured Achievements</h2>
-            <button className="text-sm text-accent hover:underline">View all</button>
+            <Link to="/dashboard/achievements" className="text-sm text-accent hover:underline">View all</Link>
           </div>
           <div className="space-y-3">
-            {recentAchievements.map((a) => (
-              <div key={a.name} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
+            {achievements.isLoading && Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            {!achievements.isLoading && (achievements.data?.items.length ?? 0) === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">No achievements yet.</p>
+            )}
+            {achievements.data?.items.slice(0, 3).map((a) => (
+              <div key={a.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted transition-colors">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <Trophy className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
-                  <p className="text-xs text-muted-foreground">{a.name} · Batch {a.batch}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {a.user ? `${a.user.firstName ?? ""} ${a.user.lastName ?? ""}`.trim() : ""}
+                  </p>
                 </div>
-                <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">{a.category}</span>
+                {a.category && (
+                  <span className="text-xs bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full">
+                    {a.category}
+                  </span>
+                )}
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );

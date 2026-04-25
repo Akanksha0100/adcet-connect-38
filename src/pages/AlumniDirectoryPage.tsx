@@ -1,20 +1,32 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, Users, MapPin, GraduationCap, Briefcase, Mail } from "lucide-react";
+import { Search, MapPin, GraduationCap, Briefcase, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { LoadingGrid } from "@/components/LoadingGrid";
+import { EmptyState } from "@/components/EmptyState";
 
-const alumni = [
-  { name: "Priya Sharma", batch: "2019", dept: "Computer Eng.", role: "SDE at Google", location: "Bangalore", initials: "PS" },
-  { name: "Rahul Patil", batch: "2018", dept: "IT", role: "Founder, AI Labs", location: "Pune", initials: "RP" },
-  { name: "Sneha Kulkarni", batch: "2020", dept: "E&TC", role: "Data Scientist at TCS", location: "Mumbai", initials: "SK" },
-  { name: "Amit Joshi", batch: "2017", dept: "Mechanical", role: "Product Manager at Flipkart", location: "Delhi", initials: "AJ" },
-  { name: "Kavita More", batch: "2021", dept: "Computer Eng.", role: "Frontend Dev at Infosys", location: "Pune", initials: "KM" },
-  { name: "Suresh Patil", batch: "2016", dept: "Civil", role: "Site Engineer at L&T", location: "Hyderabad", initials: "SP" },
-];
+interface Profile {
+  id: string; userId: string;
+  city?: string | null; currentCompany?: string | null; currentRole?: string | null;
+  department?: string | null; graduationYear?: number | null;
+  user?: { firstName?: string; lastName?: string; email?: string };
+}
 
 const AlumniDirectoryPage = () => {
+  const [q, setQ] = useState("");
+  const list = useQuery({
+    queryKey: ["alumni", q],
+    queryFn: () => api.get<{ items: Profile[] }>("/alumni", { q: q || undefined, pageSize: 30 }),
+  });
+
+  const initials = (p: Profile) => {
+    const f = p.user?.firstName?.[0] ?? ""; const l = p.user?.lastName?.[0] ?? "";
+    return (f + l).toUpperCase() || "AL";
+  };
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
@@ -22,49 +34,34 @@ const AlumniDirectoryPage = () => {
         <p className="text-muted-foreground text-sm mt-1">Connect with fellow alumni</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search alumni by name, company..." className="pl-9" />
-        </div>
-        <Select>
-          <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="Batch" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Batches</SelectItem>
-            <SelectItem value="2021">2021</SelectItem>
-            <SelectItem value="2020">2020</SelectItem>
-            <SelectItem value="2019">2019</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Department" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Departments</SelectItem>
-            <SelectItem value="cs">Computer Eng.</SelectItem>
-            <SelectItem value="it">IT</SelectItem>
-            <SelectItem value="entc">E&TC</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search alumni by name, company..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
+      {list.isLoading && <LoadingGrid />}
+      {!list.isLoading && (list.data?.items.length ?? 0) === 0 && (
+        <EmptyState icon={Users} title="No alumni found" />
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {alumni.map(a => (
-          <div key={a.name} className="card-elevated p-5 flex items-start gap-4 hover:-translate-y-0.5 transition-transform">
+        {list.data?.items.map((p) => (
+          <div key={p.id} className="card-elevated p-5 flex items-start gap-4 hover:-translate-y-0.5 transition-transform">
             <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-primary/10 text-primary font-semibold">{a.initials}</AvatarFallback>
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">{initials(p)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-foreground text-sm">{a.name}</h3>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Briefcase className="h-3 w-3" /> {a.role}
-              </p>
+              <h3 className="font-semibold text-foreground text-sm">
+                {`${p.user?.firstName ?? ""} ${p.user?.lastName ?? ""}`.trim() || "Alumni"}
+              </h3>
+              {p.currentRole && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                  <Briefcase className="h-3 w-3" /> {p.currentRole}{p.currentCompany ? ` at ${p.currentCompany}` : ""}
+                </p>
+              )}
               <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><GraduationCap className="h-3 w-3" /> {a.batch} · {a.dept}</span>
-                <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {a.location}</span>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <Button variant="outline" size="sm" className="text-xs h-7">View Profile</Button>
-                <Button size="sm" className="text-xs h-7"><Mail className="h-3 w-3 mr-1" /> Connect</Button>
+                {p.graduationYear && <span className="flex items-center gap-1"><GraduationCap className="h-3 w-3" /> {p.graduationYear} · {p.department ?? ""}</span>}
+                {p.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {p.city}</span>}
               </div>
             </div>
           </div>
