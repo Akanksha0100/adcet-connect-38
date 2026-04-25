@@ -118,23 +118,23 @@ const AuthPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" />
+                <Input id="firstName" placeholder="John" required value={reg.firstName} onChange={(e) => setReg({ ...reg, firstName: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" />
+                <Input id="lastName" placeholder="Doe" required value={reg.lastName} onChange={(e) => setReg({ ...reg, lastName: e.target.value })} />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="regEmail">Email</Label>
-              <Input id="regEmail" type="email" placeholder="john@example.com" />
+              <Input id="regEmail" type="email" placeholder="john@example.com" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="admissionYear">Admission Year</Label>
-                <Select>
+                <Select value={reg.admissionYear} onValueChange={(v) => setReg({ ...reg, admissionYear: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
@@ -145,7 +145,7 @@ const AuthPage = () => {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="gradYear">Graduation Year</Label>
-                <Select>
+                <Select value={reg.graduationYear} onValueChange={(v) => setReg({ ...reg, graduationYear: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
@@ -159,18 +159,18 @@ const AuthPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Degree</Label>
-                <Select>
+                <Select value={reg.degree} onValueChange={(v) => setReg({ ...reg, degree: v as typeof reg.degree })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {degrees.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                    {degrees.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Department</Label>
-                <Select>
+                <Select value={reg.department} onValueChange={(v) => setReg({ ...reg, department: v })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -184,16 +184,22 @@ const AuthPage = () => {
             <div className="space-y-1.5">
               <Label htmlFor="regPassword">Password</Label>
               <div className="relative">
-                <Input id="regPassword" type={showRegPassword ? "text" : "password"} placeholder="Create a password" />
+                <Input id="regPassword" type={showRegPassword ? "text" : "password"} placeholder="Create a password (min 8 chars)" required minLength={8} value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} />
                 <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-2">
-              Create Account
+            <Button type="submit" className="w-full mt-2" disabled={registering}>
+              {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
             </Button>
+
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("google")}>Google</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("linkedin")}><Linkedin className="h-3 w-3 mr-1" /> LinkedIn</Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("github")}><Github className="h-3 w-3 mr-1" /> GitHub</Button>
+            </div>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6 lg:hidden">
@@ -244,7 +250,7 @@ const AuthPage = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="loginEmail">Email</Label>
-              <Input id="loginEmail" type="email" placeholder="you@example.com" />
+              <Input id="loginEmail" type="email" placeholder="you@example.com" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} />
             </div>
 
             <div className="space-y-1.5">
@@ -253,15 +259,15 @@ const AuthPage = () => {
                 <button type="button" className="text-xs text-accent hover:underline">Forgot password?</button>
               </div>
               <div className="relative">
-                <Input id="loginPassword" type={showLoginPassword ? "text" : "password"} placeholder="Enter your password" />
+                <Input id="loginPassword" type={showLoginPassword ? "text" : "password"} placeholder="Enter your password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
                 <button type="button" onClick={() => setShowLoginPassword(!showLoginPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                   {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={loggingIn}>
+              {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
             </Button>
           </form>
 
@@ -274,12 +280,15 @@ const AuthPage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="w-full">
+          <div className="grid grid-cols-3 gap-3">
+            <Button variant="outline" className="w-full" onClick={() => startOAuth("google")}>
+              Google
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => startOAuth("linkedin")}>
               <Linkedin className="mr-2 h-4 w-4" />
               LinkedIn
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={() => startOAuth("github")}>
               <Github className="mr-2 h-4 w-4" />
               GitHub
             </Button>
