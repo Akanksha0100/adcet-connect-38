@@ -1,0 +1,489 @@
+{
+  "_meta": {
+    "description": "Static seed dataset for ADCET Alumni Portal. Mirrors the Prisma schema entities. Not yet loaded by frontend or backend — kept here for future seeding / mocking.",
+    "version": "1.0.0",
+    "generatedFor": "backend/prisma/schema.prisma",
+    "notes": "Field names match Prisma model fields exactly. Enums use uppercase as defined in schema."
+  },
+
+  "users": [
+    {
+      "id": "u_001",
+      "email": "admin@adcet.ac.in",
+      "firstName": "System",
+      "lastName": "Admin",
+      "status": "APPROVED",
+      "roles": ["ADMIN"]
+    },
+    {
+      "id": "u_002",
+      "email": "priya.sharma@example.com",
+      "firstName": "Priya",
+      "lastName": "Sharma",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_003",
+      "email": "rahul.patil@example.com",
+      "firstName": "Rahul",
+      "lastName": "Patil",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_004",
+      "email": "sneha.kulkarni@example.com",
+      "firstName": "Sneha",
+      "lastName": "Kulkarni",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_005",
+      "email": "amit.joshi@example.com",
+      "firstName": "Amit",
+      "lastName": "Joshi",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_006",
+      "email": "kavita.more@example.com",
+      "firstName": "Kavita",
+      "lastName": "More",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_007",
+      "email": "suresh.patil@example.com",
+      "firstName": "Suresh",
+      "lastName": "Patil",
+      "status": "APPROVED",
+      "roles": ["ALUMNI"]
+    },
+    {
+      "id": "u_008",
+      "email": "student.demo@adcet.ac.in",
+      "firstName": "Demo",
+      "lastName": "Student",
+      "status": "APPROVED",
+      "roles": ["STUDENT"]
+    },
+    {
+      "id": "u_009",
+      "email": "recruiter@infosys.com",
+      "firstName": "HR",
+      "lastName": "Infosys",
+      "status": "PENDING",
+      "roles": ["RECRUITER"]
+    }
+  ],
+
+  "profiles": [
+    {
+      "userId": "u_002",
+      "department": "Computer Engineering",
+      "degree": "BE",
+      "admissionYear": 2015,
+      "graduationYear": 2019,
+      "city": "Bangalore",
+      "country": "India",
+      "currentCompany": "Google",
+      "currentRole": "SDE II",
+      "linkedinUrl": "https://linkedin.com/in/priyasharma",
+      "githubUrl": "https://github.com/priyas"
+    },
+    {
+      "userId": "u_003",
+      "department": "Information Technology",
+      "degree": "BE",
+      "admissionYear": 2014,
+      "graduationYear": 2018,
+      "city": "Pune",
+      "country": "India",
+      "currentCompany": "AI Labs",
+      "currentRole": "Founder"
+    },
+    {
+      "userId": "u_004",
+      "department": "Electronics & Telecom",
+      "degree": "BE",
+      "admissionYear": 2016,
+      "graduationYear": 2020,
+      "city": "Mumbai",
+      "country": "India",
+      "currentCompany": "TCS",
+      "currentRole": "Data Scientist"
+    },
+    {
+      "userId": "u_005",
+      "department": "Mechanical Engineering",
+      "degree": "BE",
+      "admissionYear": 2013,
+      "graduationYear": 2017,
+      "city": "Delhi",
+      "country": "India",
+      "currentCompany": "Flipkart",
+      "currentRole": "Product Manager"
+    },
+    {
+      "userId": "u_006",
+      "department": "Computer Engineering",
+      "degree": "BE",
+      "admissionYear": 2017,
+      "graduationYear": 2021,
+      "city": "Pune",
+      "country": "India",
+      "currentCompany": "Infosys",
+      "currentRole": "Frontend Developer"
+    },
+    {
+      "userId": "u_007",
+      "department": "Civil Engineering",
+      "degree": "BE",
+      "admissionYear": 2012,
+      "graduationYear": 2016,
+      "city": "Hyderabad",
+      "country": "India",
+      "currentCompany": "L&T",
+      "currentRole": "Site Engineer"
+    }
+  ],
+
+  "events": [
+    {
+      "id": "e_001",
+      "title": "Alumni Meet 2026",
+      "description": "Annual gathering of ADCET alumni across all batches.",
+      "location": "ADCET Campus",
+      "isOnline": false,
+      "startsAt": "2026-03-15T10:00:00.000Z",
+      "capacity": 500,
+      "status": "APPROVED",
+      "createdById": "u_001"
+    },
+    {
+      "id": "e_002",
+      "title": "Web Dev Bootcamp",
+      "description": "Full-stack web development workshop with React & Node.",
+      "location": "Google Meet",
+      "isOnline": true,
+      "startsAt": "2026-03-08T14:00:00.000Z",
+      "capacity": 200,
+      "status": "APPROVED",
+      "createdById": "u_003"
+    },
+    {
+      "id": "e_003",
+      "title": "Hackathon 2026",
+      "description": "24-hour coding marathon with exciting prizes.",
+      "location": "ADCET Auditorium",
+      "isOnline": false,
+      "startsAt": "2026-04-05T09:00:00.000Z",
+      "capacity": 100,
+      "status": "PENDING",
+      "createdById": "u_002"
+    },
+    {
+      "id": "e_004",
+      "title": "AI/ML Seminar",
+      "description": "Introduction to machine learning for beginners.",
+      "location": "Zoom",
+      "isOnline": true,
+      "startsAt": "2026-03-20T16:00:00.000Z",
+      "capacity": 300,
+      "status": "APPROVED",
+      "createdById": "u_004"
+    }
+  ],
+
+  "jobs": [
+    {
+      "id": "j_001",
+      "title": "Frontend Developer",
+      "company": "Infosys",
+      "location": "Pune",
+      "isRemote": false,
+      "employmentType": "FULL_TIME",
+      "experienceMin": 0,
+      "experienceMax": 2,
+      "currency": "INR",
+      "description": "Build modern UIs with React + TypeScript.",
+      "requirements": "React, TypeScript, Tailwind",
+      "vacancies": 12,
+      "positionsFilled": 5,
+      "status": "APPROVED",
+      "createdById": "u_003"
+    },
+    {
+      "id": "j_002",
+      "title": "Data Analyst",
+      "company": "TCS",
+      "location": "Mumbai",
+      "isRemote": false,
+      "employmentType": "FULL_TIME",
+      "experienceMin": 1,
+      "experienceMax": 3,
+      "currency": "INR",
+      "description": "Analyze large datasets and build dashboards.",
+      "requirements": "Python, SQL, Power BI",
+      "vacancies": 3,
+      "positionsFilled": 2,
+      "status": "APPROVED",
+      "createdById": "u_004"
+    },
+    {
+      "id": "j_003",
+      "title": "Backend Engineer Intern",
+      "company": "Startup XYZ",
+      "location": "Remote",
+      "isRemote": true,
+      "employmentType": "INTERNSHIP",
+      "experienceMin": 0,
+      "experienceMax": 0,
+      "currency": "INR",
+      "description": "Build REST APIs with Node and MongoDB.",
+      "requirements": "Node.js, MongoDB, REST APIs",
+      "vacancies": 2,
+      "positionsFilled": 1,
+      "status": "APPROVED",
+      "createdById": "u_005"
+    },
+    {
+      "id": "j_004",
+      "title": "ML Engineer",
+      "company": "Google",
+      "location": "Bangalore",
+      "isRemote": false,
+      "employmentType": "FULL_TIME",
+      "experienceMin": 3,
+      "experienceMax": 5,
+      "currency": "INR",
+      "description": "Design ML pipelines and serve models in production.",
+      "requirements": "Python, TensorFlow, MLOps",
+      "vacancies": 25,
+      "positionsFilled": 8,
+      "status": "APPROVED",
+      "createdById": "u_002"
+    },
+    {
+      "id": "j_005",
+      "title": "UI/UX Designer",
+      "company": "Wipro",
+      "location": "Pune",
+      "isRemote": false,
+      "employmentType": "CONTRACT",
+      "experienceMin": 1,
+      "experienceMax": 2,
+      "currency": "INR",
+      "description": "Design user-centric experiences for enterprise apps.",
+      "requirements": "Figma, Adobe XD, Prototyping",
+      "vacancies": 5,
+      "positionsFilled": 3,
+      "status": "APPROVED",
+      "createdById": "u_006"
+    },
+    {
+      "id": "j_006",
+      "title": "DevOps Engineer",
+      "company": "Persistent",
+      "location": "Pune",
+      "isRemote": false,
+      "employmentType": "FULL_TIME",
+      "experienceMin": 2,
+      "experienceMax": 4,
+      "currency": "INR",
+      "description": "Own CI/CD pipelines and Kubernetes clusters.",
+      "requirements": "AWS, Docker, Kubernetes",
+      "vacancies": 8,
+      "positionsFilled": 2,
+      "status": "PENDING",
+      "createdById": "u_007"
+    }
+  ],
+
+  "achievements": [
+    {
+      "id": "a_001",
+      "userId": "u_002",
+      "title": "Published Research Paper in IEEE",
+      "description": "Co-authored a paper on distributed systems published in IEEE Transactions.",
+      "category": "Academic",
+      "occurredOn": "2025-06-12T00:00:00.000Z",
+      "status": "APPROVED"
+    },
+    {
+      "id": "a_002",
+      "userId": "u_003",
+      "title": "Founded AI Startup – Raised $2M",
+      "description": "AI Labs raised $2M seed funding led by Sequoia.",
+      "category": "Entrepreneurship",
+      "occurredOn": "2025-09-01T00:00:00.000Z",
+      "status": "APPROVED"
+    },
+    {
+      "id": "a_003",
+      "userId": "u_004",
+      "title": "Google Summer of Code Scholar",
+      "description": "Selected as a GSoC contributor for the CNCF organization.",
+      "category": "Technical",
+      "occurredOn": "2024-05-20T00:00:00.000Z",
+      "status": "APPROVED"
+    },
+    {
+      "id": "a_004",
+      "userId": "u_005",
+      "title": "National Level Cricket Champion",
+      "description": "Captained the team to a national title.",
+      "category": "Sports",
+      "occurredOn": "2024-12-10T00:00:00.000Z",
+      "status": "APPROVED"
+    },
+    {
+      "id": "a_005",
+      "userId": "u_006",
+      "title": "Best Research Poster Award",
+      "description": "Won best poster at the IIT Bombay TechFest.",
+      "category": "Academic",
+      "occurredOn": "2025-02-04T00:00:00.000Z",
+      "status": "PENDING"
+    },
+    {
+      "id": "a_006",
+      "userId": "u_007",
+      "title": "Patent for IoT Device",
+      "description": "Granted Indian patent for a low-power IoT sensor module.",
+      "category": "Innovation",
+      "occurredOn": "2025-08-22T00:00:00.000Z",
+      "status": "APPROVED"
+    }
+  ],
+
+  "donationCampaigns": [
+    {
+      "id": "dc_001",
+      "title": "Scholarships Fund 2026",
+      "description": "Sponsor merit-based scholarships for underprivileged students.",
+      "goalAmount": 1000000,
+      "currency": "INR",
+      "startsAt": "2026-01-01T00:00:00.000Z",
+      "endsAt": "2026-12-31T00:00:00.000Z",
+      "isActive": true
+    },
+    {
+      "id": "dc_002",
+      "title": "Library Infrastructure Upgrade",
+      "description": "Modernize the central library with digital resources.",
+      "goalAmount": 500000,
+      "currency": "INR",
+      "startsAt": "2026-02-01T00:00:00.000Z",
+      "isActive": true
+    }
+  ],
+
+  "donations": [
+    {
+      "id": "d_001",
+      "campaignId": "dc_001",
+      "userId": "u_002",
+      "amount": 5000,
+      "currency": "INR",
+      "status": "RECEIVED",
+      "isAnonymous": false,
+      "message": "Happy to give back."
+    },
+    {
+      "id": "d_002",
+      "campaignId": "dc_002",
+      "userId": "u_003",
+      "amount": 2000,
+      "currency": "INR",
+      "status": "RECEIVED",
+      "isAnonymous": false
+    },
+    {
+      "id": "d_003",
+      "campaignId": "dc_001",
+      "userId": "u_004",
+      "amount": 1000,
+      "currency": "INR",
+      "status": "PLEDGED",
+      "isAnonymous": true
+    }
+  ],
+
+  "geoAggregates": {
+    "_note": "Derived view (city → company → count). Backend computes this from profiles; included here for parity with the GeoMap UI dummy data.",
+    "cities": [
+      {
+        "name": "Pune", "country": "India", "alumniCount": 3200,
+        "companies": [
+          { "name": "Infosys", "count": 620 },
+          { "name": "TCS", "count": 540 },
+          { "name": "Persistent Systems", "count": 480 },
+          { "name": "Wipro", "count": 390 },
+          { "name": "Cognizant", "count": 310 },
+          { "name": "Others", "count": 860 }
+        ]
+      },
+      {
+        "name": "Mumbai", "country": "India", "alumniCount": 2800,
+        "companies": [
+          { "name": "Reliance", "count": 450 },
+          { "name": "TCS", "count": 520 },
+          { "name": "JP Morgan", "count": 380 },
+          { "name": "Deloitte", "count": 340 },
+          { "name": "Others", "count": 1110 }
+        ]
+      },
+      {
+        "name": "Bangalore", "country": "India", "alumniCount": 1900,
+        "companies": [
+          { "name": "Google", "count": 180 },
+          { "name": "Microsoft", "count": 220 },
+          { "name": "Amazon", "count": 310 },
+          { "name": "Infosys", "count": 440 },
+          { "name": "Others", "count": 750 }
+        ]
+      },
+      {
+        "name": "Hyderabad", "country": "India", "alumniCount": 850,
+        "companies": [
+          { "name": "Microsoft", "count": 150 },
+          { "name": "Amazon", "count": 120 },
+          { "name": "Deloitte", "count": 95 },
+          { "name": "Others", "count": 485 }
+        ]
+      },
+      {
+        "name": "Delhi NCR", "country": "India", "alumniCount": 720,
+        "companies": [
+          { "name": "HCL", "count": 180 },
+          { "name": "Wipro", "count": 140 },
+          { "name": "Adobe", "count": 90 },
+          { "name": "Others", "count": 310 }
+        ]
+      },
+      {
+        "name": "USA", "country": "USA", "alumniCount": 1200,
+        "companies": [
+          { "name": "Google", "count": 210 },
+          { "name": "Microsoft", "count": 190 },
+          { "name": "Amazon", "count": 170 },
+          { "name": "Meta", "count": 130 },
+          { "name": "Others", "count": 500 }
+        ]
+      },
+      {
+        "name": "Europe", "country": "Multiple", "alumniCount": 450,
+        "companies": [
+          { "name": "SAP", "count": 95 },
+          { "name": "Siemens", "count": 80 },
+          { "name": "Others", "count": 275 }
+        ]
+      }
+    ]
+  }
+}
