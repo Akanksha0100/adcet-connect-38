@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
   Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck,
@@ -48,6 +49,16 @@ const DashboardLayout = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, logout, isAdmin } = useAuth();
+
+  const initials = user
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "U"
+    : "U";
+
+  const handleSignOut = async () => {
+    await logout();
+    navigate("/", { replace: true });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -103,7 +114,7 @@ const DashboardLayout = () => {
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">JD</AvatarFallback>
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
                 </Avatar>
               </button>
             </DropdownMenuTrigger>
@@ -115,7 +126,7 @@ const DashboardLayout = () => {
                 <Settings className="mr-2 h-4 w-4" /> Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/")} className="text-destructive">
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                 <LogOut className="mr-2 h-4 w-4" /> Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -148,16 +159,18 @@ const DashboardLayout = () => {
                   </NavLink>
                 ))}
 
-                <div className="border-t border-border my-2 pt-2">
-                  <NavLink
-                    to="/admin"
-                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-accent hover:bg-accent/10 transition-colors font-medium"
-                    activeClassName="bg-accent/10"
-                  >
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-                    <span>Admin Panel</span>
-                  </NavLink>
-                </div>
+                {isAdmin && (
+                  <div className="border-t border-border my-2 pt-2">
+                    <NavLink
+                      to="/admin"
+                      className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-accent hover:bg-accent/10 transition-colors font-medium"
+                      activeClassName="bg-accent/10"
+                    >
+                      <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+                      <span>Admin Panel</span>
+                    </NavLink>
+                  </div>
+                )}
               </nav>
             </motion.aside>
           )}
