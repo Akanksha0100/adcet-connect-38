@@ -32,6 +32,19 @@ const schema = z.object({
   LOCAL_STORAGE_DIR: z.string().default("./uploads"),
 
   LOG_LEVEL: z.string().default("info"),
+
+  // === OAuth / SSO (optional — endpoints return 501 if a provider is unconfigured) ===
+  OAUTH_REDIRECT_BASE_URL: z.string().optional(), // e.g. http://localhost:4000/api/v1/auth/oauth
+  OAUTH_SUCCESS_REDIRECT: z.string().optional(),  // frontend URL to bounce to after success
+
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  LINKEDIN_CLIENT_ID: z.string().optional(),
+  LINKEDIN_CLIENT_SECRET: z.string().optional(),
+
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
