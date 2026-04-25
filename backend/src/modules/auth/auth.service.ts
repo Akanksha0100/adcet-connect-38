@@ -13,6 +13,7 @@ import {
 import { Conflict, Unauthorized } from "../../lib/errors.js";
 import type { AppRoleName } from "../../config/constants.js";
 import type { LoginInput, RegisterInput } from "./auth.validators.js";
+import type { OAuthProfile } from "./providers/index.js";
 
 const REFRESH_TTL_DAYS = 7;
 
@@ -118,6 +119,66 @@ export const me = async (userId: string) => {
   });
   if (!user) throw Unauthorized();
   return publicUser(user, user.roles.map((r) => r.role as AppRoleName));
+};
+
+/**
+ * Find-or-create a user from a normalized OAuth profile, then issue our own JWTs.
+ * - If the OAuthAccount exists → log that user in.
+ * - Else if a user with the same email exists → link the OAuth account to them.
+ * - Else → create a new ALUMNI user (auto-approved since email is provider-verified).
+ */
+export const loginWithOAuth = async (profile: OAuthProfile) => {
+  // 1. Already-linked account?
+  const existingLink = await prisma.oAuthAccount.findUnique({
+    where: { provider_providerId: { provider: profile.provider, providerId: profile.providerId } },
+    include: { user: { include: { roles: true } } },
+  });
+
+  let user = existingLink?.user;
+
+  // 2. Same email but no link yet → attach.
+  if (!user) {
+    const byEmail = await prisma.user.findUnique({
+      where: { email: profile.email },
+      include: { roles: true },
+    });
+    if (byEmail) {
+      await prisma.oAuthAccount.create({
+        data: {
+          userId: byEmail.id,
+          provider: profile.provider,
+          providerId: profile.providerId,
+        },
+      });
+      user = byEmail;
+    }
+  }
+
+  // 3. Brand-new user.
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: profile.email,
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        // SSO email is provider-verified → safe to auto-approve.
+        status: profile.emailVerified ? "APPROVED" : "PENDING",
+        emailVerifiedAt: profile.emailVerified ? new Date() : null,
+        roles: { create: { role: "ALUMNI" } },
+        profile: { create: {} },
+        preferences: { create: {} },
+        oauthAccounts: {
+          create: { provider: profile.provider, providerId: profile.providerId },
+        },
+      },
+      include: { roles: true },
+    });
+  }
+
+  const roles = user.roles.map((r) => r.role as AppRoleName);
+  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  const tokens = await issueTokens(user, roles);
+  return { user: publicUser(user, roles), ...tokens };
 };
 
 const publicUser = (
