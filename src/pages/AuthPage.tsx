@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, GraduationCap, Github, Linkedin } from "lucide-react";
+import { Eye, EyeOff, GraduationCap, Github, Linkedin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { apiUrl } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
 
 const departments = ["Computer Engineering", "Information Technology", "Electronics & Telecom", "Mechanical Engineering", "Civil Engineering", "Electrical Engineering"];
-const degrees = ["B.E.", "M.E.", "Ph.D.", "Diploma"];
+const degrees: Array<{ value: "BE" | "ME" | "PHD" | "DIPLOMA"; label: string }> = [
+  { value: "BE", label: "B.E." },
+  { value: "ME", label: "M.E." },
+  { value: "PHD", label: "Ph.D." },
+  { value: "DIPLOMA", label: "Diploma" },
+];
 const years = Array.from({ length: 30 }, (_, i) => (2000 + i).toString());
 
 const AuthPage = () => {
@@ -16,15 +24,79 @@ const AuthPage = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"register" | "login">("login");
   const navigate = useNavigate();
+  const { login, register, user, loading } = useAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // Register form state
+  const [reg, setReg] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    department: "",
+    degree: "" as "" | "BE" | "ME" | "PHD" | "DIPLOMA",
+    admissionYear: "",
+    graduationYear: "",
+  });
+  const [registering, setRegistering] = useState(false);
+
+  // If already authenticated, jump to the right area.
+  useEffect(() => {
+    if (loading || !user) return;
+    navigate(user.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
+  }, [loading, user, navigate]);
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    if (loggingIn) return;
+    setLoggingIn(true);
+    try {
+      const me = await login(loginEmail.trim(), loginPassword);
+      toast({ title: "Welcome back", description: `Signed in as ${me.firstName} ${me.lastName}` });
+      navigate(me.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
+    } catch (err: any) {
+      toast({ title: "Sign-in failed", description: err?.message ?? "Check your credentials", variant: "destructive" });
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    if (registering) return;
+    setRegistering(true);
+    try {
+      const me = await register({
+        email: reg.email.trim(),
+        password: reg.password,
+        firstName: reg.firstName.trim(),
+        lastName: reg.lastName.trim(),
+        department: reg.department || undefined,
+        degree: reg.degree || undefined,
+        admissionYear: reg.admissionYear ? Number(reg.admissionYear) : undefined,
+        graduationYear: reg.graduationYear ? Number(reg.graduationYear) : undefined,
+      });
+      toast({
+        title: "Account created",
+        description: me.status === "PENDING"
+          ? "Your account is pending admin approval. Some features may be limited."
+          : "You're all set!",
+      });
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      toast({ title: "Registration failed", description: err?.message ?? "Please try again", variant: "destructive" });
+    } finally {
+      setRegistering(false);
+    }
+  };
+
+  const startOAuth = (provider: "google" | "linkedin" | "github") => {
+    // Backend handles the redirect dance and bounces back to /auth/callback.
+    window.location.href = apiUrl(`/auth/oauth/${provider}`);
   };
 
   return (
