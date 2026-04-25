@@ -15,6 +15,9 @@ import GeoMapPage from "./pages/GeoMapPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 // Admin
 import AdminLayout from "./components/AdminLayout";
@@ -37,33 +40,45 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<AuthPage />} />
-          <Route path="/dashboard" element={<DashboardLayout />}>
-            <Route index element={<DashboardHome />} />
-            <Route path="events" element={<EventsPage />} />
-            <Route path="jobs" element={<JobsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-            <Route path="achievements" element={<AchievementsPage />} />
-            <Route path="donations" element={<DonationsPage />} />
-            <Route path="geomap" element={<GeoMapPage />} />
-            <Route path="analytics" element={<AnalyticsPage />} />
-            <Route path="alumni" element={<AlumniDirectoryPage />} />
-          </Route>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="approvals" element={<UserApprovalsPage />} />
-            <Route path="events" element={<EventApprovalsPage />} />
-            <Route path="jobs" element={<JobApprovalsPage />} />
-            <Route path="achievements" element={<AchievementsAdminPage />} />
-            <Route path="donations" element={<DonationsAdminPage />} />
-            <Route path="analytics" element={<AdminAnalyticsPage />} />
-            <Route path="geomap" element={<AdminGeoMapPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<AuthPage />} />
+            <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+            {/* Any logged-in user (any role) can access /dashboard. */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<DashboardHome />} />
+                <Route path="events" element={<EventsPage />} />
+                <Route path="jobs" element={<JobsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+                <Route path="achievements" element={<AchievementsPage />} />
+                <Route path="donations" element={<DonationsPage />} />
+                <Route path="geomap" element={<GeoMapPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="alumni" element={<AlumniDirectoryPage />} />
+              </Route>
+            </Route>
+
+            {/* Admin-only area. */}
+            <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="approvals" element={<UserApprovalsPage />} />
+                <Route path="events" element={<EventApprovalsPage />} />
+                <Route path="jobs" element={<JobApprovalsPage />} />
+                <Route path="achievements" element={<AchievementsAdminPage />} />
+                <Route path="donations" element={<DonationsAdminPage />} />
+                <Route path="analytics" element={<AdminAnalyticsPage />} />
+                <Route path="geomap" element={<AdminGeoMapPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
