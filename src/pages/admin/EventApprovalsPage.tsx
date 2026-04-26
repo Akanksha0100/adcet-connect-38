@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Calendar, User } from "lucide-react";
+import { CheckCircle, XCircle, Calendar, User, CalendarX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -82,7 +82,7 @@ const EventApprovalsPage = () => {
       {isLoading ? (
         <LoadingGrid count={4} />
       ) : events.length === 0 ? (
-        <EmptyState title="No events" description="Nothing to review here." />
+        <EmptyState icon={CalendarX} title="No events" description="Nothing to review here." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {events.map((e) => (

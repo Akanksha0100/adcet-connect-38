@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Search, MapPin, Briefcase } from "lucide-react";
+import { CheckCircle, XCircle, Search, MapPin, Briefcase, BriefcaseBusiness } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -77,7 +77,7 @@ const JobApprovalsPage = () => {
       {isLoading ? (
         <LoadingGrid count={6} />
       ) : jobs.length === 0 ? (
-        <EmptyState title="No pending jobs" description="All caught up." />
+        <EmptyState icon={BriefcaseBusiness} title="No pending jobs" description="All caught up." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {jobs.map((j) => (

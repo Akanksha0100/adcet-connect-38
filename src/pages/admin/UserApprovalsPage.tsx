@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, CheckCircle, XCircle, Filter } from "lucide-react";
+import { Search, CheckCircle, XCircle, Filter, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -107,7 +107,7 @@ const UserApprovalsPage = () => {
       {isLoading ? (
         <LoadingGrid count={6} />
       ) : users.length === 0 ? (
-        <EmptyState title="No users found" description="Try adjusting your filters." />
+        <EmptyState icon={Users} title="No users found" description="Try adjusting your filters." />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {users.map((u) => {
