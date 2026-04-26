@@ -19,9 +19,9 @@
     "openapi:serve": "echo 'Swagger UI mounted at /api/docs when server runs'"
   },
   "dependencies": {
-    "@prisma/client": "^5.20.0",
     "@aws-sdk/client-s3": "^3.665.0",
     "@aws-sdk/s3-request-presigner": "^3.665.0",
+    "@prisma/client": "^5.20.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -44,10 +44,10 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.7.4",
     "@types/swagger-ui-express": "^4.1.6",
+    "dotenv-cli": "^7.4.4",
+    "pino-pretty": "^11.2.2",
     "prisma": "^5.20.0",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.2",
-    "pino-pretty": "^11.2.2",
-    "dotenv-cli": "^7.4.2"
+    "typescript": "^5.6.2"
   }
 }
