@@ -1,75 +1,179 @@
 import { motion } from "framer-motion";
-import { Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const userGrowth = [
-  { month: "Sep", users: 9800 }, { month: "Oct", users: 10200 }, { month: "Nov", users: 10800 },
-  { month: "Dec", users: 11100 }, { month: "Jan", users: 11800 }, { month: "Feb", users: 12450 },
+interface Overview {
+  totalUsers: number;
+  totalAlumni: number;
+  totalEvents: number;
+  totalJobs: number;
+  totalAchievements: number;
+  totalDonationsAmount: number;
+  totalDonationsCount: number;
+}
+interface AdminOverview {
+  pendingUsers: number;
+  pendingEvents: number;
+  pendingJobs: number;
+  pendingAchievements: number;
+}
+interface AlumniByYear {
+  year: number;
+  count: number;
+}
+interface DeptBreakdown {
+  department: string | null;
+  count: number;
+}
+
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--accent))",
+  "hsl(var(--secondary))",
+  "hsl(var(--muted-foreground))",
 ];
 
-const eventParticipation = [
-  { month: "Sep", participants: 320 }, { month: "Oct", participants: 450 }, { month: "Nov", participants: 380 },
-  { month: "Dec", participants: 520 }, { month: "Jan", participants: 610 }, { month: "Feb", participants: 480 },
-];
+const AdminAnalyticsPage = () => {
+  const overview = useQuery({
+    queryKey: ["analytics", "overview"],
+    queryFn: () => api.get<Overview>("/analytics/overview"),
+  });
+  const adminOverview = useQuery({
+    queryKey: ["analytics", "admin-overview"],
+    queryFn: () => api.get<AdminOverview>("/analytics/admin/overview"),
+  });
+  const byYear = useQuery({
+    queryKey: ["analytics", "alumni-by-year"],
+    queryFn: () => api.get<AlumniByYear[]>("/analytics/alumni-by-year"),
+  });
+  const dept = useQuery({
+    queryKey: ["analytics", "department-breakdown"],
+    queryFn: () => api.get<DeptBreakdown[]>("/analytics/department-breakdown"),
+  });
 
-const donationOverview = [
-  { name: "Scholarships", value: 40 }, { name: "Infrastructure", value: 25 },
-  { name: "Events", value: 20 }, { name: "Emergency", value: 15 },
-];
+  const stats = [
+    { label: "Total Users", value: overview.data?.totalUsers },
+    { label: "Total Alumni", value: overview.data?.totalAlumni },
+    { label: "Approved Events", value: overview.data?.totalEvents },
+    { label: "Approved Jobs", value: overview.data?.totalJobs },
+    { label: "Pending Users", value: adminOverview.data?.pendingUsers },
+    { label: "Pending Events", value: adminOverview.data?.pendingEvents },
+    { label: "Pending Jobs", value: adminOverview.data?.pendingJobs },
+    { label: "Pending Achievements", value: adminOverview.data?.pendingAchievements },
+  ];
 
-const COLORS = ["hsl(162, 72%, 40%)", "hsl(220, 55%, 50%)", "hsl(38, 92%, 50%)", "hsl(350, 80%, 55%)"];
-
-const AdminAnalyticsPage = () => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-    <div className="flex items-start justify-between">
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
         <p className="text-muted-foreground text-sm mt-1">Platform insights and trends.</p>
       </div>
-      <Button variant="outline" size="sm"><Download className="mr-1.5 h-4 w-4" /> Export</Button>
-    </div>
 
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="card-elevated p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">User Growth</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={userGrowth}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 89%)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Line type="monotone" dataKey="users" stroke="hsl(162, 72%, 40%)" strokeWidth={2} dot={{ r: 4 }} />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="stat-card">
+            {s.value === undefined ? (
+              <Skeleton className="h-7 w-16" />
+            ) : (
+              <p className="text-xl font-bold text-foreground">{s.value.toLocaleString()}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="card-elevated p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Event Participation</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={eventParticipation}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 89%)" />
-            <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Bar dataKey="participants" fill="hsl(220, 55%, 50%)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="card-elevated p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Alumni by Graduation Year</h2>
+          {byYear.isLoading ? (
+            <Skeleton className="h-[250px] w-full" />
+          ) : (byYear.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={byYear.data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="year" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
 
-      <div className="card-elevated p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Donations Overview</h2>
-        <ResponsiveContainer width="100%" height={250}>
-          <PieChart>
-            <Pie data={donationOverview} cx="50%" cy="50%" outerRadius={90} dataKey="value" label={({ name, value }) => `${name}: ${value}%`}>
-              {donationOverview.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
-            </Pie>
-            <Tooltip />
-          </PieChart>
-        </ResponsiveContainer>
+        <div className="card-elevated p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Department Breakdown</h2>
+          {dept.isLoading ? (
+            <Skeleton className="h-[250px] w-full" />
+          ) : (dept.data?.length ?? 0) === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-12">No data yet.</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={dept.data}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="department" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="count" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        <div className="card-elevated p-6 lg:col-span-2">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Moderation Pipeline</h2>
+          {adminOverview.isLoading ? (
+            <Skeleton className="h-[250px] w-full" />
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: "Users", value: adminOverview.data?.pendingUsers ?? 0 },
+                    { name: "Events", value: adminOverview.data?.pendingEvents ?? 0 },
+                    { name: "Jobs", value: adminOverview.data?.pendingJobs ?? 0 },
+                    { name: "Achievements", value: adminOverview.data?.pendingAchievements ?? 0 },
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={90}
+                  dataKey="value"
+                  label={({ name, value }) => `${name}: ${value}`}
+                >
+                  {COLORS.map((c, i) => (
+                    <Cell key={i} fill={c} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
       </div>
-    </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 export default AdminAnalyticsPage;
