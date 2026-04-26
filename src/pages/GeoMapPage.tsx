@@ -13,7 +13,7 @@ interface CityCompanies {
 
 const GeoMapPage = () => {
   const cities = useQuery({ queryKey: ["geo", "cities"], queryFn: () => api.get<CityAgg[]>("/geo/cities") });
-  const breakdown = useQuery({ queryKey: ["geo", "breakdown"], queryFn: () => api.get<CityCompanies[]>("/geo/cities") }); // breakdown endpoint may differ; fall back to cities
+  const breakdown = useQuery({ queryKey: ["geo", "breakdown"], queryFn: () => api.get<CityCompanies[]>("/geo/breakdown") });
 
   const total = cities.data?.reduce((s, c) => s + c.count, 0) ?? 0;
 
