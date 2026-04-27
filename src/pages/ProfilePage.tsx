@@ -61,9 +61,12 @@ const ProfilePage = () => {
     onError: (e: any) => toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
   });
 
-  const avatarUrl = profile.data?.avatarKey
-    ? `${API_BASE_URL.replace(/\/api\/v1$/, "")}/uploads/${profile.data.avatarKey}`
-    : undefined;
+  // Local MinIO bucket is exposed at http://localhost:9000/adcet-alumni/<key>.
+  // Override via VITE_STORAGE_PUBLIC_BASE_URL when deploying.
+  const STORAGE_BASE =
+    (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
+    "http://localhost:9000/adcet-alumni";
+  const avatarUrl = profile.data?.avatarKey ? `${STORAGE_BASE}/${profile.data.avatarKey}` : undefined;
 
   const handleAvatarPick = async (file: File) => {
     if (!file.type.startsWith("image/")) {
