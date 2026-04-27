@@ -227,12 +227,11 @@ No code changes are required to switch environments.
 
 **Proprietary — All Rights Reserved.**
 
-Copyright © 2026 Annasaheb Dange College of Engineering & Technology (ADCET).
+Copyright © 2026 Annasaheb Dange College of Engineering & Technology, Ashta (ADCET).
 
 This software and its source code are the confidential and proprietary
 information of ADCET. No part of this repository may be copied, modified,
 distributed, sublicensed, sold, or used in any form, in whole or in part,
 without the prior written consent of ADCET.
 
-Unauthorized use, reproduction, or distribution is strictly prohibited and
-may result in civil and criminal penalties.
+contact: [ADCET — Alumni Portal Team](mailto:rrg_mech@adcet.in).
