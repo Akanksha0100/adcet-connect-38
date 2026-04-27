@@ -34,3 +34,11 @@ apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/notifications", notificationsRouter);
 apiRouter.use("/uploads", uploadsRouter);
 apiRouter.use("/admin", adminRouter);
+
+// Assistant chatbot — placeholder until a real LLM/agent is wired up.
+apiRouter.post("/assistant/chat", (_req, res) =>
+  res.json({
+    reply: "This feature is not implemented and coming soon.",
+    timestamp: new Date().toISOString(),
+  }),
+);
