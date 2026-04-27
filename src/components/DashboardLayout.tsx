@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
-  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck,
+  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck, Send, Loader2,
   Home, Info, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "framer-motion";
 import { NavLink } from "@/components/NavLink";
+import { api } from "@/lib/api";
 
 const mainNav = [
   { label: "Home", path: "/dashboard" },
@@ -47,6 +48,36 @@ const sidebarItems = [
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [messages, setMessages] = useState<{ role: "user" | "bot"; content: string }[]>([
+    { role: "bot", content: "👋 Hi! How can I help you today?" },
+  ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, chatOpen]);
+
+  const sendMessage = async () => {
+    const text = chatInput.trim();
+    if (!text || chatBusy) return;
+    setMessages((m) => [...m, { role: "user", content: text }]);
+    setChatInput("");
+    setChatBusy(true);
+    try {
+      const res = await api.post<{ reply: string }>("/assistant/chat", { message: text });
+      setMessages((m) => [...m, { role: "bot", content: res.reply }]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: "bot", content: "This feature is not implemented and coming soon." },
+      ]);
+    } finally {
+      setChatBusy(false);
+    }
+  };
+
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
@@ -200,12 +231,50 @@ const DashboardLayout = () => {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="flex-1 p-4 flex items-center justify-center">
-                <p className="text-muted-foreground text-sm text-center">👋 Hi! How can I help you today?</p>
+              <div className="flex-1 p-3 overflow-y-auto space-y-2">
+                {messages.map((m, i) => (
+                  <div
+                    key={i}
+                    className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                        m.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground"
+                      }`}
+                    >
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {chatBusy && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted text-muted-foreground rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Thinking…
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
-              <div className="p-3 border-t border-border">
-                <input placeholder="Type a message..." className="w-full bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent" />
-              </div>
+              <form
+                className="p-3 border-t border-border flex items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  sendMessage();
+                }}
+              >
+                <input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Type a message..."
+                  className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-accent"
+                  disabled={chatBusy}
+                />
+                <Button type="submit" size="icon" disabled={chatBusy || !chatInput.trim()} aria-label="Send message">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>
