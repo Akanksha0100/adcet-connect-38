@@ -1,21 +1,46 @@
 import { z } from "zod";
 
+/**
+ * Profile update fields are all optional. The frontend often passes back the
+ * raw values it loaded (which can be `null` for empty DB columns, or `""`
+ * after the user clears an input). We accept both and normalize to `undefined`
+ * so Prisma simply leaves them unchanged or stores NULL appropriately.
+ */
+const optionalString = (max: number) =>
+  z
+    .union([z.string().max(max), z.null()])
+    .optional()
+    .transform((v) => (v === "" || v === null ? null : v));
+
+const optionalUrl = (max = 500) =>
+  z
+    .union([z.string().max(max), z.null()])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : v))
+    .refine((v) => v == null || /^https?:\/\//i.test(v), { message: "Must be a valid URL" });
+
+const optionalYear = z
+  .union([z.coerce.number().int().min(1980).max(2100), z.null(), z.literal("")])
+  .optional()
+  .transform((v) => (v === "" || v == null ? null : (v as number)));
+
 export const updateProfileSchema = z.object({
-  bio: z.string().max(2000).optional(),
-  avatarKey: z.string().optional(),
-  phone: z.string().max(40).optional(),
-  city: z.string().max(120).optional(),
-  country: z.string().max(120).optional(),
-  linkedinUrl: z.string().url().optional(),
-  githubUrl: z.string().url().optional(),
-  websiteUrl: z.string().url().optional(),
-  department: z.string().max(120).optional(),
-  degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
-  admissionYear: z.coerce.number().int().min(1980).max(2100).optional(),
-  graduationYear: z.coerce.number().int().min(1980).max(2100).optional(),
-  rollNumber: z.string().max(40).optional(),
-  currentCompany: z.string().max(160).optional(),
-  currentRole: z.string().max(160).optional(),
+  bio: optionalString(2000),
+  avatarKey: optionalString(500),
+  phone: optionalString(40),
+  city: optionalString(120),
+  country: optionalString(120),
+  linkedinUrl: optionalUrl(),
+  githubUrl: optionalUrl(),
+  websiteUrl: optionalUrl(),
+  department: optionalString(120),
+  degree: z.union([z.enum(["BE", "ME", "PHD", "DIPLOMA"]), z.null(), z.literal("")]).optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
+  admissionYear: optionalYear,
+  graduationYear: optionalYear,
+  rollNumber: optionalString(40),
+  currentCompany: optionalString(160),
+  currentRole: optionalString(160),
 });
 
 export const experienceSchema = z.object({
