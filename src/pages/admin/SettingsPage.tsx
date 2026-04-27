@@ -5,35 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { toast } from "@/hooks/use-toast";
 
 const SettingsPage = () => {
-  const { user, refreshMe } = useAuth();
-  const [firstName, setFirstName] = useState(user?.firstName ?? "");
-  const [lastName, setLastName] = useState(user?.lastName ?? "");
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setFirstName(user?.firstName ?? "");
-    setLastName(user?.lastName ?? "");
-  }, [user]);
-
+  const { user } = useAuth();
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "AD";
-
-  const onSave = async () => {
-    setSaving(true);
-    try {
-      await api.patch("/profiles/me", { firstName, lastName });
-      await refreshMe();
-      toast({ title: "Profile updated" });
-    } catch (e: any) {
-      toast({ title: "Failed to save", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-2xl">
@@ -55,24 +30,20 @@ const SettingsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">First Name</label>
-            <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Input value={user?.firstName ?? ""} disabled />
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">Last Name</label>
-            <Input value={lastName} onChange={(e) => setLastName(e.target.value)} />
+            <Input value={user?.lastName ?? ""} disabled />
           </div>
           <div className="space-y-1.5 sm:col-span-2">
             <label className="text-sm font-medium text-foreground">Email</label>
             <Input value={user?.email ?? ""} type="email" disabled />
           </div>
         </div>
-        <Button
-          className="bg-accent hover:bg-accent/90 text-accent-foreground"
-          onClick={onSave}
-          disabled={saving}
-        >
-          {saving ? "Saving…" : "Save Changes"}
-        </Button>
+        <p className="text-xs text-muted-foreground">
+          Profile name and email are managed by the alumni office. Contact support to change them.
+        </p>
       </div>
 
       <div className="card-elevated p-6 space-y-5">
