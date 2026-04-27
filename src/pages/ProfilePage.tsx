@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2 } from "lucide-react";
+import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, API_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,23 +19,40 @@ interface Profile {
   department?: string | null; degree?: "BE" | "ME" | "PHD" | "DIPLOMA" | null;
   admissionYear?: number | null; graduationYear?: number | null;
   currentCompany?: string | null; currentRole?: string | null;
+  avatarKey?: string | null;
 }
+
+/** Whitelist of writable fields so we never send `id`, relations, etc back. */
+const WRITABLE_FIELDS: (keyof Profile)[] = [
+  "bio", "phone", "city", "country", "linkedinUrl", "githubUrl", "websiteUrl",
+  "department", "degree", "admissionYear", "graduationYear",
+  "currentCompany", "currentRole", "avatarKey",
+];
+
+const pickWritable = (p: Profile): Profile =>
+  WRITABLE_FIELDS.reduce((acc, k) => {
+    const v = (p as any)[k];
+    if (v !== undefined) (acc as any)[k] = v;
+    return acc;
+  }, {} as Profile);
 
 const ProfilePage = () => {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Profile>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
 
   const profile = useQuery({
     queryKey: ["profile", "me"],
     queryFn: () => api.get<Profile>("/profiles/me"),
   });
 
-  useEffect(() => { if (profile.data) setForm(profile.data); }, [profile.data]);
+  useEffect(() => { if (profile.data) setForm(pickWritable(profile.data)); }, [profile.data]);
 
   const save = useMutation({
-    mutationFn: () => api.patch("/profiles/me", form),
+    mutationFn: () => api.patch("/profiles/me", pickWritable(form)),
     onSuccess: () => {
       toast({ title: "Profile updated" });
       setEditing(false);
@@ -43,6 +60,38 @@ const ProfilePage = () => {
     },
     onError: (e: any) => toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
   });
+
+  const avatarUrl = profile.data?.avatarKey
+    ? `${API_BASE_URL.replace(/\/api\/v1$/, "")}/uploads/${profile.data.avatarKey}`
+    : undefined;
+
+  const handleAvatarPick = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
+        fileName: file.name,
+        contentType: file.type,
+        scope: "avatar",
+      });
+      const put = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+      await api.patch("/profiles/me", { avatarKey: presign.key });
+      toast({ title: "Photo updated" });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "U";
 
@@ -52,9 +101,32 @@ const ProfilePage = () => {
         <div className="hero-gradient h-28" />
         <div className="px-6 pb-6 -mt-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <Avatar className="h-24 w-24 border-4 border-card">
-              <AvatarFallback className="bg-primary text-primary-foreground text-2xl">{initials}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-24 w-24 border-4 border-card">
+                {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile photo" />}
+                <AvatarFallback className="bg-primary text-primary-foreground text-2xl">{initials}</AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 disabled:opacity-50"
+                aria-label="Change photo"
+              >
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleAvatarPick(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
             <div className="flex-1">
               <h1 className="text-xl font-bold text-foreground">{user ? `${user.firstName} ${user.lastName}` : "—"}</h1>
               {profile.data?.currentRole && (
