@@ -1,34 +1,63 @@
 import { motion } from "framer-motion";
 import {
-  Users, Briefcase, Calendar, Heart, Clock, CheckCircle, Plus, ArrowUpRight,
+  Users, Briefcase, Calendar, Heart, Clock, ArrowUpRight,
   UserCheck, CalendarPlus, BriefcaseBusiness
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const stats = [
-  { label: "Total Users", value: "12,450", change: "+245", icon: Users, bg: "bg-primary/10", text: "text-primary" },
-  { label: "Pending Requests", value: "38", change: "+5", icon: Clock, bg: "bg-amber-500/10", text: "text-amber-600" },
-  { label: "Events", value: "24", change: "+3", icon: Calendar, bg: "bg-accent/10", text: "text-accent" },
-  { label: "Active Jobs", value: "85", change: "+12", icon: Briefcase, bg: "bg-blue-500/10", text: "text-blue-600" },
-  { label: "Donations", value: "₹8.5L", change: "+₹45K", icon: Heart, bg: "bg-rose-500/10", text: "text-rose-600" },
-];
+interface Overview {
+  totalUsers: number; totalAlumni: number; totalEvents: number;
+  totalJobs: number; totalAchievements: number;
+  totalDonationsAmount: number; totalDonationsCount: number;
+}
+interface AdminOverview {
+  pendingUsers: number; pendingEvents: number; pendingJobs: number; pendingAchievements: number;
+}
+interface AuditEntry {
+  id: string; action: string; entity: string; entityId?: string | null;
+  metadata?: any; createdAt: string;
+}
 
-const activityFeed = [
-  { text: "Priya Sharma registered as Alumni", time: "2 min ago", type: "user" },
-  { text: "New event 'AI Workshop' submitted for approval", time: "15 min ago", type: "event" },
-  { text: "Job posting by TCS approved", time: "1 hr ago", type: "job" },
-  { text: "₹5,000 donation received from Rahul Patil", time: "2 hrs ago", type: "donation" },
-  { text: "Achievement submission by Sneha K. pending review", time: "3 hrs ago", type: "achievement" },
-  { text: "User report filed against spam job posting", time: "4 hrs ago", type: "report" },
-];
+const formatINR = (n: number) =>
+  n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${n.toLocaleString("en-IN")}`;
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const overview = useQuery({
+    queryKey: ["analytics", "overview"],
+    queryFn: () => api.get<Overview>("/analytics/overview"),
+  });
+  const adminOverview = useQuery({
+    queryKey: ["analytics", "admin-overview"],
+    queryFn: () => api.get<AdminOverview>("/analytics/admin/overview"),
+  });
+  const audit = useQuery({
+    queryKey: ["admin", "audit-log", { pageSize: 8 }],
+    queryFn: () =>
+      api.get<{ items: AuditEntry[] }>("/admin/audit-log", { pageSize: 8 }),
+  });
+
+  const pendingTotal =
+    (adminOverview.data?.pendingUsers ?? 0) +
+    (adminOverview.data?.pendingEvents ?? 0) +
+    (adminOverview.data?.pendingJobs ?? 0) +
+    (adminOverview.data?.pendingAchievements ?? 0);
+
+  const stats = [
+    { label: "Total Users", value: overview.data?.totalUsers, icon: Users, bg: "bg-primary/10", text: "text-primary" },
+    { label: "Pending Requests", value: pendingTotal, icon: Clock, bg: "bg-amber-500/10", text: "text-amber-600" },
+    { label: "Events", value: overview.data?.totalEvents, icon: Calendar, bg: "bg-accent/10", text: "text-accent" },
+    { label: "Active Jobs", value: overview.data?.totalJobs, icon: Briefcase, bg: "bg-blue-500/10", text: "text-blue-600" },
+    { label: "Donations", value: overview.data ? formatINR(overview.data.totalDonationsAmount) : undefined, icon: Heart, bg: "bg-rose-500/10", text: "text-rose-600" },
+  ];
 
   return (
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -37,7 +66,6 @@ const AdminDashboard = () => {
         <p className="text-muted-foreground text-sm mt-1">Overview of platform activity and pending actions.</p>
       </motion.div>
 
-      {/* Summary Cards */}
       <motion.div variants={item} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {stats.map((s) => (
           <div key={s.label} className="stat-card group hover:-translate-y-0.5 cursor-pointer">
@@ -45,62 +73,72 @@ const AdminDashboard = () => {
               <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center`}>
                 <s.icon className={`h-5 w-5 ${s.text}`} />
               </div>
-              <span className="text-xs font-medium text-accent flex items-center gap-0.5">
-                {s.change} <ArrowUpRight className="h-3 w-3" />
-              </span>
             </div>
-            <p className="text-2xl font-bold text-foreground">{s.value}</p>
+            {s.value === undefined ? (
+              <Skeleton className="h-7 w-16" />
+            ) : (
+              <p className="text-2xl font-bold text-foreground">
+                {typeof s.value === "number" ? s.value.toLocaleString() : s.value}
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">{s.label}</p>
           </div>
         ))}
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Feed */}
         <motion.div variants={item} className="lg:col-span-2 card-elevated p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
           <div className="space-y-3">
-            {activityFeed.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
-                <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{a.text}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{a.time}</p>
+            {audit.isLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))
+            ) : (audit.data?.items ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                No activity yet.
+              </p>
+            ) : (
+              audit.data!.items.map((a) => (
+                <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
+                  <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground truncate">{a.action} · {a.entity}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {new Date(a.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <Badge variant="secondary" className="text-[10px] capitalize flex-shrink-0">
+                    {a.entity.toLowerCase()}
+                  </Badge>
                 </div>
-                <Badge variant="secondary" className="text-[10px] capitalize flex-shrink-0">{a.type}</Badge>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </motion.div>
 
-        {/* Quick Actions */}
         <motion.div variants={item} className="card-elevated p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
           <div className="space-y-3">
-            <Button
-              className="w-full justify-start gap-3"
-              variant="outline"
-              onClick={() => navigate("/admin/approvals")}
-            >
+            <Button className="w-full justify-start gap-3" variant="outline"
+              onClick={() => navigate("/admin/approvals")}>
               <UserCheck className="h-4 w-4 text-accent" />
               Approve Requests
-              <Badge className="ml-auto bg-amber-500/15 text-amber-600 border-0 text-[10px]">38</Badge>
+              {pendingTotal > 0 && (
+                <Badge className="ml-auto bg-amber-500/15 text-amber-600 border-0 text-[10px]">
+                  {pendingTotal}
+                </Badge>
+              )}
             </Button>
-            <Button
-              className="w-full justify-start gap-3"
-              variant="outline"
-              onClick={() => navigate("/admin/events")}
-            >
+            <Button className="w-full justify-start gap-3" variant="outline"
+              onClick={() => navigate("/admin/events")}>
               <CalendarPlus className="h-4 w-4 text-accent" />
-              Add Event
+              Review Events
             </Button>
-            <Button
-              className="w-full justify-start gap-3"
-              variant="outline"
-              onClick={() => navigate("/admin/jobs")}
-            >
+            <Button className="w-full justify-start gap-3" variant="outline"
+              onClick={() => navigate("/admin/jobs")}>
               <BriefcaseBusiness className="h-4 w-4 text-accent" />
-              Post Job
+              Review Jobs
             </Button>
           </div>
         </motion.div>
