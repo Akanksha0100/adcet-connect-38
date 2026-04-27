@@ -1,14 +1,101 @@
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Moon, Shield, Mail } from "lucide-react";
+import { User, Bell, Moon, Shield, Mail, Edit, Loader2, Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import { toast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface AdminProfile {
+  bio?: string | null;
+  phone?: string | null;
+  city?: string | null;
+  country?: string | null;
+  currentRole?: string | null;
+  currentCompany?: string | null;
+  avatarKey?: string | null;
+}
+
+const WRITABLE: (keyof AdminProfile)[] = [
+  "bio", "phone", "city", "country", "currentRole", "currentCompany", "avatarKey",
+];
+
+const pick = (p: AdminProfile): AdminProfile =>
+  WRITABLE.reduce((acc, k) => {
+    const v = (p as any)[k];
+    if (v !== undefined) (acc as any)[k] = v;
+    return acc;
+  }, {} as AdminProfile);
+
+const STORAGE_BASE =
+  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
+  "http://localhost:9000/adcet-alumni";
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<AdminProfile>({});
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const profile = useQuery({
+    queryKey: ["profile", "me"],
+    queryFn: () => api.get<AdminProfile>("/profiles/me"),
+  });
+
+  useEffect(() => {
+    if (profile.data) setForm(pick(profile.data));
+  }, [profile.data]);
+
+  const save = useMutation({
+    mutationFn: () => api.patch("/profiles/me", pick(form)),
+    onSuccess: () => {
+      toast({ title: "Profile updated" });
+      setEditing(false);
+      qc.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (e: any) =>
+      toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
+  });
+
+  const handleAvatarPick = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Please select an image", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
+        fileName: file.name,
+        contentType: file.type,
+        scope: "avatar",
+      });
+      const put = await fetch(presign.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
+      await api.patch("/profiles/me", { avatarKey: presign.key });
+      toast({ title: "Photo updated" });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+    } catch (e: any) {
+      toast({ title: "Upload failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "AD";
+  const avatarUrl = profile.data?.avatarKey ? `${STORAGE_BASE}/${profile.data.avatarKey}` : undefined;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-2xl">
@@ -18,31 +105,164 @@ const SettingsPage = () => {
       </div>
 
       <div className="card-elevated p-6 space-y-5">
-        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-          <User className="h-4 w-4" /> Profile
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <User className="h-4 w-4" /> Profile
+          </h2>
+          {!editing ? (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditing(true)}>
+              <Edit className="h-3 w-3" /> Edit
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setEditing(false);
+                  setForm(pick(profile.data ?? {}));
+                }}
+              >
+                <X className="h-3 w-3 mr-1" /> Cancel
+              </Button>
+              <Button size="sm" onClick={() => save.mutate()} disabled={save.isPending}>
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+            </div>
+          )}
+        </div>
+
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16">
-            <AvatarFallback className="bg-primary text-primary-foreground text-lg">{initials}</AvatarFallback>
-          </Avatar>
-          <Button variant="outline" size="sm" disabled>Change Photo</Button>
+          <div className="relative">
+            <Avatar className="h-16 w-16">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt="Admin photo" />}
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:opacity-90 disabled:opacity-50"
+              aria-label="Change photo"
+            >
+              {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleAvatarPick(f);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">First Name</label>
-            <Input value={user?.firstName ?? ""} disabled />
+
+        {profile.isLoading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Last Name</label>
-            <Input value={user?.lastName ?? ""} disabled />
+        ) : !editing ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">First Name</p>
+              <p className="text-sm text-foreground">{user?.firstName ?? "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Last Name</p>
+              <p className="text-sm text-foreground">{user?.lastName ?? "—"}</p>
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <p className="text-xs text-muted-foreground">Email</p>
+              <p className="text-sm text-foreground">{user?.email ?? "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Phone</p>
+              <p className="text-sm text-foreground">{profile.data?.phone || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Role</p>
+              <p className="text-sm text-foreground">{profile.data?.currentRole || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">City</p>
+              <p className="text-sm text-foreground">{profile.data?.city || "—"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Country</p>
+              <p className="text-sm text-foreground">{profile.data?.country || "—"}</p>
+            </div>
+            {profile.data?.bio && (
+              <div className="space-y-1 sm:col-span-2">
+                <p className="text-xs text-muted-foreground">Bio</p>
+                <p className="text-sm text-foreground">{profile.data.bio}</p>
+              </div>
+            )}
           </div>
-          <div className="space-y-1.5 sm:col-span-2">
-            <label className="text-sm font-medium text-foreground">Email</label>
-            <Input value={user?.email ?? ""} type="email" disabled />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>First Name</Label>
+              <Input value={user?.firstName ?? ""} disabled />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Last Name</Label>
+              <Input value={user?.lastName ?? ""} disabled />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Email</Label>
+              <Input value={user?.email ?? ""} type="email" disabled />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Phone</Label>
+              <Input
+                value={form.phone ?? ""}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Role / Title</Label>
+              <Input
+                value={form.currentRole ?? ""}
+                onChange={(e) => setForm({ ...form, currentRole: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>City</Label>
+              <Input
+                value={form.city ?? ""}
+                onChange={(e) => setForm({ ...form, city: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Country</Label>
+              <Input
+                value={form.country ?? ""}
+                onChange={(e) => setForm({ ...form, country: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label>Bio</Label>
+              <Textarea
+                value={form.bio ?? ""}
+                onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              />
+            </div>
           </div>
-        </div>
+        )}
         <p className="text-xs text-muted-foreground">
-          Profile name and email are managed by the alumni office. Contact support to change them.
+          Name and email are managed by the alumni office. Contact support to change them.
         </p>
       </div>
 
