@@ -9,7 +9,7 @@ services:
     ports: ["5432:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U adcet"]
+      test: ["CMD-SHELL", "pg_isready -U adcet -d adcet_alumni"]
       interval: 5s
 
   minio:
