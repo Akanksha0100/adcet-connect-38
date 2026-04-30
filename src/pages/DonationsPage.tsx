@@ -10,12 +10,19 @@ import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Campaign { id: string; title: string; description: string; goalAmount: number; raisedAmount?: number; donorCount?: number; isActive?: boolean }
+interface CampaignsResponse { items?: Campaign[] }
 
 const presets = [500, 1000, 2000, 5000];
 
 const DonationsPage = () => {
   const qc = useQueryClient();
-  const campaigns = useQuery({ queryKey: ["campaigns"], queryFn: () => api.get<Campaign[]>("/donations/campaigns") });
+  const campaigns = useQuery({
+    queryKey: ["campaigns"],
+    queryFn: () => api.get<Campaign[] | CampaignsResponse>("/donations/campaigns"),
+  });
+  const campaignList: Campaign[] = Array.isArray(campaigns.data)
+    ? campaigns.data
+    : campaigns.data?.items ?? [];
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const [amount, setAmount] = useState<number | string>(1000);
   const [message, setMessage] = useState("");
@@ -55,7 +62,7 @@ const DonationsPage = () => {
             <Label>Campaign</Label>
             {campaigns.isLoading ? <Skeleton className="h-10 w-full" /> : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {(campaigns.data ?? []).filter(c => c.isActive !== false).map((c) => (
+                {campaignList.filter(c => c.isActive !== false).map((c) => (
                   <button
                     key={c.id} type="button" onClick={() => setSelected(c.id)}
                     className={`p-3 text-left rounded-xl border transition-all ${selected === c.id ? "border-accent bg-accent/5 ring-1 ring-accent" : "border-border hover:border-accent/50"}`}
@@ -64,7 +71,7 @@ const DonationsPage = () => {
                     <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{c.description}</p>
                   </button>
                 ))}
-                {(campaigns.data?.length ?? 0) === 0 && <p className="text-sm text-muted-foreground">No active campaigns. You can still donate generally.</p>}
+                {campaignList.length === 0 && <p className="text-sm text-muted-foreground">No active campaigns. You can still donate generally.</p>}
               </div>
             )}
           </div>
