@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requestPushPermission, usePreferences, type PreferenceKey } from "@/lib/preferences";
 
 interface AdminProfile {
   bio?: string | null;
@@ -45,6 +46,7 @@ const SettingsPage = () => {
   const [form, setForm] = useState<AdminProfile>({});
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [prefs, setPref] = usePreferences();
 
   const profile = useQuery({
     queryKey: ["profile", "me"],
@@ -271,13 +273,13 @@ const SettingsPage = () => {
           <Shield className="h-4 w-4" /> Preferences
         </h2>
         <div className="space-y-4">
-          {[
-            { icon: Bell, label: "Email Notifications", desc: "Receive email alerts for new requests" },
-            { icon: Bell, label: "Push Notifications", desc: "Get browser push notifications" },
-            { icon: Moon, label: "Dark Mode", desc: "Toggle dark theme appearance" },
-            { icon: Mail, label: "Weekly Digest", desc: "Receive a weekly summary report" },
-          ].map((pref) => (
-            <div key={pref.label} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
+          {([
+            { key: "emailNotifications", icon: Bell, label: "Email Notifications", desc: "Receive email alerts for new requests" },
+            { key: "pushNotifications", icon: Bell, label: "Push Notifications", desc: "Get browser push notifications" },
+            { key: "darkMode", icon: Moon, label: "Dark Mode", desc: "Toggle dark theme appearance" },
+            { key: "weeklyDigest", icon: Mail, label: "Weekly Digest", desc: "Receive a weekly summary report" },
+          ] as { key: PreferenceKey; icon: any; label: string; desc: string }[]).map((pref) => (
+            <div key={pref.key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
               <div className="flex items-center gap-3">
                 <pref.icon className="h-4 w-4 text-muted-foreground" />
                 <div>
@@ -285,7 +287,24 @@ const SettingsPage = () => {
                   <p className="text-xs text-muted-foreground">{pref.desc}</p>
                 </div>
               </div>
-              <Switch defaultChecked={pref.label !== "Dark Mode"} />
+              <Switch
+                checked={prefs[pref.key]}
+                onCheckedChange={async (checked) => {
+                  if (pref.key === "pushNotifications" && checked) {
+                    const granted = await requestPushPermission();
+                    if (!granted) {
+                      toast({
+                        title: "Push permission denied",
+                        description: "Enable notifications in your browser to receive alerts.",
+                        variant: "destructive",
+                      });
+                      return;
+                    }
+                  }
+                  setPref(pref.key, checked);
+                  toast({ title: `${pref.label} ${checked ? "enabled" : "disabled"}` });
+                }}
+              />
             </div>
           ))}
         </div>
