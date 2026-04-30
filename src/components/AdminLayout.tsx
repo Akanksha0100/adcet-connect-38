@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, GraduationCap, LogOut,
-  Search, User, Globe
+  Search, User, Globe, FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -26,6 +26,7 @@ const sidebarItems = [
   { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: "5" },
   { label: "Geo Map", path: "/admin/geomap", icon: Globe },
   { label: "Analytics", path: "/admin/analytics", icon: BarChart3 },
+  { label: "Site Content", path: "/admin/site-content", icon: FileText },
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 
