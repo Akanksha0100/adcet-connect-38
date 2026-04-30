@@ -31,6 +31,8 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
+import SiteContentPage from "./pages/admin/SiteContentPage";
+import StaticContentPage from "./pages/StaticContentPage";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +59,12 @@ const App = () => (
                 <Route path="geomap" element={<GeoMapPage />} />
                 <Route path="analytics" element={<AnalyticsPage />} />
                 <Route path="alumni" element={<AlumniDirectoryPage />} />
+                <Route path="about" element={<StaticContentPage contentKey="about" />} />
+                <Route path="support" element={<StaticContentPage contentKey="support" />} />
+                <Route path="contact" element={<StaticContentPage contentKey="contact" />} />
+                <Route path="news" element={<StaticContentPage contentKey="news" />} />
+                <Route path="mentorship" element={<StaticContentPage contentKey="mentorship" />} />
+                <Route path="resources" element={<StaticContentPage contentKey="resources" />} />
               </Route>
             </Route>
 
@@ -72,6 +80,7 @@ const App = () => (
                 <Route path="analytics" element={<AdminAnalyticsPage />} />
                 <Route path="geomap" element={<AdminGeoMapPage />} />
                 <Route path="reports" element={<ReportsPage />} />
+                <Route path="site-content" element={<SiteContentPage />} />
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
             </Route>
