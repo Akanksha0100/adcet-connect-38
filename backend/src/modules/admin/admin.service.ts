@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { Conflict, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
+import { notify } from "../notifications/notifications.service.js";
 
 export const listUsers = async (
   q: PaginationQuery & { q?: string; status?: any; role?: AppRoleName },
@@ -40,7 +41,10 @@ export const setUserStatus = async (
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw NotFound();
-  const updated = await prisma.user.update({ where: { id: userId }, data: { status } });
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { status, rejectionReason: status === "REJECTED" ? reason ?? null : null },
+  });
   await prisma.auditLog.create({
     data: {
       actorId,
@@ -49,6 +53,17 @@ export const setUserStatus = async (
       entityId: userId,
       metadata: reason ? { reason } : undefined,
     },
+  });
+  // In-app + email notification to the affected user.
+  const verb = status === "APPROVED" ? "approved" : "rejected";
+  await notify(userId, {
+    type: `account.${verb}`,
+    title: status === "APPROVED" ? "Your account was approved" : "Your account was rejected",
+    body:
+      status === "APPROVED"
+        ? "Welcome aboard! You now have full access to the alumni portal."
+        : `Your account application was rejected.${reason ? ` Reason: ${reason}` : ""}`,
+    sendEmailToo: true,
   });
   return { id: updated.id, status: updated.status };
 };
