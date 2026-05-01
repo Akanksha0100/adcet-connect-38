@@ -23,6 +23,7 @@ export interface AuthUser {
   lastName: string;
   status: ApprovalStatus;
   roles: AppRole[];
+  rejectionReason?: string | null;
 }
 
 export interface AuthTokens {
