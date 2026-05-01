@@ -9,5 +9,6 @@ export const notificationsRouter = Router();
 notificationsRouter.use(requireAuth);
 
 notificationsRouter.get("/", validate(paginationSchema, "query"), asyncHandler(ctrl.list));
+notificationsRouter.get("/unread-count", asyncHandler(ctrl.unreadCount));
 notificationsRouter.post("/:id/read", asyncHandler(ctrl.markRead));
 notificationsRouter.post("/read-all", asyncHandler(ctrl.markAllRead));
