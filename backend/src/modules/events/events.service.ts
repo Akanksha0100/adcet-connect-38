@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
+import { notify } from "../notifications/notifications.service.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 
@@ -61,8 +62,28 @@ export const remove = async (caller: Caller, id: string) => {
   await prisma.event.delete({ where: { id } });
 };
 
-export const moderate = (id: string, status: "APPROVED" | "REJECTED") =>
-  prisma.event.update({ where: { id }, data: { status } });
+export const moderate = async (
+  id: string,
+  status: "APPROVED" | "REJECTED",
+  reason?: string,
+) => {
+  const event = await prisma.event.update({
+    where: { id },
+    data: { status, rejectionReason: status === "REJECTED" ? reason ?? null : null },
+  });
+  const verb = status === "APPROVED" ? "approved" : "rejected";
+  await notify(event.createdById, {
+    type: `event.${verb}`,
+    title: `Your event was ${verb}`,
+    body:
+      status === "REJECTED"
+        ? `"${event.title}" was rejected.${reason ? ` Reason: ${reason}` : ""}`
+        : `"${event.title}" is now live.`,
+    data: { eventId: event.id },
+    sendEmailToo: true,
+  });
+  return event;
+};
 
 export const rsvp = (eventId: string, userId: string, status: "GOING" | "INTERESTED" | "NOT_GOING") =>
   prisma.eventRsvp.upsert({
