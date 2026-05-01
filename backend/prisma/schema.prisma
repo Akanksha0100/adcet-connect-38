@@ -71,6 +71,7 @@ model User {
 
   roles           UserRole[]
   profile         Profile?
+  rejectionReason String?
   preferences     UserPreferences?
   refreshTokens   RefreshToken[]
   oauthAccounts   OAuthAccount[]
