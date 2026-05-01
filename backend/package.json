@@ -16,6 +16,8 @@
     "prisma:studio": "dotenv -e .env.development -- prisma studio",
     "seed": "dotenv -e .env.development -- tsx prisma/seed.ts",
     "db:setup": "npm run prisma:migrate -- --name init && npm run seed",
+    "db:migrate": "dotenv -e .env.development -- prisma migrate dev",
+    "db:reset": "dotenv -e .env.development -- prisma migrate reset --force && npm run seed",
     "openapi:serve": "echo 'Swagger UI mounted at /api/docs when server runs'"
   },
   "dependencies": {
