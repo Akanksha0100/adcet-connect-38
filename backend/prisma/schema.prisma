@@ -127,6 +127,7 @@ model Profile {
   userId          String      @unique
   bio             String?
   avatarKey       String?     // storage object key
+  bannerKey       String?     // profile cover banner storage key
   phone           String?
   city            String?
   country         String?     @default("India")
@@ -220,6 +221,7 @@ model Event {
   capacity    Int?
   coverKey    String?
   status      ApprovalStatus @default(PENDING)
+  rejectionReason String?
   createdById String
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -265,6 +267,7 @@ model Job {
   positionsFilled Int            @default(0)
   applyUrl        String?
   status          ApprovalStatus @default(PENDING)
+  rejectionReason String?
   expiresAt       DateTime?
   createdById     String
   createdAt       DateTime       @default(now())
@@ -304,6 +307,7 @@ model Achievement {
   occurredOn  DateTime?
   imageKey    String?
   status      ApprovalStatus @default(PENDING)
+  rejectionReason String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
