@@ -383,3 +383,50 @@ model AuditLog {
   @@index([entity, entityId])
   @@index([actorId])
 }
+// =====================================================================
+// CMS: News, Resources, Support inbox, Site sections
+// =====================================================================
+
+model NewsItem {
+  id          String   @id @default(uuid())
+  title       String
+  body        String
+  link        String?
+  imageKey    String?
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([publishedAt])
+}
+
+model ResourceItem {
+  id        String   @id @default(uuid())
+  title     String
+  body      String
+  link      String?
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SupportMessage {
+  id         String    @id @default(uuid())
+  name       String
+  email      String
+  subject    String?
+  message    String
+  userId     String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([resolvedAt, createdAt])
+}
+
+model SiteSection {
+  /// Singleton key (e.g. "about", "contact") for static page copy.
+  key       String   @id
+  title     String
+  body      String
+  updatedAt DateTime @updatedAt
+}
