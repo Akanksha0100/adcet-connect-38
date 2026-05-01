@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
+import { notify } from "../notifications/notifications.service.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c?: Caller) => !!c?.roles.includes("ADMIN");
@@ -49,8 +50,28 @@ export const remove = async (caller: Caller, id: string) => {
   await prisma.achievement.delete({ where: { id } });
 };
 
-export const moderate = (id: string, status: "APPROVED" | "REJECTED") =>
-  prisma.achievement.update({ where: { id }, data: { status } });
+export const moderate = async (
+  id: string,
+  status: "APPROVED" | "REJECTED",
+  reason?: string,
+) => {
+  const achievement = await prisma.achievement.update({
+    where: { id },
+    data: { status, rejectionReason: status === "REJECTED" ? reason ?? null : null },
+  });
+  const verb = status === "APPROVED" ? "approved" : "rejected";
+  await notify(achievement.userId, {
+    type: `achievement.${verb}`,
+    title: `Your achievement was ${verb}`,
+    body:
+      status === "REJECTED"
+        ? `"${achievement.title}" was rejected.${reason ? ` Reason: ${reason}` : ""}`
+        : `"${achievement.title}" is now visible to alumni.`,
+    data: { achievementId: achievement.id },
+    sendEmailToo: true,
+  });
+  return achievement;
+};
 
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };

@@ -14,6 +14,6 @@ export const remove = async (req: Request, res: Response) => {
   res.status(204).end();
 };
 export const moderate = async (req: Request, res: Response) =>
-  res.json(await service.moderate(req.params.id, req.body.status));
+  res.json(await service.moderate(req.params.id, req.body.status, req.body.reason));
 export const listPending = async (req: Request, res: Response) =>
   res.json(await service.listPending(req.query as any));

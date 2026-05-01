@@ -27,6 +27,7 @@ const optionalYear = z
 export const updateProfileSchema = z.object({
   bio: optionalString(2000),
   avatarKey: optionalString(500),
+  bannerKey: optionalString(500),
   phone: optionalString(40),
   city: optionalString(120),
   country: optionalString(120),

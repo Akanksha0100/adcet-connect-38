@@ -182,7 +182,7 @@ export const loginWithOAuth = async (profile: OAuthProfile) => {
 };
 
 const publicUser = (
-  u: { id: string; email: string; firstName: string; lastName: string; status: string },
+  u: { id: string; email: string; firstName: string; lastName: string; status: string; rejectionReason?: string | null },
   roles: AppRoleName[],
 ) => ({
   id: u.id,
@@ -190,5 +190,6 @@ const publicUser = (
   firstName: u.firstName,
   lastName: u.lastName,
   status: u.status,
+  rejectionReason: u.rejectionReason ?? null,
   roles,
 });
