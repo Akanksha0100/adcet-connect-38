@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
+import { notify } from "../notifications/notifications.service.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c?: Caller) => !!c?.roles.includes("ADMIN");
@@ -89,8 +90,28 @@ export const listApplications = async (caller: Caller, jobId: string) => {
 export const myApplications = (userId: string) =>
   prisma.jobApplication.findMany({ where: { userId }, include: { job: true } });
 
-export const moderate = (id: string, status: "APPROVED" | "REJECTED") =>
-  prisma.job.update({ where: { id }, data: { status } });
+export const moderate = async (
+  id: string,
+  status: "APPROVED" | "REJECTED",
+  reason?: string,
+) => {
+  const job = await prisma.job.update({
+    where: { id },
+    data: { status, rejectionReason: status === "REJECTED" ? reason ?? null : null },
+  });
+  const verb = status === "APPROVED" ? "approved" : "rejected";
+  await notify(job.createdById, {
+    type: `job.${verb}`,
+    title: `Your job posting was ${verb}`,
+    body:
+      status === "REJECTED"
+        ? `"${job.title}" at ${job.company} was rejected.${reason ? ` Reason: ${reason}` : ""}`
+        : `"${job.title}" at ${job.company} is now live.`,
+    data: { jobId: job.id },
+    sendEmailToo: true,
+  });
+  return job;
+};
 
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };
