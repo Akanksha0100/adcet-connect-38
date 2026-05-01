@@ -31,5 +31,5 @@ export const RATE_LIMITS = {
   GLOBAL_MAX: 300,
 } as const;
 
-export const UPLOAD_SCOPES = ["avatar", "event", "achievement", "receipt", "resume"] as const;
+export const UPLOAD_SCOPES = ["avatar", "banner", "event", "achievement", "receipt", "resume"] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
