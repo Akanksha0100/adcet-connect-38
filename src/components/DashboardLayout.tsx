@@ -82,6 +82,17 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const isApproved = user?.status === "APPROVED";
+
+  const visibleMainNav = isApproved
+    ? mainNav
+    : mainNav.filter((i) => ["Home", "About Us"].includes(i.label));
+  const visibleMoreItems = isApproved
+    ? moreItems
+    : moreItems.filter((i) => ["Support", "Contact", "News"].includes(i.label));
+  const visibleSidebar = isApproved
+    ? sidebarItems
+    : sidebarItems.filter((i) => ["Profile"].includes(i.label));
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "U"
@@ -108,10 +119,10 @@ const DashboardLayout = () => {
         </div>
 
         <nav className="hidden lg:flex items-center gap-1 flex-1">
-          {mainNav.map(item => (
+          {visibleMainNav.map(item => (
             <NavLink
               key={item.path}
-              to={item.path}
+              to={item.label === "Home" && !isApproved ? "/dashboard/status" : item.path}
               end={item.path === "/dashboard"}
               className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               activeClassName="text-foreground bg-muted font-medium"
@@ -120,20 +131,20 @@ const DashboardLayout = () => {
             </NavLink>
           ))}
 
-          <DropdownMenu>
+          {visibleMoreItems.length > 0 && <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center gap-1">
                 More <ChevronDown className="h-3 w-3" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              {moreItems.map(item => (
+              {visibleMoreItems.map(item => (
                 <DropdownMenuItem key={item.path} onClick={() => navigate(item.path)}>
                   {item.label}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu>}
         </nav>
 
         <div className="flex items-center gap-2 ml-auto">
@@ -175,7 +186,7 @@ const DashboardLayout = () => {
               className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:block"
             >
               <nav className="p-3 space-y-1">
-                {sidebarItems.filter(i => !(i as any).admin).map(item => (
+                {visibleSidebar.filter(i => !(i as any).admin).map(item => (
                   <NavLink
                     key={item.path}
                     to={item.path}
@@ -188,7 +199,7 @@ const DashboardLayout = () => {
                   </NavLink>
                 ))}
 
-                {isAdmin && (
+                {isAdmin && isApproved && (
                   <div className="border-t border-border my-2 pt-2">
                     <NavLink
                       to="/admin"
@@ -199,6 +210,17 @@ const DashboardLayout = () => {
                       <span>Admin Panel</span>
                     </NavLink>
                   </div>
+                )}
+
+                {!isApproved && (
+                  <NavLink
+                    to="/dashboard/status"
+                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-amber-600 bg-amber-500/10 mt-2"
+                    activeClassName=""
+                  >
+                    <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+                    <span>Account status</span>
+                  </NavLink>
                 )}
               </nav>
             </motion.aside>
