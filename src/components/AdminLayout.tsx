@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, GraduationCap, LogOut,
-  Search, User, Globe, FileText
+  Search, User, Globe, FileText, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,25 +15,45 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { NavLink } from "@/components/NavLink";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/lib/api";
+import NotificationsBell from "@/components/NotificationsBell";
 
-const sidebarItems = [
-  { label: "Dashboard", path: "/admin", icon: LayoutDashboard },
-  { label: "User Approvals", path: "/admin/approvals", icon: UserCheck, badge: "38" },
-  { label: "Events Approval", path: "/admin/events", icon: Calendar, badge: "2" },
-  { label: "Jobs Approval", path: "/admin/jobs", icon: Briefcase, badge: "3" },
-  { label: "Achievements", path: "/admin/achievements", icon: Trophy },
-  { label: "Donations", path: "/admin/donations", icon: Heart },
-  { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: "5" },
-  { label: "Geo Map", path: "/admin/geomap", icon: Globe },
-  { label: "Analytics", path: "/admin/analytics", icon: BarChart3 },
-  { label: "Site Content", path: "/admin/site-content", icon: FileText },
-  { label: "Settings", path: "/admin/settings", icon: Settings },
-];
+interface AdminOverview {
+  pendingUsers: number;
+  pendingEvents: number;
+  pendingJobs: number;
+  pendingAchievements: number;
+}
 
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  const { data: overview } = useQuery({
+    queryKey: ["analytics", "admin-overview"],
+    queryFn: () => api.get<AdminOverview>("/analytics/admin/overview"),
+    refetchInterval: 60_000,
+  });
+
+  const fmt = (n?: number) => (n && n > 0 ? (n > 99 ? "99+" : String(n)) : undefined);
+
+  const sidebarItems = [
+    { label: "Dashboard", path: "/admin", icon: LayoutDashboard, badge: undefined as string | undefined },
+    { label: "User Approvals", path: "/admin/approvals", icon: UserCheck, badge: fmt(overview?.pendingUsers) },
+    { label: "Events Approval", path: "/admin/events", icon: Calendar, badge: fmt(overview?.pendingEvents) },
+    { label: "Jobs Approval", path: "/admin/jobs", icon: Briefcase, badge: fmt(overview?.pendingJobs) },
+    { label: "Achievements", path: "/admin/achievements", icon: Trophy, badge: fmt(overview?.pendingAchievements) },
+    { label: "Donations", path: "/admin/donations", icon: Heart, badge: undefined },
+    { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
+    { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },
+    { label: "Analytics", path: "/admin/analytics", icon: BarChart3, badge: undefined },
+    { label: "Site Content", path: "/admin/site-content", icon: FileText, badge: undefined },
+    { label: "Support Inbox", path: "/admin/support", icon: MessageSquare, badge: undefined },
+    { label: "Settings", path: "/admin/settings", icon: Settings, badge: undefined },
+  ];
+
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "AD"
     : "AD";
@@ -63,10 +83,7 @@ const AdminLayout = () => {
         </div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-destructive rounded-full" />
-          </Button>
+          <NotificationsBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

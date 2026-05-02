@@ -14,6 +14,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { NavLink } from "@/components/NavLink";
 import { api } from "@/lib/api";
+import NotificationsBell from "@/components/NotificationsBell";
 
 const mainNav = [
   { label: "Home", path: "/dashboard" },
@@ -136,10 +137,7 @@ const DashboardLayout = () => {
         </nav>
 
         <div className="flex items-center gap-2 ml-auto">
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full" />
-          </Button>
+          <NotificationsBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
