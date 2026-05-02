@@ -9,6 +9,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import RejectReasonDialog from "@/components/RejectReasonDialog";
 
 interface JobItem {
   id: string;
@@ -33,6 +34,7 @@ const statusColors: Record<string, string> = {
 const JobApprovalsPage = () => {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [rejectId, setRejectId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "jobs-pending"],
@@ -40,8 +42,8 @@ const JobApprovalsPage = () => {
   });
 
   const moderate = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) =>
-      api.post(`/jobs/${id}/moderate`, { status }),
+    mutationFn: ({ id, status, reason }: { id: string; status: "APPROVED" | "REJECTED"; reason?: string }) =>
+      api.post(`/jobs/${id}/moderate`, { status, reason }),
     onSuccess: (_d, v) => {
       toast({ title: `Job ${v.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["admin", "jobs-pending"] });
@@ -127,7 +129,7 @@ const JobApprovalsPage = () => {
                     variant="destructive"
                     className="gap-1"
                     disabled={moderate.isPending}
-                    onClick={() => moderate.mutate({ id: j.id, status: "REJECTED" })}
+                    onClick={() => setRejectId(j.id)}
                   >
                     <XCircle className="h-3.5 w-3.5" />
                   </Button>
@@ -137,6 +139,16 @@ const JobApprovalsPage = () => {
           ))}
         </div>
       )}
+      <RejectReasonDialog
+        open={!!rejectId}
+        onOpenChange={(o) => !o && setRejectId(null)}
+        title="Reject job posting"
+        description="The poster will be notified with the reason."
+        pending={moderate.isPending}
+        onConfirm={async (reason) => {
+          if (rejectId) await moderate.mutateAsync({ id: rejectId, status: "REJECTED", reason });
+        }}
+      />
     </motion.div>
   );
 };

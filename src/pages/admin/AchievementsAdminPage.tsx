@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import RejectReasonDialog from "@/components/RejectReasonDialog";
 
 interface AchievementItem {
   id: string;
@@ -34,6 +35,7 @@ const statusColors: Record<string, string> = {
 const AchievementsAdminPage = () => {
   const qc = useQueryClient();
   const [tab, setTab] = useState<(typeof tabs)[number]>("Pending");
+  const [rejectId, setRejectId] = useState<string | null>(null);
   const isPending = tab === "Pending";
 
   const { data, isLoading } = useQuery({
@@ -45,8 +47,8 @@ const AchievementsAdminPage = () => {
   });
 
   const moderate = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) =>
-      api.post(`/achievements/${id}/moderate`, { status }),
+    mutationFn: ({ id, status, reason }: { id: string; status: "APPROVED" | "REJECTED"; reason?: string }) =>
+      api.post(`/achievements/${id}/moderate`, { status, reason }),
     onSuccess: (_d, v) => {
       toast({ title: `Achievement ${v.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["admin", "achievements"] });
@@ -111,7 +113,7 @@ const AchievementsAdminPage = () => {
                     </Button>
                     <Button size="sm" variant="destructive" className="gap-1.5"
                       disabled={moderate.isPending}
-                      onClick={() => moderate.mutate({ id: a.id, status: "REJECTED" })}>
+                      onClick={() => setRejectId(a.id)}>
                       <XCircle className="h-3.5 w-3.5" /> Reject
                     </Button>
                   </div>
@@ -121,6 +123,16 @@ const AchievementsAdminPage = () => {
           ))}
         </div>
       )}
+      <RejectReasonDialog
+        open={!!rejectId}
+        onOpenChange={(o) => !o && setRejectId(null)}
+        title="Reject achievement"
+        description="The author will be notified with the reason."
+        pending={moderate.isPending}
+        onConfirm={async (reason) => {
+          if (rejectId) await moderate.mutateAsync({ id: rejectId, status: "REJECTED", reason });
+        }}
+      />
     </motion.div>
   );
 };

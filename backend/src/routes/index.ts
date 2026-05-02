@@ -16,6 +16,7 @@ import { analyticsRouter } from "../modules/analytics/analytics.routes.js";
 import { notificationsRouter } from "../modules/notifications/notifications.routes.js";
 import { uploadsRouter } from "../modules/uploads/uploads.routes.js";
 import { adminRouter } from "../modules/admin/admin.routes.js";
+import { contentRouter } from "../modules/content/content.routes.js";
 
 export const apiRouter = Router();
 
@@ -34,6 +35,7 @@ apiRouter.use("/analytics", analyticsRouter);
 apiRouter.use("/notifications", notificationsRouter);
 apiRouter.use("/uploads", uploadsRouter);
 apiRouter.use("/admin", adminRouter);
+apiRouter.use("/content", contentRouter);
 
 // Assistant chatbot — placeholder until a real LLM/agent is wired up.
 apiRouter.post("/assistant/chat", (_req, res) =>

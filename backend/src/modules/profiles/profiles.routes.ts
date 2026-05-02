@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler.js";
 import { requireAuth } from "../../middlewares/auth.js";
+import { requireApproved } from "../../middlewares/requireApproved.js";
 import { validate } from "../../middlewares/validate.js";
 import * as ctrl from "./profiles.controller.js";
 import {
@@ -14,7 +15,7 @@ export const profilesRouter = Router();
 
 profilesRouter.get("/me", requireAuth, asyncHandler(ctrl.me));
 profilesRouter.patch("/me", requireAuth, validate(updateProfileSchema), asyncHandler(ctrl.updateMe));
-profilesRouter.get("/:userId", asyncHandler(ctrl.byUserId));
+profilesRouter.get("/:userId", requireAuth, requireApproved, asyncHandler(ctrl.byUserId));
 
 profilesRouter.post(
   "/me/experiences",
