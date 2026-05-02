@@ -2,6 +2,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/asyncHandler.js";
 import { optionalAuth, requireAuth } from "../../middlewares/auth.js";
 import { requireAdmin } from "../../middlewares/rbac.js";
+import { requireApproved } from "../../middlewares/requireApproved.js";
 import { validate } from "../../middlewares/validate.js";
 import { paginationSchema } from "../../lib/pagination.js";
 import * as ctrl from "./achievements.controller.js";
@@ -13,7 +14,7 @@ import {
 
 export const achievementsRouter = Router();
 
-achievementsRouter.get("/", optionalAuth, validate(listQuerySchema, "query"), asyncHandler(ctrl.list));
+achievementsRouter.get("/", requireAuth, requireApproved, validate(listQuerySchema, "query"), asyncHandler(ctrl.list));
 achievementsRouter.get(
   "/pending",
   requireAuth,
@@ -21,14 +22,15 @@ achievementsRouter.get(
   validate(paginationSchema, "query"),
   asyncHandler(ctrl.listPending),
 );
-achievementsRouter.post("/", requireAuth, validate(achievementInputSchema), asyncHandler(ctrl.create));
+achievementsRouter.post("/", requireAuth, requireApproved, validate(achievementInputSchema), asyncHandler(ctrl.create));
 achievementsRouter.patch(
   "/:id",
   requireAuth,
+  requireApproved,
   validate(achievementInputSchema.partial()),
   asyncHandler(ctrl.update),
 );
-achievementsRouter.delete("/:id", requireAuth, asyncHandler(ctrl.remove));
+achievementsRouter.delete("/:id", requireAuth, requireApproved, asyncHandler(ctrl.remove));
 achievementsRouter.post(
   "/:id/moderate",
   requireAuth,
