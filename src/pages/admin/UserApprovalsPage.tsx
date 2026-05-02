@@ -17,6 +17,7 @@ import { api, type ApprovalStatus, type AppRole } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import RejectReasonDialog from "@/components/RejectReasonDialog";
 
 interface AdminUser {
   id: string;
@@ -48,6 +49,7 @@ const UserApprovalsPage = () => {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"all" | ApprovalStatus>("all");
   const [search, setSearch] = useState("");
+  const [rejectId, setRejectId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "users", filter, search],
@@ -60,8 +62,8 @@ const UserApprovalsPage = () => {
   });
 
   const setStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: "APPROVED" | "REJECTED" }) =>
-      api.post(`/admin/users/${id}/status`, { status }),
+    mutationFn: ({ id, status, reason }: { id: string; status: "APPROVED" | "REJECTED"; reason?: string }) =>
+      api.post(`/admin/users/${id}/status`, { status, reason }),
     onSuccess: (_d, v) => {
       toast({ title: `User ${v.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
@@ -176,7 +178,7 @@ const UserApprovalsPage = () => {
                       variant="destructive"
                       className="flex-1 gap-1.5"
                       disabled={setStatus.isPending}
-                      onClick={() => setStatus.mutate({ id: u.id, status: "REJECTED" })}
+                      onClick={() => setRejectId(u.id)}
                     >
                       <XCircle className="h-3.5 w-3.5" /> Reject
                     </Button>
@@ -187,6 +189,16 @@ const UserApprovalsPage = () => {
           })}
         </div>
       )}
+      <RejectReasonDialog
+        open={!!rejectId}
+        onOpenChange={(o) => !o && setRejectId(null)}
+        title="Reject user application"
+        description="The user will be notified in-app and via email."
+        pending={setStatus.isPending}
+        onConfirm={async (reason) => {
+          if (rejectId) await setStatus.mutateAsync({ id: rejectId, status: "REJECTED", reason });
+        }}
+      />
     </motion.div>
   );
 };
