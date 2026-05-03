@@ -18,4 +18,4 @@ describe("lib/password", () => {
     const hash = await hashPassword("Secret123!");
     expect(await verifyPassword("nope", hash)).toBe(false);
   });
-}, 20_000);
+});

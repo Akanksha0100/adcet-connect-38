@@ -26,6 +26,7 @@ module.exports = {
       "ts-jest",
       {
         useESM: true,
+        diagnostics: false,
         tsconfig: {
           module: "ESNext",
           target: "ES2022",
@@ -35,10 +36,6 @@ module.exports = {
           skipLibCheck: true,
           allowSyntheticDefaultImports: true,
           types: ["jest", "node"],
-          noImplicitAny: false,
-          strictNullChecks: false,
-          // Allow `as ApiError` casts from inferred-string mock call args.
-          // Tests are runtime-asserted; we don't need TS to second-guess casts.
         },
       },
     ],
