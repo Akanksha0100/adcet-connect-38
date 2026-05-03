@@ -5,6 +5,8 @@ const caller = (req: Request) => req.auth ? { sub: req.auth.sub, roles: req.auth
 
 export const list = async (req: Request, res: Response) =>
   res.json(await service.list(req.query as any, caller(req)));
+export const getById = async (req: Request, res: Response) =>
+  res.json(await service.getById(req.params.id));
 export const create = async (req: Request, res: Response) =>
   res.status(201).json(await service.create(caller(req)!, req.body));
 export const update = async (req: Request, res: Response) =>

@@ -36,6 +36,15 @@ export const list = async (
 export const create = (caller: Caller, data: any) =>
   prisma.achievement.create({ data: { ...data, userId: caller.sub } });
 
+export const getById = async (id: string) => {
+  const item = await prisma.achievement.findUnique({
+    where: { id },
+    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+  });
+  if (!item) throw NotFound();
+  return item;
+};
+
 export const update = async (caller: Caller, id: string, data: any) => {
   const existing = await prisma.achievement.findUnique({ where: { id } });
   if (!existing) throw NotFound();
@@ -79,7 +88,7 @@ export const listPending = async (q: PaginationQuery) => {
     prisma.achievement.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
       ...paginate(q),
     }),
     prisma.achievement.count({ where }),
