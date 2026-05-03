@@ -39,7 +39,10 @@ export const list = async (
 export const getById = async (id: string) => {
   const event = await prisma.event.findUnique({
     where: { id },
-    include: { _count: { select: { rsvps: true } } },
+    include: {
+      _count: { select: { rsvps: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
   });
   if (!event) throw NotFound("Event not found");
   return event;
@@ -101,7 +104,12 @@ export const listRsvps = (eventId: string) =>
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };
   const [items, total] = await Promise.all([
-    prisma.event.findMany({ where, orderBy: { createdAt: "desc" }, ...paginate(q) }),
+    prisma.event.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      ...paginate(q),
+    }),
     prisma.event.count({ where }),
   ]);
   return { items, pagination: paginationMeta(total, q) };
