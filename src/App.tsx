@@ -8,6 +8,8 @@ import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
 import EventsPage from "./pages/EventsPage";
 import JobsPage from "./pages/JobsPage";
+import JobDetailPage from "./pages/JobDetailPage";
+import EventDetailPage from "./pages/EventDetailPage";
 import ProfilePage from "./pages/ProfilePage";
 import AchievementsPage from "./pages/AchievementsPage";
 import DonationsPage from "./pages/DonationsPage";
@@ -36,6 +38,7 @@ import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
 import AccountStatusGate from "./components/AccountStatusGate";
 import SupportInboxPage from "./pages/admin/SupportInboxPage";
+import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -56,7 +59,9 @@ const App = () => (
                 <Route element={<AccountStatusGate />}>
                   <Route index element={<DashboardHome />} />
                   <Route path="events" element={<EventsPage />} />
+                  <Route path="events/:id" element={<EventDetailPage />} />
                   <Route path="jobs" element={<JobsPage />} />
+                  <Route path="jobs/:id" element={<JobDetailPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="achievements" element={<AchievementsPage />} />
                   <Route path="donations" element={<DonationsPage />} />
@@ -79,6 +84,7 @@ const App = () => (
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="approvals" element={<UserApprovalsPage />} />
+                <Route path="users/:id" element={<AdminUserDetailPage />} />
                 <Route path="events" element={<EventApprovalsPage />} />
                 <Route path="jobs" element={<JobApprovalsPage />} />
                 <Route path="achievements" element={<AchievementsAdminPage />} />
