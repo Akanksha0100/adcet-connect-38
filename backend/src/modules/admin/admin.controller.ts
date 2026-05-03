@@ -4,6 +4,9 @@ import * as service from "./admin.service.js";
 export const listUsers = async (req: Request, res: Response) =>
   res.json(await service.listUsers(req.query as any));
 
+export const getUser = async (req: Request, res: Response) =>
+  res.json(await service.getUserById(req.params.id));
+
 export const setUserStatus = async (req: Request, res: Response) =>
   res.json(await service.setUserStatus(req.auth!.sub, req.params.id, req.body.status, req.body.reason));
 

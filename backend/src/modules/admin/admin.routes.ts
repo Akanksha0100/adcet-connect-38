@@ -16,6 +16,7 @@ export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin);
 
 adminRouter.get("/users", validate(userListQuery, "query"), asyncHandler(ctrl.listUsers));
+adminRouter.get("/users/:id", asyncHandler(ctrl.getUser));
 adminRouter.post(
   "/users/:id/status",
   validate(userStatusSchema),
