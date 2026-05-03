@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -17,7 +18,7 @@ interface AchievementItem {
   category?: string | null;
   occurredOn?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  user?: { firstName: string; lastName: string } | null;
+  user?: { id: string; firstName: string; lastName: string } | null;
 }
 interface Paginated<T> {
   items: T[];
@@ -93,9 +94,17 @@ const AchievementsAdminPage = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h3 className="font-semibold text-foreground text-sm truncate">{a.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {a.user ? `${a.user.firstName} ${a.user.lastName}` : "Unknown"}
-                    </p>
+                    {a.user ? (
+                      <Link
+                        to={`/admin/users/${a.user.id}`}
+                        className="text-xs text-muted-foreground mt-0.5 truncate hover:underline hover:text-foreground block"
+                        title="View user details"
+                      >
+                        {a.user.firstName} {a.user.lastName}
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">Unknown</p>
+                    )}
                   </div>
                   <Badge className={`text-[10px] capitalize ${statusColors[a.status]}`}>
                     {a.status.toLowerCase()}
