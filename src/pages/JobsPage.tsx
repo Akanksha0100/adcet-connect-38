@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, MapPin, Briefcase, Building2, Users2, Plus, Loader2, BriefcaseBusiness } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -103,7 +104,11 @@ const JobsPage = () => {
             ? Math.round(((job.positionsFilled ?? 0) / job.vacancies) * 100)
             : 0;
           return (
-            <div key={job.id} className="card-elevated p-5 space-y-3 hover:-translate-y-0.5 transition-transform">
+            <Link
+              key={job.id}
+              to={`/dashboard/jobs/${job.id}`}
+              className="card-elevated p-5 space-y-3 hover:-translate-y-0.5 transition-transform block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-lg"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{job.title}</h3>
@@ -141,11 +146,20 @@ const JobsPage = () => {
               </div>
 
               <div className="flex items-center justify-end pt-2 border-t border-border">
-                <Button size="sm" className="text-xs" disabled={apply.isPending} onClick={() => apply.mutate(job.id)}>
+                <Button
+                  size="sm"
+                  className="text-xs"
+                  disabled={apply.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    apply.mutate(job.id);
+                  }}
+                >
                   {apply.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply Now"}
                 </Button>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

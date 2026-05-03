@@ -68,6 +68,20 @@ export const setUserStatus = async (
   return { id: updated.id, status: updated.status };
 };
 
+/**
+ * Fetch a single user with profile + roles for the admin detail view.
+ * Strips passwordHash before returning.
+ */
+export const getUserById = async (id: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    include: { roles: true, profile: true },
+  });
+  if (!user) throw NotFound();
+  const { passwordHash: _ph, ...safe } = user as any;
+  return safe;
+};
+
 export const assignRole = async (userId: string, role: AppRoleName) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw NotFound();

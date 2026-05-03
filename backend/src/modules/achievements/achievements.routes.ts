@@ -22,6 +22,7 @@ achievementsRouter.get(
   validate(paginationSchema, "query"),
   asyncHandler(ctrl.listPending),
 );
+achievementsRouter.get("/:id", requireAuth, requireApproved, asyncHandler(ctrl.getById));
 achievementsRouter.post("/", requireAuth, requireApproved, validate(achievementInputSchema), asyncHandler(ctrl.create));
 achievementsRouter.patch(
   "/:id",

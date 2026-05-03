@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Search, MapPin, Users, Calendar as CalIcon, Plus, Loader2, CalendarOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -113,7 +114,11 @@ const EventsPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map((event) => (
-          <div key={event.id} className="card-elevated overflow-hidden group">
+          <Link
+            key={event.id}
+            to={`/dashboard/events/${event.id}`}
+            className="card-elevated overflow-hidden group block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-lg"
+          >
             <div className="hero-gradient h-2" />
             <div className="p-5 space-y-3">
               <div className="flex items-start justify-between">
@@ -142,13 +147,17 @@ const EventsPage = () => {
                   size="sm"
                   className="text-xs"
                   disabled={rsvp.isPending}
-                  onClick={() => rsvp.mutate(event.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    rsvp.mutate(event.id);
+                  }}
                 >
                   {rsvp.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Register"}
                 </Button>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </motion.div>

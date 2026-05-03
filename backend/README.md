@@ -62,3 +62,38 @@ npm run dev
 - Docs:   http://localhost:4000/api/docs
 - MinIO:  http://localhost:9001 (minioadmin / minioadmin)
 - Admin:  admin@adcet.in / Admin@12345
+
+## Testing
+
+Production-grade Jest suite covering libs, middlewares, services and content/notifications flows with mocked Prisma, JWT, mailer and Storage. Tests live under `src/tests/` and mirror the source folder structure.
+
+```bash
+# Run the whole suite (CI default)
+npm test
+
+# Watch mode while developing
+npm run test:watch
+
+# With coverage report (writes to ../coverage/)
+npm run test:coverage
+
+# Target a single file or pattern
+npm test -- src/tests/modules/jobs
+```
+
+Conventions:
+
+- **No live DB.** Every service test uses the `createPrismaMock()` helper at
+  `src/tests/helpers/prismaMock.ts`. Each model exposes `jest.fn()`s for
+  `findUnique`, `findMany`, `create`, `update`, `upsert`, `delete`, `count`,
+  etc., so individual tests can stub return values without leaking state
+  (`clearMocks: true` is on globally).
+- **ESM modules** are stubbed with `jest.unstable_mockModule(...)` *before*
+  the dynamic `await import(...)` of the unit under test.
+- **Express** is exercised through lightweight `buildReq()` / `buildRes()` /
+  `buildNext()` helpers in `src/tests/helpers/expressMocks.ts` — no
+  `supertest` boot is needed for middleware/service tests.
+- **External I/O** (mailer, storage, third-party providers) is mocked at the
+  module boundary; real network calls never happen during `npm test`.
+- New modules: copy any existing `*.service.test.ts` as a template, list new
+  Prisma models in `prismaMock.ts`, and you're good to go.

@@ -4,6 +4,7 @@ import { CheckCircle, XCircle, Calendar, User, CalendarX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -18,7 +19,7 @@ interface EventItem {
   mode?: string | null;
   startsAt: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
-  organizer?: { firstName: string; lastName: string } | null;
+  createdBy?: { id: string; firstName: string; lastName: string } | null;
 }
 
 interface Paginated<T> {
@@ -111,11 +112,15 @@ const EventApprovalsPage = () => {
                     <Calendar className="h-3.5 w-3.5" />
                     {new Date(e.startsAt).toLocaleDateString()}
                   </span>
-                  {e.organizer && (
-                    <span className="flex items-center gap-1">
+                  {e.createdBy && (
+                    <Link
+                      to={`/admin/users/${e.createdBy.id}`}
+                      className="flex items-center gap-1 hover:underline hover:text-foreground"
+                      title="View user details"
+                    >
                       <User className="h-3.5 w-3.5" />
-                      {e.organizer.firstName} {e.organizer.lastName}
-                    </span>
+                      {e.createdBy.firstName} {e.createdBy.lastName}
+                    </Link>
                   )}
                 </div>
                 {e.status === "PENDING" && (

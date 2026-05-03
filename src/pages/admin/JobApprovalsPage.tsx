@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Search, MapPin, Briefcase, BriefcaseBusiness } from "lucide-react";
+import { CheckCircle, XCircle, Search, MapPin, Briefcase, BriefcaseBusiness, User } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,7 @@ interface JobItem {
   location?: string | null;
   type?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  createdBy?: { id: string; firstName: string; lastName: string } | null;
 }
 
 interface Paginated<T> {
@@ -111,6 +113,16 @@ const JobApprovalsPage = () => {
                     <Briefcase className="h-3 w-3" />
                     {j.type}
                   </span>
+                )}
+                {j.createdBy && (
+                  <Link
+                    to={`/admin/users/${j.createdBy.id}`}
+                    className="flex items-center gap-1 hover:underline hover:text-foreground"
+                    title="View user details"
+                  >
+                    <User className="h-3 w-3" />
+                    {j.createdBy.firstName} {j.createdBy.lastName}
+                  </Link>
                 )}
               </div>
 
