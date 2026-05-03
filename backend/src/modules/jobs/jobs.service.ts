@@ -47,7 +47,10 @@ export const list = async (
 export const getById = async (id: string) => {
   const job = await prisma.job.findUnique({
     where: { id },
-    include: { _count: { select: { applications: true } } },
+    include: {
+      _count: { select: { applications: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
   });
   if (!job) throw NotFound();
   return job;
@@ -116,7 +119,12 @@ export const moderate = async (
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };
   const [items, total] = await Promise.all([
-    prisma.job.findMany({ where, orderBy: { createdAt: "desc" }, ...paginate(q) }),
+    prisma.job.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { createdBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
+      ...paginate(q),
+    }),
     prisma.job.count({ where }),
   ]);
   return { items, pagination: paginationMeta(total, q) };
