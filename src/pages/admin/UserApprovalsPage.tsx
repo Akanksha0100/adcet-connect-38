@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { api, type ApprovalStatus, type AppRole } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -127,20 +128,24 @@ const UserApprovalsPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="card-elevated p-5 flex flex-col gap-4 hover:-translate-y-0.5"
               >
-                <div className="flex items-center gap-3">
+                <Link
+                  to={`/admin/users/${u.id}`}
+                  className="flex items-center gap-3 group focus:outline-none"
+                  title="View user details"
+                >
                   <Avatar className="h-11 w-11">
                     <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{name}</p>
+                    <p className="text-sm font-semibold text-foreground truncate group-hover:underline">{name}</p>
                     <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                   </div>
                   <Badge className={`text-[10px] capitalize ${statusColors[u.status]}`}>
                     {u.status.toLowerCase()}
                   </Badge>
-                </div>
+                </Link>
 
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="bg-muted rounded-lg p-2">
