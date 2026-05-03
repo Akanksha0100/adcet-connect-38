@@ -15,7 +15,6 @@ module.exports = {
   testEnvironment: "node",
   rootDir: "src",
   testMatch: ["**/tests/**/*.test.ts"],
-  setupFilesAfterEach: undefined,
   setupFiles: ["<rootDir>/tests/setup-env.ts"],
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
