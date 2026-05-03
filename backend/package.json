@@ -18,8 +18,8 @@
     "db:setup": "npm run prisma:migrate -- --name init && npm run seed",
     "db:migrate": "dotenv -e .env.development -- prisma migrate dev",
     "db:reset": "dotenv -e .env.development -- prisma migrate reset --force && npm run seed",
-    "openapi:serve": "echo 'Swagger UI mounted at /api/docs when server runs'"
-    ,"test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "openapi:serve": "echo 'Swagger UI mounted at /api/docs when server runs'",
+    "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "test:watch": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage --runInBand"
   },
@@ -51,6 +51,7 @@
     "@types/node": "^22.7.4",
     "@types/supertest": "^7.2.0",
     "@types/swagger-ui-express": "^4.1.6",
+    "cross-env": "^10.1.0",
     "dotenv-cli": "^7.4.4",
     "jest": "^30.3.0",
     "pino-pretty": "^11.2.2",
