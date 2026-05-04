@@ -1,0 +1,10 @@
+{
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/tests/**"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
+}
