@@ -4,7 +4,7 @@
  * Covers key sanitization, presigned-style URL shape, public URL building,
  * and the silent no-op behaviour of `delete()` for missing files.
  */
-import { afterAll, describe, expect, it, jest } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
@@ -14,17 +14,21 @@ process.env.LOCAL_STORAGE_DIR = tmpDir;
 process.env.STORAGE_DRIVER = "local";
 process.env.STORAGE_PUBLIC_BASE_URL = "http://example.test";
 
-// Force ESM compilation for this file.
-jest.unstable_mockModule("./__noop__", () => ({}));
+// Touch jest.unstable_mockModule so this file is treated as ESM.
+jest.unstable_mockModule("./__noop_lstor__", () => ({}));
 
-const { LocalStorage } = await import("../../storage/LocalStorage.js");
-const { buildObjectKey } = await import("../../storage/StorageService.js");
+let storage: import("../../storage/LocalStorage.js").LocalStorage;
+let buildObjectKey: typeof import("../../storage/StorageService.js").buildObjectKey;
+
+beforeAll(async () => {
+  const { LocalStorage } = await import("../../storage/LocalStorage.js");
+  ({ buildObjectKey } = await import("../../storage/StorageService.js"));
+  storage = new LocalStorage();
+});
 
 afterAll(() => rmSync(tmpDir, { recursive: true, force: true }));
 
 describe("LocalStorage", () => {
-  const storage = new LocalStorage();
-
   it("presignUpload returns a key namespaced by scope/owner and a 900s TTL", async () => {
     const r = await storage.presignUpload({
       fileName: "Résumé final!.pdf",
@@ -33,7 +37,6 @@ describe("LocalStorage", () => {
       ownerId: "user-1",
     });
     expect(r.key.startsWith("resume/user-1/")).toBe(true);
-    // Unsafe filename characters must be normalized.
     expect(r.key).toMatch(/R_sum__final_\.pdf$/);
     expect(r.expiresIn).toBe(900);
     expect(r.uploadUrl).toContain("/__local_upload/");
