@@ -4,7 +4,7 @@
  * Covers key sanitization, presigned-style URL shape, public URL building,
  * and the silent no-op behaviour of `delete()` for missing files.
  */
-import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
+import { afterAll, describe, expect, it } from "@jest/globals";
 import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
@@ -14,22 +14,14 @@ process.env.LOCAL_STORAGE_DIR = tmpDir;
 process.env.STORAGE_DRIVER = "local";
 process.env.STORAGE_PUBLIC_BASE_URL = "http://example.test";
 
-// Touch jest.unstable_mockModule so this file is treated as ESM.
-jest.unstable_mockModule("./__noop_lstor__", () => ({}));
-
-let storage: import("../../storage/LocalStorage.js").LocalStorage;
-let buildObjectKey: typeof import("../../storage/StorageService.js").buildObjectKey;
-
-beforeAll(async () => {
-  const { LocalStorage } = await import("../../storage/LocalStorage.js");
-  ({ buildObjectKey } = await import("../../storage/StorageService.js"));
-  storage = new LocalStorage();
-});
+const { LocalStorage } = await import("../../storage/LocalStorage.js");
+const { buildObjectKey } = await import("../../storage/StorageService.js");
+const storage = new LocalStorage();
 
 afterAll(() => rmSync(tmpDir, { recursive: true, force: true }));
 
 describe("LocalStorage", () => {
-  it("presignUpload returns a key namespaced by scope/owner and a 900s TTL", async () => {
+  it("presignUpload namespaces by scope/owner, sanitizes filename, expires in 900s", async () => {
     const r = await storage.presignUpload({
       fileName: "Résumé final!.pdf",
       contentType: "application/pdf",
@@ -53,7 +45,7 @@ describe("LocalStorage", () => {
     await expect(storage.delete("nope/missing.txt")).resolves.toBeUndefined();
   });
 
-  it("delete() actually removes a file when present", async () => {
+  it("delete() removes a file when present", async () => {
     const key = "achievement/u/x.txt";
     const full = path.join(tmpDir, key);
     mkdirSync(path.dirname(full), { recursive: true });
@@ -63,7 +55,7 @@ describe("LocalStorage", () => {
     expect(existsSync(full)).toBe(false);
   });
 
-  it("presignDownload returns the same publicUrl", async () => {
+  it("presignDownload returns the same publicUrl for the key", async () => {
     const url = await storage.presignDownload("avatar/u/x.png");
     expect(url).toBe("http://example.test/uploads/avatar/u/x.png");
   });

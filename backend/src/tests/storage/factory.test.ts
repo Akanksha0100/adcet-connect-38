@@ -4,8 +4,6 @@
  */
 import { afterEach, describe, expect, it, jest } from "@jest/globals";
 
-jest.unstable_mockModule("./__noop_factory__", () => ({}));
-
 afterEach(() => {
   jest.resetModules();
   delete process.env.STORAGE_DRIVER;
