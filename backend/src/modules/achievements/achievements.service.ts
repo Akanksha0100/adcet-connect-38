@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
@@ -7,11 +8,14 @@ import { notify } from "../notifications/notifications.service.js";
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c?: Caller) => !!c?.roles.includes("ADMIN");
 
+type AchievementStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type AchievementInput = Omit<Prisma.AchievementUncheckedCreateInput, "userId">;
+
 export const list = async (
-  q: PaginationQuery & { q?: string; status?: any; userId?: string },
+  q: PaginationQuery & { q?: string; status?: AchievementStatus; userId?: string },
   caller?: Caller,
 ) => {
-  const where: any = {
+  const where: Prisma.AchievementWhereInput = {
     ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status: q.status ?? "APPROVED" }),
     ...(q.userId && { userId: q.userId }),
     ...(q.q && {
@@ -33,7 +37,7 @@ export const list = async (
   return { items, pagination: paginationMeta(total, q) };
 };
 
-export const create = (caller: Caller, data: any) =>
+export const create = (caller: Caller, data: AchievementInput) =>
   prisma.achievement.create({ data: { ...data, userId: caller.sub } });
 
 export const getById = async (id: string) => {
@@ -45,7 +49,7 @@ export const getById = async (id: string) => {
   return item;
 };
 
-export const update = async (caller: Caller, id: string, data: any) => {
+export const update = async (caller: Caller, id: string, data: Prisma.AchievementUpdateInput) => {
   const existing = await prisma.achievement.findUnique({ where: { id } });
   if (!existing) throw NotFound();
   if (existing.userId !== caller.sub && !isAdmin(caller)) throw Forbidden();
