@@ -4,20 +4,27 @@
  * Covers key sanitization, presigned-style URL shape, public URL building,
  * and the silent no-op behaviour of `delete()` for missing files.
  */
-import { afterAll, describe, expect, it, jest } from "@jest/globals";
-jest.unstable_mockModule("@prisma/client", () => ({}));
+import { afterAll, beforeAll, describe, expect, it, jest } from "@jest/globals";
 import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
+
+// Force ts-jest to emit ESM for this file by referencing jest at top-level.
+jest.setTimeout(15000);
 
 const tmpDir = mkdtempSync(path.join(os.tmpdir(), "lstor-"));
 process.env.LOCAL_STORAGE_DIR = tmpDir;
 process.env.STORAGE_DRIVER = "local";
 process.env.STORAGE_PUBLIC_BASE_URL = "http://example.test";
 
-const { LocalStorage } = await import("../../storage/LocalStorage.js");
-const { buildObjectKey } = await import("../../storage/StorageService.js");
-const storage = new LocalStorage();
+let storage: import("../../storage/LocalStorage.js").LocalStorage;
+let buildObjectKey: typeof import("../../storage/StorageService.js").buildObjectKey;
+
+beforeAll(async () => {
+  const mod = await import("../../storage/LocalStorage.js");
+  ({ buildObjectKey } = await import("../../storage/StorageService.js"));
+  storage = new mod.LocalStorage();
+});
 
 afterAll(() => rmSync(tmpDir, { recursive: true, force: true }));
 
