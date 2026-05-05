@@ -4,7 +4,7 @@
  * Covers key sanitization, presigned-style URL shape, public URL building,
  * and the silent no-op behaviour of `delete()` for missing files.
  */
-import { afterAll, beforeAll, describe, expect, it } from "@jest/globals";
+import { afterAll, describe, expect, it, jest } from "@jest/globals";
 import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
@@ -13,6 +13,9 @@ const tmpDir = mkdtempSync(path.join(os.tmpdir(), "lstor-"));
 process.env.LOCAL_STORAGE_DIR = tmpDir;
 process.env.STORAGE_DRIVER = "local";
 process.env.STORAGE_PUBLIC_BASE_URL = "http://example.test";
+
+// Force ESM compilation for this file.
+jest.unstable_mockModule("./__noop__", () => ({}));
 
 const { LocalStorage } = await import("../../storage/LocalStorage.js");
 const { buildObjectKey } = await import("../../storage/StorageService.js");
