@@ -4,7 +4,8 @@
  * Covers key sanitization, presigned-style URL shape, public URL building,
  * and the silent no-op behaviour of `delete()` for missing files.
  */
-import { afterAll, describe, expect, it } from "@jest/globals";
+import { afterAll, describe, expect, it, jest } from "@jest/globals";
+jest.unstable_mockModule("@prisma/client", () => ({}));
 import path from "node:path";
 import { mkdtempSync, rmSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
