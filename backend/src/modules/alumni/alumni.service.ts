@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 
 export const search = async (
@@ -12,7 +13,7 @@ export const search = async (
     graduationYearMax?: number;
   },
 ) => {
-  const where: any = {
+  const where: Prisma.ProfileWhereInput = {
     user: { status: "APPROVED" },
     ...(q.city && { city: { contains: q.city, mode: "insensitive" } }),
     ...(q.company && { currentCompany: { contains: q.company, mode: "insensitive" } }),

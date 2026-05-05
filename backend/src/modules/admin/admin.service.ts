@@ -1,13 +1,16 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { Conflict, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
 import { notify } from "../notifications/notifications.service.js";
 
+type UserStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export const listUsers = async (
-  q: PaginationQuery & { q?: string; status?: any; role?: AppRoleName },
+  q: PaginationQuery & { q?: string; status?: UserStatus; role?: AppRoleName },
 ) => {
-  const where: any = {
+  const where: Prisma.UserWhereInput = {
     ...(q.status && { status: q.status }),
     ...(q.role && { roles: { some: { role: q.role } } }),
     ...(q.q && {
@@ -78,7 +81,7 @@ export const getUserById = async (id: string) => {
     include: { roles: true, profile: true },
   });
   if (!user) throw NotFound();
-  const { passwordHash: _ph, ...safe } = user as any;
+  const { passwordHash: _ph, ...safe } = user;
   return safe;
 };
 
@@ -120,23 +123,26 @@ export const generateReport = async (input: {
   return { csv: toCsv(rows) };
 };
 
-const fetchReportRows = async (type: string, where: any): Promise<Record<string, unknown>[]> => {
+const fetchReportRows = async (
+  type: string,
+  where: Record<string, unknown>,
+): Promise<Record<string, unknown>[]> => {
   switch (type) {
     case "users":
-      return (await prisma.user.findMany({ where, select: { id: true, email: true, firstName: true, lastName: true, status: true, createdAt: true } })) as any;
+      return prisma.user.findMany({ where, select: { id: true, email: true, firstName: true, lastName: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
     case "alumni":
-      return (await prisma.profile.findMany({
+      return prisma.profile.findMany({
         where: { user: { status: "APPROVED" } },
         select: { userId: true, department: true, graduationYear: true, currentCompany: true, city: true },
-      })) as any;
+      }) as Promise<Record<string, unknown>[]>;
     case "events":
-      return (await prisma.event.findMany({ where, select: { id: true, title: true, status: true, startsAt: true, location: true, createdAt: true } })) as any;
+      return prisma.event.findMany({ where, select: { id: true, title: true, status: true, startsAt: true, location: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
     case "jobs":
-      return (await prisma.job.findMany({ where, select: { id: true, title: true, company: true, status: true, vacancies: true, createdAt: true } })) as any;
+      return prisma.job.findMany({ where, select: { id: true, title: true, company: true, status: true, vacancies: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
     case "donations":
-      return (await prisma.donation.findMany({ where, select: { id: true, userId: true, amount: true, currency: true, status: true, createdAt: true } })) as any;
+      return prisma.donation.findMany({ where, select: { id: true, userId: true, amount: true, currency: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
     case "achievements":
-      return (await prisma.achievement.findMany({ where, select: { id: true, title: true, status: true, createdAt: true } })) as any;
+      return prisma.achievement.findMany({ where, select: { id: true, title: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
     default:
       return [];
   }

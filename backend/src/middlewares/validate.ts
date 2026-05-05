@@ -11,10 +11,10 @@ type Where = "body" | "query" | "params";
 export const validate =
   <T>(schema: ZodSchema<T>, where: Where = "body") =>
   (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse((req as any)[where]);
+    const result = schema.safeParse((req as unknown as Record<Where, unknown>)[where]);
     if (!result.success) {
       return next(Unprocessable("Validation failed", result.error.flatten()));
     }
-    (req as any)[where] = result.data;
+    (req as unknown as Record<Where, unknown>)[where] = result.data;
     next();
   };

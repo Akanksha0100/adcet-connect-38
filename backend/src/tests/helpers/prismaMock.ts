@@ -53,10 +53,8 @@ const MODELS = [
 ] as const;
 
 export type MockedPrisma = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [K in (typeof MODELS)[number]]: { [M in (typeof MODEL_METHODS)[number]]: jest.Mock<any, any> };
 } & {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   $transaction: jest.Mock<any, any>;
 };
 

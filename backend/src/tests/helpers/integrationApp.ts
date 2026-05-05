@@ -33,7 +33,6 @@ export const createPrismaDeepMock = (): PrismaMock => {
   // own contract: arrays of promises run in parallel-ish, callbacks receive
   // a tx client (we just hand back the same mock).
   // jest-mock-extended pre-stubs the function, so we override its impl.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (m.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);
     if (typeof arg === "function") return arg(m);

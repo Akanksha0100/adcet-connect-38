@@ -25,8 +25,16 @@ export const markAllRead = (userId: string) =>
   prisma.notification.updateMany({ where: { userId, readAt: null }, data: { readAt: new Date() } });
 
 /** Internal helper used by other modules to dispatch in-app notifications. */
-export const create = (userId: string, type: string, title: string, body?: string, data?: any) =>
-  prisma.notification.create({ data: { userId, type, title, body, data } });
+export const create = (
+  userId: string,
+  type: string,
+  title: string,
+  body?: string,
+  data?: Record<string, unknown>,
+) =>
+  prisma.notification.create({
+    data: { userId, type, title, body, data: data as unknown as object | undefined },
+  });
 
 /**
  * Dispatch an in-app notification AND send an email if the user opted-in.
@@ -35,7 +43,7 @@ export const create = (userId: string, type: string, title: string, body?: strin
  */
 export const notify = async (
   userId: string,
-  args: { type: string; title: string; body?: string; data?: any; sendEmailToo?: boolean },
+  args: { type: string; title: string; body?: string; data?: Record<string, unknown>; sendEmailToo?: boolean },
 ) => {
   try {
     await create(userId, args.type, args.title, args.body, args.data);

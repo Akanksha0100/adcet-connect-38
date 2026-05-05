@@ -33,7 +33,7 @@ export const buildApp = () => {
   // OpenAPI / Swagger UI
   try {
     const spec = loadOpenApiSpec();
-    app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(spec as any));
+    app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(spec as Record<string, unknown>));
     app.get("/api/openapi.json", (_req, res) => res.json(spec));
   } catch {
     // openapi.yaml not present — skip silently.

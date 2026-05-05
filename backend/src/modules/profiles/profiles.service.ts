@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { NotFound } from "../../lib/errors.js";
 
 const profileInclude = {
@@ -26,7 +27,9 @@ export const updateMyProfile = (userId: string, data: Record<string, unknown>) =
 export const addExperience = async (userId: string, data: Record<string, unknown>) => {
   const profile = await prisma.profile.findUnique({ where: { userId } });
   if (!profile) throw NotFound();
-  return prisma.workExperience.create({ data: { ...(data as any), profileId: profile.id } });
+  return prisma.workExperience.create({
+    data: { ...(data as Prisma.WorkExperienceUncheckedCreateInput), profileId: profile.id },
+  });
 };
 
 export const removeExperience = (id: string) => prisma.workExperience.delete({ where: { id } });
@@ -34,7 +37,9 @@ export const removeExperience = (id: string) => prisma.workExperience.delete({ w
 export const addEducation = async (userId: string, data: Record<string, unknown>) => {
   const profile = await prisma.profile.findUnique({ where: { userId } });
   if (!profile) throw NotFound();
-  return prisma.education.create({ data: { ...(data as any), profileId: profile.id } });
+  return prisma.education.create({
+    data: { ...(data as Prisma.EducationUncheckedCreateInput), profileId: profile.id },
+  });
 };
 
 export const removeEducation = (id: string) => prisma.education.delete({ where: { id } });

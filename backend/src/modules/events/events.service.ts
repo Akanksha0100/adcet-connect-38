@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
@@ -14,7 +15,7 @@ export const list = async (
 ) => {
   // Non-admins can never see PENDING/REJECTED unless they own them.
   const status = q.status ?? "APPROVED";
-  const where: any = {
+  const where: Prisma.EventWhereInput = {
     ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status }),
     ...(q.upcoming && { startsAt: { gte: new Date() } }),
     ...(q.q && {
@@ -48,10 +49,10 @@ export const getById = async (id: string) => {
   return event;
 };
 
-export const create = (caller: Caller, data: any) =>
+export const create = (caller: Caller, data: Omit<Prisma.EventUncheckedCreateInput, "createdById">) =>
   prisma.event.create({ data: { ...data, createdById: caller.sub } });
 
-export const update = async (caller: Caller, id: string, data: any) => {
+export const update = async (caller: Caller, id: string, data: Prisma.EventUpdateInput) => {
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) throw NotFound();
   if (existing.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();

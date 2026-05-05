@@ -1,9 +1,14 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 
+type DonationStatus = "PLEDGED" | "RECEIVED" | "CANCELLED";
+
 export const listCampaigns = async (q: PaginationQuery & { active?: boolean }) => {
-  const where: any = { ...(q.active !== undefined && { isActive: q.active }) };
+  const where: Prisma.DonationCampaignWhereInput = {
+    ...(q.active !== undefined && { isActive: q.active }),
+  };
   const [items, total] = await Promise.all([
     prisma.donationCampaign.findMany({
       where,
@@ -40,20 +45,24 @@ export const getCampaign = async (id: string) => {
   return { ...campaign, raisedAmount: sum._sum.amount ?? 0, donorCount: sum._count };
 };
 
-export const createCampaign = (data: any) => prisma.donationCampaign.create({ data });
-export const updateCampaign = (id: string, data: any) =>
+export const createCampaign = (data: Prisma.DonationCampaignUncheckedCreateInput) =>
+  prisma.donationCampaign.create({ data });
+export const updateCampaign = (id: string, data: Prisma.DonationCampaignUpdateInput) =>
   prisma.donationCampaign.update({ where: { id }, data });
 export const deleteCampaign = async (id: string) => {
   await prisma.donationCampaign.delete({ where: { id } });
 };
 
-export const pledge = (userId: string, data: any) =>
+export const pledge = (
+  userId: string,
+  data: Omit<Prisma.DonationUncheckedCreateInput, "userId" | "status">,
+) =>
   prisma.donation.create({ data: { ...data, userId, status: "PLEDGED" } });
 
 export const listDonations = async (
-  q: PaginationQuery & { campaignId?: string; status?: any },
+  q: PaginationQuery & { campaignId?: string; status?: DonationStatus },
 ) => {
-  const where: any = {
+  const where: Prisma.DonationWhereInput = {
     ...(q.campaignId && { campaignId: q.campaignId }),
     ...(q.status && { status: q.status }),
   };
@@ -80,5 +89,8 @@ export const myDonations = (userId: string) =>
     include: { campaign: true },
   });
 
-export const updateDonationStatus = (id: string, data: { status: any; receiptKey?: string }) =>
+export const updateDonationStatus = (
+  id: string,
+  data: { status: DonationStatus; receiptKey?: string },
+) =>
   prisma.donation.update({ where: { id }, data });

@@ -26,13 +26,11 @@ export const sendEmail = async (mail: OutgoingEmail): Promise<void> => {
       { to: mail.to, subject: mail.subject },
       `[mailer] (console-only) ${mail.subject} -> ${mail.to}`,
     );
-    // eslint-disable-next-line no-console
     console.log(`\n────────── EMAIL ──────────\nTo: ${mail.to}\nSubject: ${mail.subject}\n${mail.text}\n──────────────────────────\n`);
     return;
   }
 
   // SMTP wiring left as a TODO — install nodemailer when ready.
   logger.warn({ to: mail.to }, "SMTP_HOST set but nodemailer transport not wired; falling back to log");
-  // eslint-disable-next-line no-console
   console.log(`[mailer:smtp-stub] to=${mail.to} subj=${mail.subject}`);
 };

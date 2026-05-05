@@ -1,8 +1,9 @@
 import type { Request, Response } from "express";
+import type { AppRoleName } from "../../config/constants.js";
 import * as service from "./admin.service.js";
 
 export const listUsers = async (req: Request, res: Response) =>
-  res.json(await service.listUsers(req.query as any));
+  res.json(await service.listUsers(req.query as unknown as Parameters<typeof service.listUsers>[0]));
 
 export const getUser = async (req: Request, res: Response) =>
   res.json(await service.getUserById(req.params.id));
@@ -14,12 +15,12 @@ export const assignRole = async (req: Request, res: Response) =>
   res.status(201).json(await service.assignRole(req.params.id, req.body.role));
 
 export const revokeRole = async (req: Request, res: Response) => {
-  await service.revokeRole(req.params.id, req.params.role as any);
+  await service.revokeRole(req.params.id, req.params.role as AppRoleName);
   res.status(204).end();
 };
 
 export const auditLog = async (req: Request, res: Response) =>
-  res.json(await service.getAuditLog(req.query as any));
+  res.json(await service.getAuditLog(req.query as unknown as Parameters<typeof service.getAuditLog>[0]));
 
 export const generateReport = async (req: Request, res: Response) => {
   const result = await service.generateReport(req.body);

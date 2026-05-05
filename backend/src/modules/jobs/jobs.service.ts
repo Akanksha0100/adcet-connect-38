@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
@@ -7,18 +8,21 @@ import { notify } from "../notifications/notifications.service.js";
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c?: Caller) => !!c?.roles.includes("ADMIN");
 
+type EmploymentType = "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
+type ContentStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export const list = async (
   q: PaginationQuery & {
     q?: string;
     company?: string;
     location?: string;
-    employmentType?: any;
-    status?: any;
+    employmentType?: EmploymentType;
+    status?: ContentStatus;
     isRemote?: boolean;
   },
   caller?: Caller,
 ) => {
-  const where: any = {
+  const where: Prisma.JobWhereInput = {
     ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status: q.status ?? "APPROVED" }),
     ...(q.company && { company: { contains: q.company, mode: "insensitive" } }),
     ...(q.location && { location: { contains: q.location, mode: "insensitive" } }),
@@ -56,10 +60,10 @@ export const getById = async (id: string) => {
   return job;
 };
 
-export const create = (caller: Caller, data: any) =>
+export const create = (caller: Caller, data: Omit<Prisma.JobUncheckedCreateInput, "createdById">) =>
   prisma.job.create({ data: { ...data, createdById: caller.sub } });
 
-export const update = async (caller: Caller, id: string, data: any) => {
+export const update = async (caller: Caller, id: string, data: Prisma.JobUpdateInput) => {
   const existing = await prisma.job.findUnique({ where: { id } });
   if (!existing) throw NotFound();
   if (existing.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
