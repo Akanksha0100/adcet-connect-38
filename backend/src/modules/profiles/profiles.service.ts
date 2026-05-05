@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma.js";
+import { Prisma } from "@prisma/client";
 import { NotFound } from "../../lib/errors.js";
 
 const profileInclude = {
