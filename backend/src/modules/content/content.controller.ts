@@ -3,7 +3,7 @@ import * as service from "./content.service.js";
 
 /* News */
 export const listNews = async (req: Request, res: Response) =>
-  res.json(await service.listNews(req.query as any));
+  res.json(await service.listNews(req.query as unknown as Parameters<typeof service.listNews>[0]));
 export const createNews = async (req: Request, res: Response) =>
   res.status(201).json(await service.createNews(req.body));
 export const updateNews = async (req: Request, res: Response) =>
@@ -15,7 +15,7 @@ export const deleteNews = async (req: Request, res: Response) => {
 
 /* Resources */
 export const listResources = async (req: Request, res: Response) =>
-  res.json(await service.listResources(req.query as any));
+  res.json(await service.listResources(req.query as unknown as Parameters<typeof service.listResources>[0]));
 export const createResource = async (req: Request, res: Response) =>
   res.status(201).json(await service.createResource(req.body));
 export const updateResource = async (req: Request, res: Response) =>
@@ -27,7 +27,7 @@ export const deleteResource = async (req: Request, res: Response) => {
 
 /* Support */
 export const listSupport = async (req: Request, res: Response) =>
-  res.json(await service.listSupport(req.query as any));
+  res.json(await service.listSupport(req.query as unknown as Parameters<typeof service.listSupport>[0]));
 export const submitSupport = async (req: Request, res: Response) =>
   res.status(201).json(
     await service.submitSupport({ ...req.body, userId: req.auth?.sub }),
