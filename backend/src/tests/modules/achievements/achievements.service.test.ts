@@ -78,3 +78,61 @@ describe("modules/achievements/service", () => {
     });
   });
 });
+
+describe("achievements/service — branch coverage extras", () => {
+  it("list: admin can request a status; alumni request is ignored & forced to APPROVED", async () => {
+    prismaMock.achievement.findMany.mockResolvedValue([]);
+    prismaMock.achievement.count.mockResolvedValue(0);
+    await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ADMIN);
+    expect((prismaMock.achievement.findMany.mock.calls[0][0] as any).where.status).toBe("PENDING");
+
+    await svc.list({ page: 1, pageSize: 5 } as any, ALUMNI);
+    expect((prismaMock.achievement.findMany.mock.calls[1][0] as any).where.status).toBe("APPROVED");
+  });
+
+  it("list: q + userId build OR + userId filter", async () => {
+    prismaMock.achievement.findMany.mockResolvedValueOnce([]);
+    prismaMock.achievement.count.mockResolvedValueOnce(0);
+    await svc.list({ page: 1, pageSize: 5, q: "win", userId: "u-2" } as any);
+    const where = (prismaMock.achievement.findMany.mock.calls[0][0] as any).where;
+    expect(where.userId).toBe("u-2");
+    expect(where.OR).toHaveLength(2);
+  });
+
+  it("update: 404 when missing; admin can update someone else's row", async () => {
+    prismaMock.achievement.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.update(ALUMNI, "x", {} as any)).rejects.toMatchObject({ status: 404 });
+
+    prismaMock.achievement.findUnique.mockResolvedValueOnce({ userId: "other" });
+    prismaMock.achievement.update.mockResolvedValueOnce({});
+    await expect(svc.update(ADMIN, "a-1", {} as any)).resolves.toBeDefined();
+  });
+
+  it("remove: 404 / 403 / owner / admin branches", async () => {
+    prismaMock.achievement.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.remove(ALUMNI, "x")).rejects.toMatchObject({ status: 404 });
+
+    prismaMock.achievement.findUnique.mockResolvedValueOnce({ userId: "other" });
+    await expect(svc.remove(ALUMNI, "a-1")).rejects.toMatchObject({ status: 403 });
+
+    prismaMock.achievement.findUnique.mockResolvedValueOnce({ userId: "u-1" });
+    prismaMock.achievement.delete.mockResolvedValueOnce({});
+    await expect(svc.remove(ALUMNI, "a-1")).resolves.toBeUndefined();
+
+    prismaMock.achievement.findUnique.mockResolvedValueOnce({ userId: "other" });
+    prismaMock.achievement.delete.mockResolvedValueOnce({});
+    await expect(svc.remove(ADMIN, "a-1")).resolves.toBeUndefined();
+  });
+
+  it("moderate APPROVED clears prior rejectionReason", async () => {
+    prismaMock.achievement.update.mockResolvedValueOnce({ id: "a-1", title: "x", userId: "u-1" });
+    await svc.moderate("a-1", "APPROVED");
+    expect((prismaMock.achievement.update.mock.calls[0][0] as any).data.rejectionReason).toBeNull();
+  });
+
+  it("getById includes user details", async () => {
+    prismaMock.achievement.findUnique.mockResolvedValueOnce({ id: "a-1" });
+    await svc.getById("a-1");
+    expect((prismaMock.achievement.findUnique.mock.calls[0][0] as any).include.user).toBeDefined();
+  });
+});

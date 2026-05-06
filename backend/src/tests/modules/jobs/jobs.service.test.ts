@@ -49,6 +49,102 @@ describe("modules/jobs/service — list", () => {
   });
 });
 
+describe("modules/jobs/service — branch coverage extras", () => {
+  it("list applies all optional filters at once", async () => {
+    prismaMock.job.findMany.mockResolvedValueOnce([]);
+    prismaMock.job.count.mockResolvedValueOnce(0);
+    await svc.list(
+      {
+        page: 1,
+        pageSize: 10,
+        company: "Acme",
+        location: "Pune",
+        employmentType: "FULL_TIME",
+        isRemote: true,
+        q: "node",
+      } as any,
+      ADMIN,
+    );
+    const where = (prismaMock.job.findMany.mock.calls[0][0] as any).where;
+    expect(where.company.contains).toBe("Acme");
+    expect(where.location.contains).toBe("Pune");
+    expect(where.employmentType).toBe("FULL_TIME");
+    expect(where.isRemote).toBe(true);
+    expect(where.OR).toHaveLength(3);
+  });
+
+  it("getById 404 when missing", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.getById("missing")).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("update 404 when missing, 403 when non-owner non-admin, ok for owner", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.update(ALUMNI, "x", {} as any)).rejects.toMatchObject({ status: 404 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    await expect(svc.update(ALUMNI, "j-1", {} as any)).rejects.toMatchObject({ status: 403 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "u-1" });
+    prismaMock.job.update.mockResolvedValueOnce({});
+    await expect(svc.update(ALUMNI, "j-1", {} as any)).resolves.toBeDefined();
+  });
+
+  it("remove 404 / 403 / admin-allowed branches", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.remove(ALUMNI, "x")).rejects.toMatchObject({ status: 404 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    await expect(svc.remove(ALUMNI, "j-1")).rejects.toMatchObject({ status: 403 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    prismaMock.job.delete.mockResolvedValueOnce({});
+    await expect(svc.remove(ADMIN, "j-1")).resolves.toBeUndefined();
+  });
+
+  it("apply upserts on (job, user) compound key", async () => {
+    prismaMock.jobApplication.upsert.mockResolvedValueOnce({});
+    await svc.apply("j-1", "u-1", { coverLetter: "hi" });
+    const arg = prismaMock.jobApplication.upsert.mock.calls[0][0] as any;
+    expect(arg.where).toEqual({ jobId_userId: { jobId: "j-1", userId: "u-1" } });
+  });
+
+  it("listApplications: 404 missing, 403 non-owner, allowed for owner & admin", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.listApplications(ALUMNI, "x")).rejects.toMatchObject({ status: 404 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    await expect(svc.listApplications(ALUMNI, "j-1")).rejects.toMatchObject({ status: 403 });
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "u-1" });
+    prismaMock.jobApplication.findMany.mockResolvedValueOnce([]);
+    await svc.listApplications(ALUMNI, "j-1");
+    expect(prismaMock.jobApplication.findMany).toHaveBeenCalled();
+
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    prismaMock.jobApplication.findMany.mockResolvedValueOnce([]);
+    await svc.listApplications(ADMIN, "j-1");
+    expect(prismaMock.jobApplication.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it("moderate APPROVED clears reason and notifies", async () => {
+    prismaMock.job.update.mockResolvedValueOnce({
+      id: "j-1", title: "T", company: "Acme", createdById: "u-1",
+    });
+    await svc.moderate("j-1", "APPROVED");
+    expect((prismaMock.job.update.mock.calls[0][0] as any).data.rejectionReason).toBeNull();
+    expect(notifyMock).toHaveBeenCalled();
+  });
+
+  it("moderate REJECTED includes reason in body when provided", async () => {
+    prismaMock.job.update.mockResolvedValueOnce({
+      id: "j-1", title: "T", company: "Acme", createdById: "u-1",
+    });
+    await svc.moderate("j-1", "REJECTED", "Spam");
+    expect(notifyMock.mock.calls[0][1].body).toContain("Spam");
+  });
+});
+
 describe("modules/jobs/service — getById / create / update / remove", () => {
   it("getById throws NotFound when missing", async () => {
     prismaMock.job.findUnique.mockResolvedValueOnce(null);

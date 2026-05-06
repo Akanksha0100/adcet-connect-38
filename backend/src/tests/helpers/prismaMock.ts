@@ -50,6 +50,10 @@ const MODELS = [
   "resourceItem",
   "supportMessage",
   "siteSection",
+  "workExperience",
+  "education",
+  "skill",
+  "profileSkill",
 ] as const;
 
 export type MockedPrisma = {

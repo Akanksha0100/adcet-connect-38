@@ -76,3 +76,55 @@ describe("modules/notifications/service", () => {
     await expect(svc.notify("u-1", { type: "x", title: "t" })).resolves.toBeUndefined();
   });
 });
+
+describe("notifications.service — branch coverage extras", () => {
+  it("markAllRead targets only unread rows for the user", async () => {
+    prismaMock.notification.updateMany.mockResolvedValueOnce({ count: 3 });
+    await svc.markAllRead("u-1");
+    expect(prismaMock.notification.updateMany).toHaveBeenCalledWith({
+      where: { userId: "u-1", readAt: null },
+      data: { readAt: expect.any(Date) },
+    });
+  });
+
+  it("create stores data payload as object", async () => {
+    prismaMock.notification.create.mockResolvedValueOnce({});
+    await svc.create("u-1", "type-x", "Title", "Body", { foo: 1 });
+    const arg = prismaMock.notification.create.mock.calls[0][0] as any;
+    expect(arg.data).toMatchObject({ userId: "u-1", type: "type-x", data: { foo: 1 } });
+  });
+
+  it("notify: silently no-ops email if user lookup returns null", async () => {
+    prismaMock.notification.create.mockResolvedValueOnce({});
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.userPreferences.findUnique.mockResolvedValueOnce(null);
+    await svc.notify("u-1", { type: "t", title: "T", sendEmailToo: true });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("notify: sends email when prefs row is missing entirely (default opt-in)", async () => {
+    prismaMock.notification.create.mockResolvedValueOnce({});
+    prismaMock.user.findUnique.mockResolvedValueOnce({ id: "u-1", email: "a@b" });
+    prismaMock.userPreferences.findUnique.mockResolvedValueOnce(null);
+    await svc.notify("u-1", { type: "t", title: "T", sendEmailToo: true });
+    expect(sendEmailMock).toHaveBeenCalled();
+  });
+
+  it("notify: catches mailer failures and returns normally", async () => {
+    prismaMock.notification.create.mockResolvedValueOnce({});
+    prismaMock.user.findUnique.mockResolvedValueOnce({ id: "u-1", email: "a@b" });
+    prismaMock.userPreferences.findUnique.mockResolvedValueOnce({ notificationsEmail: true });
+    sendEmailMock.mockRejectedValueOnce(new Error("smtp dead"));
+    await expect(
+      svc.notify("u-1", { type: "t", title: "T", sendEmailToo: true }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("notify: falls back to title as email body when body is undefined", async () => {
+    prismaMock.notification.create.mockResolvedValueOnce({});
+    prismaMock.user.findUnique.mockResolvedValueOnce({ id: "u-1", email: "a@b" });
+    prismaMock.userPreferences.findUnique.mockResolvedValueOnce({ notificationsEmail: true });
+    await svc.notify("u-1", { type: "t", title: "Hi", sendEmailToo: true });
+    expect(sendEmailMock).toHaveBeenCalledWith({ to: "a@b", subject: "Hi", text: "Hi" });
+  });
+});
