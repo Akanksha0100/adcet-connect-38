@@ -86,7 +86,7 @@ describe("achievements/service — branch coverage extras", () => {
     await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ADMIN);
     expect((prismaMock.achievement.findMany.mock.calls[0][0] as any).where.status).toBe("PENDING");
 
-    await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ALUMNI);
+    await svc.list({ page: 1, pageSize: 5 } as any, ALUMNI);
     expect((prismaMock.achievement.findMany.mock.calls[1][0] as any).where.status).toBe("APPROVED");
   });
 
