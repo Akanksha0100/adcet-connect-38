@@ -1,8 +1,30 @@
-# ADCET Alumni Portal
+<h1 align="center">
+  <img src="public/logo.png" alt="ADCET Alumni Portal" height="60" width="60" />
+  <br />
+  ADCET Alumni Portal
+</h1>
 
-A full-stack alumni engagement platform for ADCET — directory, events, jobs,
-achievements, donations, geo insights, and an admin moderation suite — built
-with role-based access control end-to-end.
+<div align="center">
+
+[![License: Proprietary](https://img.shields.io/badge/license-Proprietary-red?style=for-the-badge)](#license)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-green?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Status](https://img.shields.io/badge/status-Development-yellow?style=for-the-badge)](https://github.com/Akanksha0100/adcet-connect-38)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen?style=for-the-badge)](https://github.com/Akanksha0100/adcet-connect-38/actions)
+[![Issues](https://img.shields.io/badge/Issues-Welcome-brightgreen?style=for-the-badge)](https://github.com/Akanksha0100/adcet-connect-38/issues)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue?style=for-the-badge)](https://github.com/Akanksha0100/adcet-connect-38/releases)
+[![ADCET](https://img.shields.io/badge/ADCET-Adcet%20College-orange?style=for-the-badge&logoColor=white)](https://adcet.ac.in)
+
+</div>
+
+<p align="center">
+  A full-stack alumni engagement platform for ADCET — directory, events, jobs,
+  achievements, donations, geo insights, and an admin moderation suite — built
+  with role-based access control end-to-end.
+</p>
 
 > **Status**: Active development · **License**: Proprietary (see [License](#license))
 

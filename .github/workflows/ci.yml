@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install frontend dependencies
+      run: npm ci
+      # ok
+
+    - name: Install backend dependencies
+      run: |
+        cd backend
+        npm ci
+      # ok
+
+    - name: Lint frontend
+      run: npm run lint
+      # Not Passing
+
+    - name: Lint backend
+      run: |
+        cd backend
+        npm run lint
+      # Not Passing
+
+    - name: Generate Prisma client
+      run: |
+        cd backend
+        npm run prisma:generate
+      # Not Sure
+
+    - name: Build frontend
+      run: npm run build
+      # ok
+
+    - name: Build backend
+      run: |
+        cd backend
+        npm run build
+      # Errors
+
+    - name: Run frontend tests
+      run: npm run test
+      # No tests
+
+    - name: Run backend tests
+      run: |
+        cd backend
+        npm run test
+      # Passing All Tests
