@@ -26,14 +26,19 @@ export const jobListQuery = paginationSchema.extend({
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   isRemote: z.coerce.boolean().optional(),
+  closed: z.coerce.boolean().optional(),
 });
 
 export const applySchema = z.object({
-  resumeKey: z.string().optional(),
+  resumeKey: z.string().min(1, "Resume is required"),
   coverLetter: z.string().max(5000).optional(),
 });
 
 export const moderationSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
   reason: z.string().max(1000).optional(),
+});
+
+export const closeSchema = z.object({
+  closed: z.boolean(),
 });
