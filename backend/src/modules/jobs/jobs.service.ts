@@ -19,11 +19,15 @@ export const list = async (
     employmentType?: EmploymentType;
     status?: ContentStatus;
     isRemote?: boolean;
+    closed?: boolean;
   },
   caller?: Caller,
 ) => {
   const where: Prisma.JobWhereInput = {
     ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status: q.status ?? "APPROVED" }),
+    ...(q.closed === undefined
+      ? (isAdmin(caller) ? {} : { isClosed: false })
+      : { isClosed: q.closed }),
     ...(q.company && { company: { contains: q.company, mode: "insensitive" } }),
     ...(q.location && { location: { contains: q.location, mode: "insensitive" } }),
     ...(q.employmentType && { employmentType: q.employmentType }),
