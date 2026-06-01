@@ -81,12 +81,30 @@ export const remove = async (caller: Caller, id: string) => {
   await prisma.job.delete({ where: { id } });
 };
 
-export const apply = (jobId: string, userId: string, data: { resumeKey?: string; coverLetter?: string }) =>
-  prisma.jobApplication.upsert({
+export const apply = async (
+  jobId: string,
+  userId: string,
+  data: { resumeKey: string; coverLetter?: string },
+) => {
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) throw NotFound("Job not found");
+  if (job.isClosed) throw Forbidden("Applications are closed for this job");
+  if (job.status !== "APPROVED") throw Forbidden("Job is not open for applications");
+  const application = await prisma.jobApplication.upsert({
     where: { jobId_userId: { jobId, userId } },
     update: { ...data },
     create: { jobId, userId, ...data },
   });
+  // Notify the poster.
+  await notify(job.createdById, {
+    type: "job.application",
+    title: `New application for "${job.title}"`,
+    body: `Someone applied to your posting at ${job.company}.`,
+    data: { jobId, applicationId: application.id },
+    sendEmailToo: true,
+  });
+  return application;
+};
 
 export const listApplications = async (caller: Caller, jobId: string) => {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -94,7 +112,55 @@ export const listApplications = async (caller: Caller, jobId: string) => {
   if (job.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
   return prisma.jobApplication.findMany({
     where: { jobId },
-    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profile: {
+            select: {
+              phone: true,
+              city: true,
+              country: true,
+              department: true,
+              graduationYear: true,
+              currentCompany: true,
+              currentRole: true,
+              linkedinUrl: true,
+              githubUrl: true,
+            },
+          },
+        },
+      },
+    },
+  });
+};
+
+/** Jobs posted by the caller (any status, including closed). */
+export const myPostedJobs = async (caller: Caller, q: PaginationQuery) => {
+  const where: Prisma.JobWhereInput = { createdById: caller.sub };
+  const [items, total] = await Promise.all([
+    prisma.job.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { applications: true } } },
+      ...paginate(q),
+    }),
+    prisma.job.count({ where }),
+  ]);
+  return { items, pagination: paginationMeta(total, q) };
+};
+
+/** Owner or admin can close/reopen applications. */
+export const setClosed = async (caller: Caller, id: string, closed: boolean) => {
+  const existing = await prisma.job.findUnique({ where: { id } });
+  if (!existing) throw NotFound();
+  if (existing.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
+  return prisma.job.update({
+    where: { id },
+    data: { isClosed: closed, closedAt: closed ? new Date() : null },
   });
 };
 
