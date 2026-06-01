@@ -103,8 +103,9 @@ describe("modules/jobs/service — branch coverage extras", () => {
   });
 
   it("apply upserts on (job, user) compound key", async () => {
-    prismaMock.jobApplication.upsert.mockResolvedValueOnce({});
-    await svc.apply("j-1", "u-1", { coverLetter: "hi" });
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", status: "APPROVED", isClosed: false, createdById: "poster", title: "X", company: "Y" });
+    prismaMock.jobApplication.upsert.mockResolvedValueOnce({ id: "ja-1" });
+    await svc.apply("j-1", "u-1", { resumeKey: "k", coverLetter: "hi" });
     const arg = prismaMock.jobApplication.upsert.mock.calls[0][0] as any;
     expect(arg.where).toEqual({ jobId_userId: { jobId: "j-1", userId: "u-1" } });
   });
@@ -231,10 +232,35 @@ describe("modules/jobs/service — moderate", () => {
 
 describe("modules/jobs/service — apply / applications", () => {
   it("apply upserts on the (job, user) compound key", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", status: "APPROVED", isClosed: false, createdById: "poster", title: "X", company: "Y" });
     prismaMock.jobApplication.upsert.mockResolvedValueOnce({ id: "ja-1" });
-    await svc.apply("j-1", "u-1", { coverLetter: "hi" });
+    await svc.apply("j-1", "u-1", { resumeKey: "k", coverLetter: "hi" });
     const arg = prismaMock.jobApplication.upsert.mock.calls[0][0] as any;
     expect(arg.where).toEqual({ jobId_userId: { jobId: "j-1", userId: "u-1" } });
+  });
+
+  it("apply: 403 when job is closed", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", status: "APPROVED", isClosed: true, createdById: "poster" });
+    await expect(svc.apply("j-1", "u-1", { resumeKey: "k" })).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("apply: 404 when job missing", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.apply("j-1", "u-1", { resumeKey: "k" })).rejects.toMatchObject({ status: 404 });
+  });
+
+  it("setClosed: owner can close, sets closedAt", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "u-1" });
+    prismaMock.job.update.mockResolvedValueOnce({ id: "j-1", isClosed: true });
+    await svc.setClosed(ALUMNI, "j-1", true);
+    const arg = prismaMock.job.update.mock.calls[0][0] as any;
+    expect(arg.data.isClosed).toBe(true);
+    expect(arg.data.closedAt).toBeInstanceOf(Date);
+  });
+
+  it("setClosed: 403 for non-owner non-admin", async () => {
+    prismaMock.job.findUnique.mockResolvedValueOnce({ id: "j-1", createdById: "other" });
+    await expect(svc.setClosed(ALUMNI, "j-1", true)).rejects.toMatchObject({ status: 403 });
   });
 
   it("listApplications: 403 if non-owner non-admin", async () => {

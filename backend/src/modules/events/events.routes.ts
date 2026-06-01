@@ -8,6 +8,7 @@ import { paginationSchema } from "../../lib/pagination.js";
 import * as ctrl from "./events.controller.js";
 import {
   eventInputSchema,
+  eventUpdateSchema,
   eventListQuery,
   moderationSchema,
   rsvpSchema,
@@ -29,13 +30,21 @@ eventsRouter.patch(
   "/:id",
   requireAuth,
   requireApproved,
-  validate(eventInputSchema.partial()),
+  validate(eventUpdateSchema),
   asyncHandler(ctrl.update),
 );
 eventsRouter.delete("/:id", requireAuth, requireApproved, asyncHandler(ctrl.remove));
 
 eventsRouter.post("/:id/rsvp", requireAuth, requireApproved, validate(rsvpSchema), asyncHandler(ctrl.rsvp));
-eventsRouter.get("/:id/rsvps", requireAuth, requireAdmin, asyncHandler(ctrl.listRsvps));
+// RSVP list visible to the organiser or any admin (service enforces).
+eventsRouter.get("/:id/rsvps", requireAuth, requireApproved, asyncHandler(ctrl.listRsvps));
+eventsRouter.get(
+  "/mine/posted",
+  requireAuth,
+  requireApproved,
+  validate(paginationSchema, "query"),
+  asyncHandler(ctrl.myPosted),
+);
 
 eventsRouter.post(
   "/:id/moderate",

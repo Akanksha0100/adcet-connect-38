@@ -216,6 +216,7 @@ model Event {
   description String
   location    String?
   isOnline    Boolean        @default(false)
+  meetingUrl  String?
   startsAt    DateTime
   endsAt      DateTime?
   capacity    Int?
@@ -269,6 +270,8 @@ model Job {
   status          ApprovalStatus @default(PENDING)
   rejectionReason String?
   expiresAt       DateTime?
+  isClosed        Boolean        @default(false)
+  closedAt        DateTime?
   createdById     String
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -287,6 +290,7 @@ model JobApplication {
   resumeKey String?
   coverLetter String?
   createdAt DateTime @default(now())
+  resumeDeletedAt DateTime?
 
   job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)

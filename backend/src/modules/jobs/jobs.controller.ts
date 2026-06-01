@@ -25,3 +25,7 @@ export const moderate = async (req: Request, res: Response) =>
   res.json(await service.moderate(req.params.id, req.body.status, req.body.reason));
 export const listPending = async (req: Request, res: Response) =>
   res.json(await service.listPending(req.query as unknown as Parameters<typeof service.listPending>[0]));
+export const myPosted = async (req: Request, res: Response) =>
+  res.json(await service.myPostedJobs(caller(req)!, req.query as unknown as Parameters<typeof service.myPostedJobs>[1]));
+export const setClosed = async (req: Request, res: Response) =>
+  res.json(await service.setClosed(caller(req)!, req.params.id, !!req.body.closed));

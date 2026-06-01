@@ -164,9 +164,24 @@ describe("modules/events/service — branch coverage extras", () => {
     expect((prismaMock.event.findMany.mock.calls[0][0] as any).include.createdBy).toBeDefined();
   });
 
-  it("listRsvps fetches with user include", async () => {
+  it("listRsvps: owner can list", async () => {
+    prismaMock.event.findUnique.mockResolvedValueOnce({ id: "e-1", createdById: "u-1" });
     prismaMock.eventRsvp.findMany.mockResolvedValueOnce([]);
-    await svc.listRsvps("e-1");
+    await svc.listRsvps({ sub: "u-1", roles: ["ALUMNI"] }, "e-1");
     expect((prismaMock.eventRsvp.findMany.mock.calls[0][0] as any).include.user).toBeDefined();
+  });
+
+  it("listRsvps: 403 for non-owner non-admin", async () => {
+    prismaMock.event.findUnique.mockResolvedValueOnce({ id: "e-1", createdById: "other" });
+    await expect(
+      svc.listRsvps({ sub: "u-1", roles: ["ALUMNI"] }, "e-1"),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("listRsvps: 404 when event missing", async () => {
+    prismaMock.event.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      svc.listRsvps({ sub: "u-1", roles: ["ADMIN"] }, "e-1"),
+    ).rejects.toMatchObject({ status: 404 });
   });
 });

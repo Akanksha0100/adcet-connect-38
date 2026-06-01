@@ -136,12 +136,22 @@ describe("DELETE /jobs/:id", () => {
 
 describe("POST /jobs/:id/apply", () => {
   it("201 upserts an application", async () => {
+    prisma.job.findUnique.mockResolvedValueOnce({ id: "j1", status: "APPROVED", isClosed: false, createdById: "poster", title: "T", company: "C" } as any);
     prisma.jobApplication.upsert.mockResolvedValueOnce({ id: "app-1" } as any);
+    prisma.notification.create.mockResolvedValueOnce({} as any);
+    const res = await request(app)
+      .post("/api/v1/jobs/j1/apply")
+      .set("Authorization", bearer(userToken))
+      .send({ resumeKey: "resume/u/1.pdf", coverLetter: "Hi!" });
+    expect(res.status).toBe(201);
+  });
+
+  it("422 when resumeKey missing", async () => {
     const res = await request(app)
       .post("/api/v1/jobs/j1/apply")
       .set("Authorization", bearer(userToken))
       .send({ coverLetter: "Hi!" });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(422);
   });
 });
 

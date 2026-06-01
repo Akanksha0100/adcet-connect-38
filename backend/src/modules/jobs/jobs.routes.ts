@@ -8,6 +8,7 @@ import { paginationSchema } from "../../lib/pagination.js";
 import * as ctrl from "./jobs.controller.js";
 import {
   applySchema,
+  closeSchema,
   jobInputSchema,
   jobListQuery,
   moderationSchema,
@@ -17,6 +18,13 @@ export const jobsRouter = Router();
 
 jobsRouter.get("/", requireAuth, requireApproved, validate(jobListQuery, "query"), asyncHandler(ctrl.list));
 jobsRouter.get("/me/applications", requireAuth, requireApproved, asyncHandler(ctrl.myApplications));
+jobsRouter.get(
+  "/mine/posted",
+  requireAuth,
+  requireApproved,
+  validate(paginationSchema, "query"),
+  asyncHandler(ctrl.myPosted),
+);
 jobsRouter.get(
   "/pending",
   requireAuth,
@@ -38,4 +46,12 @@ jobsRouter.post(
   requireAdmin,
   validate(moderationSchema),
   asyncHandler(ctrl.moderate),
+);
+
+jobsRouter.post(
+  "/:id/close",
+  requireAuth,
+  requireApproved,
+  validate(closeSchema),
+  asyncHandler(ctrl.setClosed),
 );
