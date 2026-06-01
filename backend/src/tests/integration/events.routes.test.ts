@@ -99,11 +99,21 @@ describe("RSVP", () => {
 });
 
 describe("admin moderation & rsvps list", () => {
-  it("403 when non-admin tries to list rsvps", async () => {
+  it("403 when caller is not the event owner nor an admin", async () => {
+    prisma.event.findUnique.mockResolvedValueOnce({ id: "e1", createdById: "someone-else" } as any);
     const res = await request(app)
       .get("/api/v1/events/e1/rsvps")
       .set("Authorization", bearer(userToken));
     expect(res.status).toBe(403);
+  });
+
+  it("200 when admin lists rsvps", async () => {
+    prisma.event.findUnique.mockResolvedValueOnce({ id: "e1", createdById: "x" } as any);
+    prisma.eventRsvp.findMany.mockResolvedValueOnce([] as any);
+    const res = await request(app)
+      .get("/api/v1/events/e1/rsvps")
+      .set("Authorization", bearer(adminToken));
+    expect(res.status).toBe(200);
   });
 
   it("200 admin moderates with REJECTED + reason", async () => {
