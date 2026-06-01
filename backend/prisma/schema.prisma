@@ -290,6 +290,7 @@ model JobApplication {
   resumeKey String?
   coverLetter String?
   createdAt DateTime @default(now())
+  resumeDeletedAt DateTime?
 
   job       Job  @relation(fields: [jobId], references: [id], onDelete: Cascade)
   user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
