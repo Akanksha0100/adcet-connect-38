@@ -96,11 +96,40 @@ export const rsvp = (eventId: string, userId: string, status: "GOING" | "INTERES
     create: { eventId, userId, status },
   });
 
-export const listRsvps = (eventId: string) =>
-  prisma.eventRsvp.findMany({
+export const listRsvps = async (caller: Caller, eventId: string) => {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw NotFound();
+  if (event.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
+  return prisma.eventRsvp.findMany({
     where: { eventId },
-    include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          profile: { select: { phone: true, city: true, currentCompany: true, graduationYear: true } },
+        },
+      },
+    },
   });
+};
+
+/** Events created by the caller (any status). */
+export const myPostedEvents = async (caller: Caller, q: PaginationQuery) => {
+  const where = { createdById: caller.sub };
+  const [items, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { rsvps: true } } },
+      ...paginate(q),
+    }),
+    prisma.event.count({ where }),
+  ]);
+  return { items, pagination: paginationMeta(total, q) };
+};
 
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };
