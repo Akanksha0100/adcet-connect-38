@@ -22,3 +22,8 @@ export const reportSchema = z.object({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
 });
+
+export const adminMessageSchema = z.object({
+  subject: z.string().trim().min(1).max(120),
+  body: z.string().trim().min(1).max(2000),
+});
