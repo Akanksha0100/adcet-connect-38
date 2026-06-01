@@ -1,19 +1,32 @@
 import { z } from "zod";
 import { paginationSchema } from "../../lib/pagination.js";
 
-export const eventInputSchema = z
-  .object({
+const eventBase = z.object({
   title: z.string().min(2).max(200),
   description: z.string().min(10).max(20000),
   location: z.string().max(200).optional(),
   isOnline: z.boolean().optional().default(false),
-  meetingUrl: z.string().url().max(500).optional().or(z.literal("")).transform(v => v || undefined),
+  meetingUrl: z.string().url().max(500).optional(),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().optional(),
   capacity: z.coerce.number().int().min(1).optional(),
   coverKey: z.string().optional(),
-})
-  .refine((d) => !d.isOnline || !!d.meetingUrl, {
+});
+
+const requireMeetingUrlWhenOnline = (d: {
+  isOnline?: boolean;
+  meetingUrl?: string;
+}) => !d.isOnline || !!d.meetingUrl;
+
+export const eventInputSchema = eventBase.refine(requireMeetingUrlWhenOnline, {
+  message: "meetingUrl is required for online events",
+  path: ["meetingUrl"],
+});
+
+/** Partial schema used for PATCH; re-applies the same refinement. */
+export const eventUpdateSchema = eventBase
+  .partial()
+  .refine(requireMeetingUrlWhenOnline, {
     message: "meetingUrl is required for online events",
     path: ["meetingUrl"],
   });
