@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { AppRoleName } from "../../config/constants.js";
 import * as service from "./admin.service.js";
+import { sendAdminMessage } from "../notifications/notifications.service.js";
 
 export const listUsers = async (req: Request, res: Response) =>
   res.json(await service.listUsers(req.query as unknown as Parameters<typeof service.listUsers>[0]));
@@ -30,4 +31,9 @@ export const generateReport = async (req: Request, res: Response) => {
     return res.send(result.csv);
   }
   res.json(result);
+};
+
+export const messageUser = async (req: Request, res: Response) => {
+  const row = await sendAdminMessage(req.auth!.sub, req.params.id, req.body.subject, req.body.body);
+  res.status(201).json(row);
 };
