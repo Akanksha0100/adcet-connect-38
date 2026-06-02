@@ -10,6 +10,10 @@ import EventsPage from "./pages/EventsPage";
 import JobsPage from "./pages/JobsPage";
 import JobDetailPage from "./pages/JobDetailPage";
 import EventDetailPage from "./pages/EventDetailPage";
+import MyJobPostsPage from "./pages/MyJobPostsPage";
+import MyEventsPage from "./pages/MyEventsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import NotificationPage from "./pages/NotificationPage";
 import ProfilePage from "./pages/ProfilePage";
 import AchievementsPage from "./pages/AchievementsPage";
 import DonationsPage from "./pages/DonationsPage";
@@ -60,8 +64,12 @@ const App = () => (
                   <Route index element={<DashboardHome />} />
                   <Route path="events" element={<EventsPage />} />
                   <Route path="events/:id" element={<EventDetailPage />} />
+                  <Route path="events/mine" element={<MyEventsPage />} />
                   <Route path="jobs" element={<JobsPage />} />
                   <Route path="jobs/:id" element={<JobDetailPage />} />
+                  <Route path="jobs/mine" element={<MyJobPostsPage />} />
+                  <Route path="notifications" element={<NotificationsPage />} />
+                  <Route path="notifications/:id" element={<NotificationPage />} />
                   <Route path="profile" element={<ProfilePage />} />
                   <Route path="achievements" element={<AchievementsPage />} />
                   <Route path="donations" element={<DonationsPage />} />
