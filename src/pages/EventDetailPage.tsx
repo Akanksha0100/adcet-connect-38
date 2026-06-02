@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, MapPin, Users, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, Users, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
@@ -13,6 +13,7 @@ interface EventDetail {
   description: string;
   location?: string | null;
   isOnline?: boolean;
+  meetingUrl?: string | null;
   startsAt: string;
   endsAt?: string | null;
   capacity?: number | null;
@@ -46,7 +47,7 @@ const EventDetailPage = () => {
       {error && <div className="text-sm text-destructive">Failed to load event.</div>}
       {event && (
         <div className="card-elevated overflow-hidden">
-          <div className="hero-gradient h-3" />
+          <img src="/event-card-banner.svg" alt="" className="w-full h-32 object-cover" />
           <div className="p-6 space-y-5">
             <div className="flex items-start justify-between gap-3">
               <h1 className="text-2xl font-bold text-foreground">{event.title}</h1>
@@ -72,6 +73,18 @@ const EventDetailPage = () => {
               <h2 className="font-semibold text-foreground mb-2">About</h2>
               <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{event.description}</p>
             </div>
+
+            {event.isOnline && event.meetingUrl && (
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Video className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-foreground">Online event</span>
+                </div>
+                <Button size="sm" asChild>
+                  <a href={event.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a>
+                </Button>
+              </div>
+            )}
 
             {event.createdBy && (
               <div className="text-xs text-muted-foreground border-t border-border pt-3">
