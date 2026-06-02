@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import { sendEmail } from "../../lib/mailer.js";
 import { logger } from "../../lib/logger.js";
+import { NotFound } from "../../lib/errors.js";
 
 export const list = async (userId: string, q: PaginationQuery) => {
   const where = { userId };
@@ -51,7 +52,7 @@ export const sendAdminMessage = async (
   body: string,
 ) => {
   const user = await prisma.user.findUnique({ where: { id: toUserId } });
-  if (!user) throw new (await import("../../lib/errors.js")).ApiError(404, "User not found");
+  if (!user) throw NotFound("User not found");
   const row = await prisma.notification.create({
     data: {
       userId: toUserId,
