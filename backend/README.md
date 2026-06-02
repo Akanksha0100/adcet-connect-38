@@ -134,3 +134,14 @@ npm test -- -t "401 when the password is wrong"
   then attach Chrome DevTools at `chrome://inspect`.
 - Coverage gaps: open `../coverage/lcov-report/index.html` in a browser after
   `npm run test:coverage` to see uncovered lines highlighted per file.
+
+## Linting
+
+```bash
+npm run lint           # report
+npm run lint -- --fix  # auto-fix where possible
+```
+
+Conventions: no `any` — use `unknown`, Prisma's `Xxx*Input` helpers, or
+narrow Express types (`Request`, `Response`). New service methods follow the
+`routes → controller → service → prisma` flow with Zod validators per route.
