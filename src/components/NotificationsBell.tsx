@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from "react";
 import { Bell, Check, CheckCheck, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -44,6 +45,7 @@ export const NotificationsBell = () => {
   const { isAuthenticated } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["notifications"],
@@ -110,7 +112,19 @@ export const NotificationsBell = () => {
               return (
                 <div
                   key={n.id}
-                  className={`px-3 py-2 border-b border-border last:border-0 hover:bg-muted/50 ${
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setOpen(false);
+                    navigate(`/dashboard/notifications/${n.id}`);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setOpen(false);
+                      navigate(`/dashboard/notifications/${n.id}`);
+                    }
+                  }}
+                  className={`px-3 py-2 border-b border-border last:border-0 hover:bg-muted/50 cursor-pointer ${
                     unreadItem ? "bg-primary/5" : ""
                   }`}
                 >
@@ -129,7 +143,10 @@ export const NotificationsBell = () => {
                     </div>
                     {unreadItem && (
                       <button
-                        onClick={() => markRead.mutate(n.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markRead.mutate(n.id);
+                        }}
                         className="text-muted-foreground hover:text-foreground"
                         title="Mark as read"
                       >
@@ -141,6 +158,15 @@ export const NotificationsBell = () => {
               );
             })
           )}
+        </div>
+        <div className="border-t border-border p-2">
+          <Link
+            to="/dashboard/notifications"
+            onClick={() => setOpen(false)}
+            className="block text-center text-xs text-primary hover:underline py-1"
+          >
+            View all notifications
+          </Link>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

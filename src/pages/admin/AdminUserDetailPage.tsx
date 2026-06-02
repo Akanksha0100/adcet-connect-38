@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Building, GraduationCap, MapPin, Phone, Linkedin, Github } from "lucide-react";
+import { ArrowLeft, Mail, Building, GraduationCap, MapPin, Phone, Linkedin, Github, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
 import { api, type AppRole, type ApprovalStatus } from "@/lib/api";
 
 interface AdminUserDetail {
@@ -71,6 +77,7 @@ const AdminUserDetailPage = () => {
                 ))}
               </div>
             </div>
+            <SendMessageDialog userId={data.id} recipient={name} />
           </div>
 
           {data.status === "REJECTED" && data.rejectionReason && (
@@ -162,3 +169,56 @@ const Field = ({ icon, label, value }: { icon: React.ReactNode; label: string; v
 );
 
 export default AdminUserDetailPage;
+
+const SendMessageDialog = ({ userId, recipient }: { userId: string; recipient: string }) => {
+  const [open, setOpen] = useState(false);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const send = useMutation({
+    mutationFn: () => api.post(`/admin/users/${userId}/message`, { subject, body }),
+    onSuccess: () => {
+      toast({ title: "Message sent", description: `${recipient} will see this in notifications.` });
+      setOpen(false);
+      setSubject("");
+      setBody("");
+    },
+    onError: (e: Error) => toast({ title: "Send failed", description: e.message, variant: "destructive" }),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5" aria-label="Send message">
+          <MessageSquare className="h-4 w-4" /> Message
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Send a message to {recipient}</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send.mutate();
+          }}
+          className="space-y-3"
+        >
+          <div className="space-y-1.5">
+            <Label>Subject</Label>
+            <Input required maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Message</Label>
+            <Textarea required rows={6} maxLength={2000} value={body} onChange={(e) => setBody(e.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={send.isPending} className="gap-1.5">
+              {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
+              Send
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

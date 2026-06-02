@@ -179,6 +179,7 @@ const CreateEventDialog = ({
     description: "",
     location: "",
     isOnline: false,
+    meetingUrl: "",
     startsAt: "",
     endsAt: "",
     capacity: "",
@@ -188,6 +189,7 @@ const CreateEventDialog = ({
     mutationFn: () =>
       api.post("/events", {
         ...form,
+        meetingUrl: form.isOnline ? form.meetingUrl : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         startsAt: new Date(form.startsAt).toISOString(),
         endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
@@ -196,7 +198,7 @@ const CreateEventDialog = ({
       toast({ title: "Event submitted", description: "Awaiting admin approval." });
       onOpenChange(false);
       onCreated();
-      setForm({ title: "", description: "", location: "", isOnline: false, startsAt: "", endsAt: "", capacity: "" });
+      setForm({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "" });
     },
     onError: (err: any) => toast({ title: "Could not create event", description: err?.message, variant: "destructive" }),
   });
@@ -244,6 +246,18 @@ const CreateEventDialog = ({
             <input type="checkbox" checked={form.isOnline} onChange={(e) => setForm({ ...form, isOnline: e.target.checked })} />
             This is an online event
           </label>
+          {form.isOnline && (
+            <div className="space-y-1.5">
+              <Label>Meeting URL</Label>
+              <Input
+                type="url"
+                required
+                placeholder="https://meet.google.com/..."
+                value={form.meetingUrl}
+                onChange={(e) => setForm({ ...form, meetingUrl: e.target.value })}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={create.isPending}>

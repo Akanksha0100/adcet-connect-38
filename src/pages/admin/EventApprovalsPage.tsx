@@ -4,7 +4,7 @@ import { CheckCircle, XCircle, Calendar, User, CalendarX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -31,6 +31,7 @@ const tabs = ["Pending Events", "Approved Events"] as const;
 
 const EventApprovalsPage = () => {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<(typeof tabs)[number]>("Pending Events");
   const [rejectId, setRejectId] = useState<string | null>(null);
 
@@ -93,11 +94,15 @@ const EventApprovalsPage = () => {
               key={e.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="card-elevated overflow-hidden hover:-translate-y-0.5"
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`/dashboard/events/${e.id}`)}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter") navigate(`/dashboard/events/${e.id}`);
+              }}
+              className="card-elevated overflow-hidden hover:-translate-y-0.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
-              <div className="h-28 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-4xl">
-                📅
-              </div>
+              <img src="/event-card-banner.svg" alt="" className="w-full h-28 object-cover" />
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <h3 className="font-semibold text-foreground">{e.title}</h3>
@@ -115,6 +120,7 @@ const EventApprovalsPage = () => {
                   {e.createdBy && (
                     <Link
                       to={`/admin/users/${e.createdBy.id}`}
+                      onClick={(ev) => ev.stopPropagation()}
                       className="flex items-center gap-1 hover:underline hover:text-foreground"
                       title="View user details"
                     >
@@ -129,7 +135,10 @@ const EventApprovalsPage = () => {
                       size="sm"
                       className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5"
                       disabled={moderate.isPending}
-                      onClick={() => moderate.mutate({ id: e.id, status: "APPROVED" })}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        moderate.mutate({ id: e.id, status: "APPROVED" });
+                      }}
                     >
                       <CheckCircle className="h-3.5 w-3.5" /> Approve
                     </Button>
@@ -138,7 +147,10 @@ const EventApprovalsPage = () => {
                       variant="destructive"
                       className="flex-1 gap-1.5"
                       disabled={moderate.isPending}
-                      onClick={() => setRejectId(e.id)}
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setRejectId(e.id);
+                      }}
                     >
                       <XCircle className="h-3.5 w-3.5" /> Reject
                     </Button>

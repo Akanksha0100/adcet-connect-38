@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import { sendEmail } from "../../lib/mailer.js";
 import { logger } from "../../lib/logger.js";
+import { NotFound } from "../../lib/errors.js";
 
 export const list = async (userId: string, q: PaginationQuery) => {
   const where = { userId };
@@ -35,6 +36,42 @@ export const create = (
   prisma.notification.create({
     data: { userId, type, title, body, data: data as unknown as object | undefined },
   });
+
+/** Fetch a single notification scoped to the caller. Returns null if missing/unowned. */
+export const getById = (userId: string, id: string) =>
+  prisma.notification.findFirst({ where: { id, userId } });
+
+/**
+ * Persist an admin-authored direct message to a user as a notification and,
+ * if the recipient opted-in, send it by email too. Returns the created row.
+ */
+export const sendAdminMessage = async (
+  fromAdminId: string,
+  toUserId: string,
+  subject: string,
+  body: string,
+) => {
+  const user = await prisma.user.findUnique({ where: { id: toUserId } });
+  if (!user) throw NotFound("User not found");
+  const row = await prisma.notification.create({
+    data: {
+      userId: toUserId,
+      type: "admin.message",
+      title: subject,
+      body,
+      data: { fromAdminId } as unknown as object,
+    },
+  });
+  try {
+    const prefs = await prisma.userPreferences.findUnique({ where: { userId: toUserId } });
+    if (!prefs || prefs.notificationsEmail) {
+      await sendEmail({ to: user.email, subject, text: body });
+    }
+  } catch (e) {
+    logger.error({ err: e, toUserId }, "failed to email admin message");
+  }
+  return row;
+};
 
 /**
  * Dispatch an in-app notification AND send an email if the user opted-in.

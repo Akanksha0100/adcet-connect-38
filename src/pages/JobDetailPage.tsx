@@ -1,9 +1,15 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, MapPin, Briefcase, Users2, Calendar, Loader2, ExternalLink } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Briefcase, Users2, Calendar, Loader2, ExternalLink, Lock, Unlock, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
@@ -23,6 +29,7 @@ interface JobDetail {
   expiresAt?: string | null;
   createdAt: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  isClosed?: boolean;
   createdBy?: { id: string; firstName: string; lastName: string; email: string } | null;
   _count?: { applications: number };
 }
@@ -30,17 +37,25 @@ interface JobDetail {
 const JobDetailPage = () => {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user, isAdmin } = useAuth();
   const { data: job, isLoading, error } = useQuery({
     queryKey: ["job", id],
     queryFn: () => api.get<JobDetail>(`/jobs/${id}`),
     enabled: !!id,
   });
 
-  const apply = useMutation({
-    mutationFn: () => api.post(`/jobs/${id}/apply`, { coverLetter: "" }),
-    onSuccess: () => toast({ title: "Application submitted" }),
-    onError: (e: any) => toast({ title: "Apply failed", description: e?.message, variant: "destructive" }),
+  const setClosed = useMutation({
+    mutationFn: (closed: boolean) => api.post(`/jobs/${id}/close`, { closed }),
+    onSuccess: () => {
+      toast({ title: "Updated" });
+      qc.invalidateQueries({ queryKey: ["job", id] });
+    },
+    onError: (e: Error) => toast({ title: "Action failed", description: e.message, variant: "destructive" }),
   });
+
+  const isOwner = !!job && !!user && job.createdBy?.id === user.id;
+  const canModerate = isOwner || isAdmin;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl">
@@ -52,6 +67,12 @@ const JobDetailPage = () => {
       {error && <div className="text-sm text-destructive">Failed to load job.</div>}
       {job && (
         <div className="card-elevated p-6 space-y-5">
+          {job.isClosed && (
+            <div className="rounded-lg border border-muted bg-muted/40 p-3 text-sm flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              <span className="font-medium">Applications are closed for this posting.</span>
+            </div>
+          )}
           <div className="flex items-start justify-between gap-3">
             <div>
               <h1 className="text-2xl font-bold text-foreground">{job.title}</h1>
@@ -91,9 +112,7 @@ const JobDetailPage = () => {
           )}
 
           <div className="flex gap-2 pt-2">
-            <Button onClick={() => apply.mutate()} disabled={apply.isPending}>
-              {apply.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply Now"}
-            </Button>
+            <ApplyJobDialog jobId={job.id} disabled={job.isClosed || job.status !== "APPROVED"} />
             {job.applyUrl && (
               <Button variant="outline" asChild>
                 <a href={job.applyUrl} target="_blank" rel="noreferrer" className="gap-1.5">
@@ -101,10 +120,110 @@ const JobDetailPage = () => {
                 </a>
               </Button>
             )}
+            {canModerate && (
+              <Button
+                variant="outline"
+                className="gap-1.5"
+                disabled={setClosed.isPending}
+                onClick={() => setClosed.mutate(!job.isClosed)}
+              >
+                {job.isClosed ? <Unlock className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                {job.isClosed ? "Reopen" : "Close hiring"}
+              </Button>
+            )}
           </div>
         </div>
       )}
     </motion.div>
+  );
+};
+
+const ApplyJobDialog = ({ jobId, disabled }: { jobId: string; disabled?: boolean }) => {
+  const [open, setOpen] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const apply = useMutation({
+    mutationFn: async () => {
+      if (!file) throw new Error("Please attach your resume (PDF).");
+      if (file.type !== "application/pdf") throw new Error("Resume must be a PDF.");
+      setUploading(true);
+      try {
+        const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
+          fileName: file.name,
+          contentType: "application/pdf",
+          scope: "resume",
+        });
+        const put = await fetch(url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/pdf" },
+          body: file,
+        });
+        if (!put.ok) throw new Error("Resume upload failed");
+        await api.post(`/jobs/${jobId}/apply`, { resumeKey: key, coverLetter });
+      } finally {
+        setUploading(false);
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "Application submitted" });
+      setOpen(false);
+      setCoverLetter("");
+      setFile(null);
+    },
+    onError: (e: Error) =>
+      toast({ title: "Apply failed", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button disabled={disabled}>Apply Now</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Apply for this job</DialogTitle>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            apply.mutate();
+          }}
+          className="space-y-3"
+        >
+          <div className="space-y-1.5">
+            <Label>Resume (PDF only)</Label>
+            <Input
+              type="file"
+              accept="application/pdf,.pdf"
+              required
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Cover letter (optional)</Label>
+            <Textarea
+              rows={5}
+              value={coverLetter}
+              onChange={(e) => setCoverLetter(e.target.value)}
+              placeholder="Tell the recruiter why you're a great fit…"
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={apply.isPending || uploading} className="gap-1.5">
+              {apply.isPending || uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              Submit
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

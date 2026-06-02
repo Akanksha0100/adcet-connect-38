@@ -38,11 +38,14 @@ const sidebarItems = [
   { label: "Profile", path: "/dashboard/profile", icon: User },
   { label: "Alumni", path: "/dashboard/alumni", icon: Users },
   { label: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
+  { label: "My Job Posts", path: "/dashboard/jobs/mine", icon: Briefcase },
   { label: "Events", path: "/dashboard/events", icon: Calendar },
+  { label: "My Events", path: "/dashboard/events/mine", icon: Calendar },
   { label: "Donations", path: "/dashboard/donations", icon: Heart },
   { label: "Achievements", path: "/dashboard/achievements", icon: Trophy },
   { label: "Geo Map", path: "/dashboard/geomap", icon: MapPin },
   { label: "Analytics", path: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Notifications", path: "/dashboard/notifications", icon: Bell },
   { label: "Admin Panel", path: "/admin", icon: ShieldCheck, admin: true },
 ];
 

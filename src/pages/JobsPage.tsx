@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, MapPin, Briefcase, Building2, Users2, Plus, Loader2, BriefcaseBusiness } from "lucide-react";
+import { Search, MapPin, Briefcase, Building2, Users2, Plus, Loader2, BriefcaseBusiness, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -31,6 +31,7 @@ interface Job {
   applyUrl?: string | null;
   expiresAt?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  isClosed?: boolean;
 }
 interface Paginated<T> { items: T[] }
 
@@ -56,12 +57,6 @@ const JobsPage = () => {
       location: location || undefined,
       pageSize: 30,
     }),
-  });
-
-  const apply = useMutation({
-    mutationFn: (id: string) => api.post(`/jobs/${id}/apply`, { coverLetter: "" }),
-    onSuccess: () => toast({ title: "Application submitted" }),
-    onError: (e: any) => toast({ title: "Apply failed", description: e?.message, variant: "destructive" }),
   });
 
   return (
@@ -121,8 +116,14 @@ const JobsPage = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
-                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>{badge.label}</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                {job.isClosed ? (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full border bg-muted text-muted-foreground border-muted flex items-center gap-1">
+                    <Lock className="h-3 w-3" /> Closed
+                  </span>
+                ) : (
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badge.className}`}>{badge.label}</span>
+                )}
                 {job.vacancies != null && (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
                     <Users2 className="h-3 w-3" /> {job.vacancies} positions
@@ -146,18 +147,7 @@ const JobsPage = () => {
               </div>
 
               <div className="flex items-center justify-end pt-2 border-t border-border">
-                <Button
-                  size="sm"
-                  className="text-xs"
-                  disabled={apply.isPending}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    apply.mutate(job.id);
-                  }}
-                >
-                  {apply.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Apply Now"}
-                </Button>
+                <span className="text-xs text-primary font-medium">View details →</span>
               </div>
             </Link>
           );

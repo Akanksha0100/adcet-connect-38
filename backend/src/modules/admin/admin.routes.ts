@@ -10,6 +10,7 @@ import {
   reportSchema,
   userListQuery,
   userStatusSchema,
+  adminMessageSchema,
 } from "./admin.validators.js";
 
 export const adminRouter = Router();
@@ -31,3 +32,8 @@ adminRouter.delete("/users/:id/roles/:role", asyncHandler(ctrl.revokeRole));
 
 adminRouter.get("/audit-log", validate(paginationSchema, "query"), asyncHandler(ctrl.auditLog));
 adminRouter.post("/reports", validate(reportSchema), asyncHandler(ctrl.generateReport));
+adminRouter.post(
+  "/users/:id/message",
+  validate(adminMessageSchema),
+  asyncHandler(ctrl.messageUser),
+);
