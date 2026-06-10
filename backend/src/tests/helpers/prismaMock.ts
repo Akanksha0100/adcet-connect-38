@@ -57,9 +57,9 @@ const MODELS = [
 ] as const;
 
 export type MockedPrisma = {
-  [K in (typeof MODELS)[number]]: { [M in (typeof MODEL_METHODS)[number]]: jest.Mock<any, any> };
+  [K in (typeof MODELS)[number]]: { [M in (typeof MODEL_METHODS)[number]]: jest.Mock };
 } & {
-  $transaction: jest.Mock<any, any>;
+  $transaction: jest.Mock;
 };
 
 export const createPrismaMock = (): MockedPrisma => {

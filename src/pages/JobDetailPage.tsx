@@ -150,12 +150,12 @@ const ApplyJobDialog = ({ jobId, disabled }: { jobId: string; disabled?: boolean
       if (file.type !== "application/pdf") throw new Error("Resume must be a PDF.");
       setUploading(true);
       try {
-        const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
+        const { uploadUrl, key } = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
           fileName: file.name,
           contentType: "application/pdf",
           scope: "resume",
         });
-        const put = await fetch(url, {
+        const put = await fetch(uploadUrl, {
           method: "PUT",
           headers: { "Content-Type": "application/pdf" },
           body: file,

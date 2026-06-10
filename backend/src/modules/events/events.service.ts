@@ -29,7 +29,10 @@ export const list = async (
     prisma.event.findMany({
       where,
       orderBy: { startsAt: "asc" },
-      include: { _count: { select: { rsvps: true } } },
+      include: {
+        _count: { select: { rsvps: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
       ...paginate(q),
     }),
     prisma.event.count({ where }),

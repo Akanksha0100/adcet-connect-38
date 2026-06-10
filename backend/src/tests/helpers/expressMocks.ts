@@ -16,7 +16,7 @@ export const buildReq = (overrides: Partial<Request> = {}): Request =>
 
 export const buildRes = (): Response & { _status?: number; _json?: unknown } => {
   const res: any = {};
-  res.status = jest.fn().mockImplementation((code: number) => {
+  res.status = jest.fn<(code: number) => any>().mockImplementation((code: number) => {
     res._status = code;
     return res;
   });

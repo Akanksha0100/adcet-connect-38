@@ -4,7 +4,7 @@
  * touching business logic — controlled by env `STORAGE_DRIVER`.
  */
 
-export type UploadScope = "avatar" | "event" | "achievement" | "receipt" | "resume";
+export type UploadScope = "avatar" | "banner" | "event" | "achievement" | "receipt" | "resume";
 
 export interface PresignUploadInput {
   fileName: string;

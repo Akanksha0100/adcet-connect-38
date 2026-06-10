@@ -44,7 +44,10 @@ export const list = async (
     prisma.job.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { _count: { select: { applications: true } } },
+      include: {
+        _count: { select: { applications: true } },
+        createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
       ...paginate(q),
     }),
     prisma.job.count({ where }),

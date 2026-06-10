@@ -154,7 +154,7 @@ const upsertUser = async (u: SeedUser) => {
       lastName: u.lastName,
       status: u.status ?? "PENDING",
       roles: { create: { role: u.role } },
-      profile: u.profile ? { create: u.profile as any } : undefined,
+      profile: u.profile ? { create: u.profile as Prisma.ProfileCreateWithoutUserInput } : undefined,
       preferences: { create: {} },
     },
   });
