@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, GraduationCap, Github, Linkedin, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Github, Linkedin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -209,7 +209,6 @@ const AuthPage = () => {
         </motion.div>
       </div>
 
-      {/* Center Divider */}
       <div className="hidden lg:flex items-center justify-center hero-gradient px-8 py-16" style={{ minWidth: "280px" }}>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -217,11 +216,17 @@ const AuthPage = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-center"
         >
-          <div className="w-16 h-16 rounded-2xl bg-accent/20 flex items-center justify-center mx-auto mb-6">
-            <GraduationCap className="h-8 w-8 text-accent-foreground" />
+          <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-6 overflow-hidden">
+            <img src="/logo.jpeg" alt="ADCET Logo" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-2xl font-bold text-primary-foreground mb-2">ADCET Alumni Portal</h1>
+          <h1 className="text-2xl font-bold text-primary-foreground mb-1">ADCET Alumni Portal</h1>
+          <p className="text-primary-foreground/80 text-xs mb-1">Annasaheb Dange College of Engineering</p>
+          <p className="text-primary-foreground/80 text-xs mb-3">and Technology, Ashta</p>
           <p className="text-primary-foreground/70 text-sm">Reconnect. Grow. Contribute.</p>
+          <div className="mt-4 space-y-1 text-primary-foreground/60 text-xs">
+            <p>NAAC A++ · NBA Accredited · ISO 9001:2015</p>
+            <p>Affiliated to Shivaji University, Kolhapur</p>
+          </div>
         </motion.div>
       </div>
 
@@ -235,11 +240,11 @@ const AuthPage = () => {
         >
           {/* Mobile branding */}
           <div className="lg:hidden text-center mb-8">
-            <div className="w-14 h-14 rounded-2xl hero-gradient flex items-center justify-center mx-auto mb-4">
-              <GraduationCap className="h-7 w-7 text-primary-foreground" />
+            <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4">
+              <img src="/logo.jpeg" alt="ADCET Logo" className="w-full h-full object-cover" />
             </div>
             <h1 className="text-xl font-bold text-foreground">ADCET Alumni Portal</h1>
-            <p className="text-muted-foreground text-sm">Reconnect. Grow. Contribute.</p>
+            <p className="text-muted-foreground text-xs">Annasaheb Dange College of Engineering and Technology, Ashta</p>
           </div>
 
           <div className="mb-8">

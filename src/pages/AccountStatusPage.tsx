@@ -68,7 +68,7 @@ const AccountStatusPage = () => {
           variant="ghost"
           onClick={async () => {
             await logout();
-            navigate("/", { replace: true });
+            navigate("/login", { replace: true });
           }}
         >
           Sign out

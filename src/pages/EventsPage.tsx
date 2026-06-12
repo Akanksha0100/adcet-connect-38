@@ -20,6 +20,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EventItem {
   id: string;
@@ -44,6 +45,7 @@ const EventsPage = () => {
   const [mode, setMode] = useState<"all" | "online" | "offline">("all");
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
+  const { isAdmin } = useAuth();
 
   const events = useQuery({
     queryKey: ["events", { tab, q, mode }],
@@ -77,7 +79,7 @@ const EventsPage = () => {
           <h1 className="text-2xl font-bold text-foreground">Events</h1>
           <p className="text-muted-foreground text-sm mt-1">Discover and register for upcoming alumni events</p>
         </div>
-        <CreateEventDialog open={open} onOpenChange={setOpen} onCreated={() => qc.invalidateQueries({ queryKey: ["events"] })} />
+        {isAdmin && <CreateEventDialog open={open} onOpenChange={setOpen} onCreated={() => qc.invalidateQueries({ queryKey: ["events"] })} />}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">

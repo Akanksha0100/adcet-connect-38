@@ -3,7 +3,6 @@ import { Prisma } from "@prisma/client";
 import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
-import { notify } from "../notifications/notifications.service.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 
@@ -13,10 +12,11 @@ export const list = async (
   q: PaginationQuery & { q?: string; status?: "PENDING" | "APPROVED" | "REJECTED"; upcoming?: boolean },
   caller?: Caller,
 ) => {
-  // Non-admins can never see PENDING/REJECTED unless they own them.
-  const status = q.status ?? "APPROVED";
+  // Non-admins always see only APPROVED events; admins can filter by status or see all.
   const where: Prisma.EventWhereInput = {
-    ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status }),
+    ...(isAdmin(caller)
+      ? q.status ? { status: q.status } : {}
+      : { status: "APPROVED" }),
     ...(q.upcoming && { startsAt: { gte: new Date() } }),
     ...(q.q && {
       OR: [
@@ -52,44 +52,22 @@ export const getById = async (id: string) => {
   return event;
 };
 
-export const create = (caller: Caller, data: Omit<Prisma.EventUncheckedCreateInput, "createdById">) =>
-  prisma.event.create({ data: { ...data, createdById: caller.sub } });
+/** Admin-only create: immediately APPROVED. */
+export const create = (caller: Caller, data: Omit<Prisma.EventUncheckedCreateInput, "createdById" | "status">) =>
+  prisma.event.create({ data: { ...data, createdById: caller.sub, status: "APPROVED" } });
 
 export const update = async (caller: Caller, id: string, data: Prisma.EventUpdateInput) => {
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) throw NotFound();
-  if (existing.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
+  if (!isAdmin(caller)) throw Forbidden();
   return prisma.event.update({ where: { id }, data });
 };
 
 export const remove = async (caller: Caller, id: string) => {
   const existing = await prisma.event.findUnique({ where: { id } });
   if (!existing) throw NotFound();
-  if (existing.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
+  if (!isAdmin(caller)) throw Forbidden();
   await prisma.event.delete({ where: { id } });
-};
-
-export const moderate = async (
-  id: string,
-  status: "APPROVED" | "REJECTED",
-  reason?: string,
-) => {
-  const event = await prisma.event.update({
-    where: { id },
-    data: { status, rejectionReason: status === "REJECTED" ? reason ?? null : null },
-  });
-  const verb = status === "APPROVED" ? "approved" : "rejected";
-  await notify(event.createdById, {
-    type: `event.${verb}`,
-    title: `Your event was ${verb}`,
-    body:
-      status === "REJECTED"
-        ? `"${event.title}" was rejected.${reason ? ` Reason: ${reason}` : ""}`
-        : `"${event.title}" is now live.`,
-    data: { eventId: event.id },
-    sendEmailToo: true,
-  });
-  return event;
 };
 
 export const rsvp = (eventId: string, userId: string, status: "GOING" | "INTERESTED" | "NOT_GOING") =>
@@ -102,7 +80,7 @@ export const rsvp = (eventId: string, userId: string, status: "GOING" | "INTERES
 export const listRsvps = async (caller: Caller, eventId: string) => {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) throw NotFound();
-  if (event.createdById !== caller.sub && !isAdmin(caller)) throw Forbidden();
+  if (!isAdmin(caller)) throw Forbidden();
   return prisma.eventRsvp.findMany({
     where: { eventId },
     include: {
@@ -116,34 +94,6 @@ export const listRsvps = async (caller: Caller, eventId: string) => {
         },
       },
     },
+    orderBy: { createdAt: "asc" },
   });
-};
-
-/** Events created by the caller (any status). */
-export const myPostedEvents = async (caller: Caller, q: PaginationQuery) => {
-  const where = { createdById: caller.sub };
-  const [items, total] = await Promise.all([
-    prisma.event.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: { _count: { select: { rsvps: true } } },
-      ...paginate(q),
-    }),
-    prisma.event.count({ where }),
-  ]);
-  return { items, pagination: paginationMeta(total, q) };
-};
-
-export const listPending = async (q: PaginationQuery) => {
-  const where = { status: "PENDING" as const };
-  const [items, total] = await Promise.all([
-    prisma.event.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: { createdBy: { select: { id: true, firstName: true, lastName: true, email: true } } },
-      ...paginate(q),
-    }),
-    prisma.event.count({ where }),
-  ]);
-  return { items, pagination: paginationMeta(total, q) };
 };

@@ -3,7 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
-  AlertTriangle, Settings, Bell, Menu, ChevronLeft, GraduationCap, LogOut,
+  AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut,
   Search, User, Globe, FileText, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -59,7 +59,7 @@ const AdminLayout = () => {
     : "AD";
   const handleSignOut = async () => {
     await logout();
-    navigate("/", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -71,9 +71,7 @@ const AdminLayout = () => {
         </button>
 
         <div className="flex items-center gap-2 mr-4">
-          <div className="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
-            <GraduationCap className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src="/logo.jpeg" alt="ADCET Logo" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-foreground hidden sm:inline text-sm">ADCET Admin</span>
         </div>
 

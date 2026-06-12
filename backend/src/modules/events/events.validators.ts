@@ -40,8 +40,3 @@ export const eventListQuery = paginationSchema.extend({
 export const rsvpSchema = z.object({
   status: z.enum(["GOING", "INTERESTED", "NOT_GOING"]),
 });
-
-export const moderationSchema = z.object({
-  status: z.enum(["APPROVED", "REJECTED"]),
-  reason: z.string().max(1000).optional(),
-});

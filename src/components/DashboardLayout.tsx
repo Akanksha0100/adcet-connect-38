@@ -3,7 +3,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
-  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, GraduationCap, ChevronLeft, ShieldCheck, Send, Loader2,
+  Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, ChevronLeft, ShieldCheck, Send, Loader2,
   Home, Info, MoreHorizontal
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ const sidebarItems = [
   { label: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
   { label: "My Job Posts", path: "/dashboard/jobs/mine", icon: Briefcase },
   { label: "Events", path: "/dashboard/events", icon: Calendar },
-  { label: "My Events", path: "/dashboard/events/mine", icon: Calendar },
   { label: "Donations", path: "/dashboard/donations", icon: Heart },
   { label: "Achievements", path: "/dashboard/achievements", icon: Trophy },
   { label: "Geo Map", path: "/dashboard/geomap", icon: MapPin },
@@ -103,7 +102,7 @@ const DashboardLayout = () => {
 
   const handleSignOut = async () => {
     await logout();
-    navigate("/", { replace: true });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -115,9 +114,7 @@ const DashboardLayout = () => {
         </button>
 
         <div className="flex items-center gap-2 mr-6">
-          <div className="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
-            <GraduationCap className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src="/logo.jpeg" alt="ADCET Logo" className="w-8 h-8 rounded-lg object-cover" />
           <span className="font-bold text-foreground hidden sm:inline text-sm">ADCET Alumni</span>
         </div>
 
