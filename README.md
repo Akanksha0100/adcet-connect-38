@@ -157,8 +157,6 @@ Open http://localhost:8080 and sign in.
 | Alumni    | `bob@adcet.in`         | `Alumni@123`  |
 | Alumni    | `priya@adcet.in`       | `Alumni@123`  |
 | Alumni    | `rahul@adcet.in`       | `Alumni@123`  |
-| Student   | `sneha@adcet.in`       | `Student@123` |
-| Recruiter | `neha@recruiter.in`    | `Recruit@123` |
 
 Each user owns different content (jobs, events, achievements, donations,
 RSVPs) so all admin and user views render with realistic data out of the box.

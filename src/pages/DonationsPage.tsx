@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Loader2 } from "lucide-react";
+import { Heart, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, uploadFile } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -27,20 +27,40 @@ const DonationsPage = () => {
   const [amount, setAmount] = useState<number | string>(1000);
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
 
   const myDonations = useQuery({ queryKey: ["donations", "me"], queryFn: () => api.get<{ items?: any[] } | any[]>("/donations/me") });
 
   const pledge = useMutation({
-    mutationFn: () => api.post("/donations", {
-      campaignId: selected,
-      amount: Number(amount),
-      message: message || undefined,
-      isAnonymous: anonymous,
-    }),
+    mutationFn: async () => {
+      let proofKey: string | undefined;
+      if (proofFile) {
+        if (!proofFile.type.startsWith("image/") && proofFile.type !== "application/pdf") {
+          throw new Error("Payment proof must be an image or PDF.");
+        }
+        setUploadingProof(true);
+        try {
+          const { key } = await uploadFile(proofFile, "receipt");
+          proofKey = key;
+        } finally {
+          setUploadingProof(false);
+        }
+      }
+      return api.post("/donations", {
+        campaignId: selected,
+        amount: Number(amount),
+        message: message || undefined,
+        proofKey,
+        isAnonymous: anonymous,
+      });
+    },
     onSuccess: () => {
-      toast({ title: "Thank you!", description: "Donation pledged." });
+      toast({ title: "Thank you!", description: "Donation submitted for admin verification." });
       qc.invalidateQueries({ queryKey: ["donations"] });
       qc.invalidateQueries({ queryKey: ["campaigns"] });
+      setMessage("");
+      setProofFile(null);
     },
     onError: (e: any) => toast({ title: "Donation failed", description: e?.message, variant: "destructive" }),
   });
@@ -93,12 +113,27 @@ const DonationsPage = () => {
             <Input value={message} onChange={(e) => setMessage(e.target.value)} />
           </div>
 
+          <div className="space-y-1.5">
+            <Label>Payment screenshot or receipt</Label>
+            <Input
+              type="file"
+              accept="image/*,application/pdf,.pdf"
+              onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+            />
+            {proofFile && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Upload className="h-3 w-3" />
+                {proofFile.name}
+              </p>
+            )}
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={anonymous} onChange={(e) => setAnonymous(e.target.checked)} /> Donate anonymously
           </label>
 
-          <Button onClick={() => pledge.mutate()} disabled={pledge.isPending || !amount} className="w-full sm:w-auto px-8">
-            {pledge.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" /> Donate ₹{Number(amount || 0).toLocaleString()}</>}
+          <Button onClick={() => pledge.mutate()} disabled={pledge.isPending || uploadingProof || !amount} className="w-full sm:w-auto px-8">
+            {pledge.isPending || uploadingProof ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Heart className="mr-2 h-4 w-4" /> Donate ₹{Number(amount || 0).toLocaleString()}</>}
           </Button>
         </div>
 
@@ -112,7 +147,10 @@ const DonationsPage = () => {
                 <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center"><Heart className="h-4 w-4 text-accent" /></div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-foreground">₹{Number(d.amount).toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(d.createdAt).toLocaleDateString()} · {d.status}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(d.createdAt).toLocaleDateString()} · {d.status}
+                    {d.proofKey ? " · proof uploaded" : ""}
+                  </p>
                 </div>
               </div>
             ))}

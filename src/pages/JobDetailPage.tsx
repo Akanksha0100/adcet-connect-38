@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
+import { api, uploadFile } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 interface JobDetail {
@@ -150,17 +150,7 @@ const ApplyJobDialog = ({ jobId, disabled }: { jobId: string; disabled?: boolean
       if (file.type !== "application/pdf") throw new Error("Resume must be a PDF.");
       setUploading(true);
       try {
-        const { uploadUrl, key } = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-          fileName: file.name,
-          contentType: "application/pdf",
-          scope: "resume",
-        });
-        const put = await fetch(uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": "application/pdf" },
-          body: file,
-        });
-        if (!put.ok) throw new Error("Resume upload failed");
+        const { key } = await uploadFile(file, "resume");
         await api.post(`/jobs/${jobId}/apply`, { resumeKey: key, coverLetter });
       } finally {
         setUploading(false);

@@ -81,6 +81,7 @@ model User {
   jobsCreated     Job[]          @relation("JobCreator")
   achievements    Achievement[]
   donations       Donation[]
+  donationLedgerEntries DonationLedgerEntry[]
   rsvps           EventRsvp[]
   jobApplications JobApplication[]
 
@@ -347,15 +348,39 @@ model Donation {
   currency     String         @default("INR")
   message      String?
   status       DonationStatus @default(PLEDGED)
+  proofKey      String?
   receiptKey   String?
   isAnonymous  Boolean        @default(false)
   createdAt    DateTime       @default(now())
 
   campaign     DonationCampaign? @relation(fields: [campaignId], references: [id])
   user         User              @relation(fields: [userId], references: [id])
+  ledgerEntries DonationLedgerEntry[]
 
   @@index([campaignId])
   @@index([userId])
+  @@index([status, createdAt])
+}
+
+model DonationLedgerEntry {
+  id         String          @id @default(uuid())
+  donationId String
+  actorId    String?
+  entryType  String
+  status     DonationStatus?
+  amount     Int?
+  proofKey   String?
+  receiptKey String?
+  note       String?
+  metadata   Json?
+  createdAt  DateTime        @default(now())
+
+  donation   Donation        @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  actor      User?           @relation(fields: [actorId], references: [id])
+
+  @@index([donationId, createdAt])
+  @@index([actorId])
+  @@index([entryType, createdAt])
 }
 
 // =====================================================================

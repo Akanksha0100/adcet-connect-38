@@ -20,4 +20,4 @@ export const listDonations = async (req: Request, res: Response) =>
 export const myDonations = async (req: Request, res: Response) =>
   res.json(await service.myDonations(req.auth!.sub));
 export const updateDonationStatus = async (req: Request, res: Response) =>
-  res.json(await service.updateDonationStatus(req.params.id, req.body));
+  res.json(await service.updateDonationStatus(req.auth!.sub, req.params.id, req.body));

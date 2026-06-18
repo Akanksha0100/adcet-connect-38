@@ -25,6 +25,14 @@ jobsRouter.get(
   validate(paginationSchema, "query"),
   asyncHandler(ctrl.myPosted),
 );
+// Admin: all jobs with any status
+jobsRouter.get(
+  "/admin/all",
+  requireAuth,
+  requireAdmin,
+  validate(jobListQuery, "query"),
+  asyncHandler(ctrl.list),
+);
 jobsRouter.get(
   "/pending",
   requireAuth,
@@ -38,6 +46,7 @@ jobsRouter.patch("/:id", requireAuth, requireApproved, validate(jobInputSchema.p
 jobsRouter.delete("/:id", requireAuth, requireApproved, asyncHandler(ctrl.remove));
 
 jobsRouter.post("/:id/apply", requireAuth, requireApproved, validate(applySchema), asyncHandler(ctrl.apply));
+// Admin OR job-poster can see applications
 jobsRouter.get("/:id/applications", requireAuth, requireApproved, asyncHandler(ctrl.listApplications));
 
 jobsRouter.post(

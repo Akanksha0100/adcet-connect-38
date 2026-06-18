@@ -25,6 +25,9 @@ export interface StorageService {
   /** Returns a pre-signed URL the client can PUT a file to directly. */
   presignUpload(input: PresignUploadInput): Promise<PresignUploadResult>;
 
+  /** Uploads bytes through the backend and returns the stored object key. */
+  upload(input: PresignUploadInput & { body: Buffer }): Promise<{ key: string; publicUrl: string }>;
+
   /** Pre-signed GET URL for private objects. */
   presignDownload(key: string, expiresIn?: number): Promise<string>;
 

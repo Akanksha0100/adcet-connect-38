@@ -57,7 +57,21 @@ export const pledge = (
   userId: string,
   data: Omit<Prisma.DonationUncheckedCreateInput, "userId" | "status">,
 ) =>
-  prisma.donation.create({ data: { ...data, userId, status: "PLEDGED" } });
+  prisma.$transaction(async (tx) => {
+    const donation = await tx.donation.create({ data: { ...data, userId, status: "PLEDGED" } });
+    await tx.donationLedgerEntry.create({
+      data: {
+        donationId: donation.id,
+        actorId: userId,
+        entryType: data.proofKey ? "PLEDGE_WITH_PROOF" : "PLEDGE_CREATED",
+        status: donation.status,
+        amount: donation.amount,
+        proofKey: data.proofKey ?? null,
+        note: data.message ?? null,
+      },
+    });
+    return donation;
+  });
 
 export const listDonations = async (
   q: PaginationQuery & { campaignId?: string; status?: DonationStatus },
@@ -70,7 +84,11 @@ export const listDonations = async (
     prisma.donation.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { user: { select: { id: true, firstName: true, lastName: true } } },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        campaign: { select: { id: true, title: true } },
+        ledgerEntries: { orderBy: { createdAt: "desc" }, take: 5 },
+      },
       ...paginate(q),
     }),
     prisma.donation.count({ where }),
@@ -90,7 +108,26 @@ export const myDonations = (userId: string) =>
   });
 
 export const updateDonationStatus = (
+  actorId: string,
   id: string,
-  data: { status: DonationStatus; receiptKey?: string },
+  data: { status: DonationStatus; receiptKey?: string; note?: string },
 ) =>
-  prisma.donation.update({ where: { id }, data });
+  prisma.$transaction(async (tx) => {
+    const donation = await tx.donation.update({
+      where: { id },
+      data: { status: data.status, receiptKey: data.receiptKey },
+    });
+    await tx.donationLedgerEntry.create({
+      data: {
+        donationId: donation.id,
+        actorId,
+        entryType: "STATUS_UPDATED",
+        status: donation.status,
+        amount: donation.amount,
+        proofKey: donation.proofKey,
+        receiptKey: data.receiptKey ?? donation.receiptKey,
+        note: data.note ?? null,
+      },
+    });
+    return donation;
+  });

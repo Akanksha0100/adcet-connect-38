@@ -3,7 +3,7 @@
  * "Pre-signed URLs" are simply HTTP endpoints under `/uploads/*` served by Express.
  * Not for production use — but lets the backend run with zero external deps.
  */
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { rm } from "node:fs/promises";
 import path from "node:path";
@@ -29,6 +29,14 @@ export class LocalStorage implements StorageService {
     const key = buildObjectKey(input);
     const uploadUrl = `${this.baseUrl()}/__local_upload/${encodeURIComponent(key)}`;
     return { uploadUrl, key, publicUrl: this.publicUrl(key), expiresIn: 900 };
+  }
+
+  async upload(input: PresignUploadInput & { body: Buffer }): Promise<{ key: string; publicUrl: string }> {
+    const key = buildObjectKey(input);
+    const full = path.join(this.root, key);
+    await mkdir(path.dirname(full), { recursive: true });
+    await writeFile(full, input.body);
+    return { key, publicUrl: this.publicUrl(key) };
   }
 
   async presignDownload(key: string): Promise<string> {

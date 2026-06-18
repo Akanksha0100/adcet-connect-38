@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { Download, FileText } from "lucide-react";
+import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -13,6 +14,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
 type ReportType = "users" | "alumni" | "events" | "jobs" | "donations" | "achievements";
+type ExportFormat = "csv" | "excel" | "pdf" | "json";
 
 const reportTypes: { value: ReportType; label: string; description: string }[] = [
   { value: "users", label: "Users", description: "All registered accounts and statuses." },
@@ -23,44 +25,65 @@ const reportTypes: { value: ReportType; label: string; description: string }[] =
   { value: "achievements", label: "Achievements", description: "Submitted alumni achievements." },
 ];
 
+const downloadText = (filename: string, mime: string, content: string) => {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+const toCsv = (rows: Record<string, unknown>[]) => {
+  if (!rows.length) return "";
+  const headers = Object.keys(rows[0]);
+  const escape = (v: unknown) => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+};
+
+const toExcelHtml = (rows: Record<string, unknown>[]) => {
+  const headers = rows[0] ? Object.keys(rows[0]) : [];
+  const cell = (v: unknown) => String(v ?? "").replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c]!);
+  return `<table><thead><tr>${headers.map((h) => `<th>${cell(h)}</th>`).join("")}</tr></thead><tbody>${rows
+    .map((r) => `<tr>${headers.map((h) => `<td>${cell(r[h])}</td>`).join("")}</tr>`)
+    .join("")}</tbody></table>`;
+};
+
+const printRows = (title: string, rows: Record<string, unknown>[]) => {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(`<!doctype html><title>${title}</title><style>body{font-family:Arial,sans-serif;padding:24px}table{border-collapse:collapse;width:100%;font-size:12px}th,td{border:1px solid #ddd;padding:6px;text-align:left}th{background:#f4f4f4}</style><h1>${title}</h1>${toExcelHtml(rows)}`);
+  win.document.close();
+  win.focus();
+  win.print();
+};
+
 const ReportsPage = () => {
   const [type, setType] = useState<ReportType>("users");
-  const [format, setFormat] = useState<"csv" | "json">("csv");
+  const [format, setFormat] = useState<ExportFormat>("csv");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
 
   const generate = async () => {
     setLoading(true);
     try {
-      if (format === "csv") {
-        const csv = await api.post<string>(
-          "/admin/reports",
-          { type, format: "csv" },
-          { raw: true },
-        );
-        const blob = new Blob([csv], { type: "text/csv" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${type}-report.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast({ title: "Report downloaded" });
-      } else {
-        const data = await api.post<{ rows: unknown[] }>("/admin/reports", {
-          type,
-          format: "json",
-        });
-        const blob = new Blob([JSON.stringify(data.rows, null, 2)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${type}-report.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast({ title: "Report downloaded" });
-      }
+      const data = await api.post<{ rows: Record<string, unknown>[] }>("/admin/reports", {
+        type,
+        format: "json",
+        from: from || undefined,
+        to: to || undefined,
+      });
+      const rows = data.rows ?? [];
+      if (format === "csv") downloadText(`${type}-report.csv`, "text/csv", toCsv(rows));
+      if (format === "excel") downloadText(`${type}-report.xls`, "application/vnd.ms-excel", toExcelHtml(rows));
+      if (format === "json") downloadText(`${type}-report.json`, "application/json", JSON.stringify(rows, null, 2));
+      if (format === "pdf") printRows(`${reportTypes.find((r) => r.value === type)?.label ?? type} Report`, rows);
+      toast({ title: "Report generated" });
     } catch (e: any) {
       toast({
         title: "Failed to generate report",
@@ -103,19 +126,32 @@ const ReportsPage = () => {
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground">Format</label>
-          <Select value={format} onValueChange={(v) => setFormat(v as "csv" | "json")}>
+          <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="csv">CSV</SelectItem>
+              <SelectItem value="excel">Excel</SelectItem>
+              <SelectItem value="pdf">PDF</SelectItem>
               <SelectItem value="json">JSON</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">From</label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-foreground">To</label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        </div>
+
         <Button onClick={generate} disabled={loading} className="gap-2">
-          <Download className="h-4 w-4" />
+          {format === "excel" ? <FileSpreadsheet className="h-4 w-4" /> : format === "pdf" ? <Printer className="h-4 w-4" /> : <Download className="h-4 w-4" />}
           {loading ? "Generating…" : "Generate & download"}
         </Button>
       </div>

@@ -40,6 +40,19 @@ export class S3Storage implements StorageService {
     return { uploadUrl, key, publicUrl: this.publicUrl(key), expiresIn: env.S3_PRESIGN_TTL };
   }
 
+  async upload(input: PresignUploadInput & { body: Buffer }): Promise<{ key: string; publicUrl: string }> {
+    const key = buildObjectKey(input);
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        ContentType: input.contentType,
+        Body: input.body,
+      }),
+    );
+    return { key, publicUrl: this.publicUrl(key) };
+  }
+
   async presignDownload(key: string, expiresIn = env.S3_PRESIGN_TTL): Promise<string> {
     const cmd = new GetObjectCommand({ Bucket: this.bucket, Key: key });
     return getSignedUrl(this.client, cmd, { expiresIn });

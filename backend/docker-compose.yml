@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: adcet
       POSTGRES_PASSWORD: adcet
       POSTGRES_DB: adcet_alumni
-    ports: ["5432:5432"]
+    ports: ["5433:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U adcet -d adcet_alumni"]
@@ -24,12 +24,15 @@ services:
   createbuckets:
     image: minio/mc
     depends_on: [minio]
+    volumes:
+      - ./minio-cors.xml:/tmp/minio-cors.xml:ro
     entrypoint: >
       /bin/sh -c "
       sleep 3;
       mc alias set local http://minio:9000 minioadmin minioadmin;
       mc mb -p local/adcet-alumni || true;
       mc anonymous set download local/adcet-alumni || true;
+      mc cors set local/adcet-alumni /tmp/minio-cors.xml || true;
       exit 0;
       "
 

@@ -189,3 +189,38 @@ export const API_BASE_URL = BASE_URL;
 
 /** Build a full URL to a backend endpoint (used for OAuth redirects). */
 export const apiUrl = (path: string) => `${BASE_URL}${path}`;
+
+export async function uploadFile(
+  file: File,
+  scope: "avatar" | "banner" | "event" | "achievement" | "receipt" | "resume",
+): Promise<{ key: string; publicUrl: string }> {
+  const tokens = tokenStore.get();
+  const url = buildUrl("/uploads/direct", {
+    fileName: file.name,
+    contentType: file.type || "application/octet-stream",
+    scope,
+  });
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream",
+      ...(tokens?.accessToken && { Authorization: `Bearer ${tokens.accessToken}` }),
+    },
+    body: file,
+  });
+  if (!res.ok) {
+    let payload: any = null;
+    try {
+      payload = await res.json();
+    } catch {
+      /* ignore */
+    }
+    throw new ApiError(
+      payload?.message ?? `Upload failed with ${res.status}`,
+      res.status,
+      payload?.code,
+      payload?.details,
+    );
+  }
+  return res.json() as Promise<{ key: string; publicUrl: string }>;
+}
