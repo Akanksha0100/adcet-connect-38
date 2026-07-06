@@ -37,3 +37,6 @@ export const messageUser = async (req: Request, res: Response) => {
   const row = await sendAdminMessage(req.auth!.sub, req.params.id, req.body.subject, req.body.body);
   res.status(201).json(row);
 };
+
+export const bulkSetUserStatus = async (req: Request, res: Response) =>
+  res.json(await service.bulkSetUserStatus(req.auth!.sub, req.body.userIds, req.body.status, req.body.reason));

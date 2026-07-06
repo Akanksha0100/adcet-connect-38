@@ -33,6 +33,7 @@ export const updateProfileSchema = z.object({
   country: optionalString(120),
   linkedinUrl: optionalUrl(),
   githubUrl: optionalUrl(),
+  twitterUrl: optionalUrl(),
   websiteUrl: optionalUrl(),
   department: optionalString(120),
   degree: z.union([z.enum(["BE", "ME", "PHD", "DIPLOMA"]), z.null(), z.literal("")]).optional()
@@ -63,3 +64,10 @@ export const educationSchema = z.object({
 });
 
 export const skillsSchema = z.object({ skills: z.array(z.string().min(1).max(60)).max(50) });
+
+export const preferencesSchema = z.object({
+  theme: z.enum(["default", "ocean", "sunset", "forest", "royal"]).optional(),
+  darkMode: z.boolean().optional(),
+  notificationsEmail: z.boolean().optional(),
+  notificationsPush: z.boolean().optional(),
+});

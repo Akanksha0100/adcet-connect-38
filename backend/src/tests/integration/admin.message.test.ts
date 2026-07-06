@@ -9,7 +9,8 @@ import { createPrismaDeepMock, makeToken, bearer } from "../helpers/integrationA
 const prisma = createPrismaDeepMock();
 jest.unstable_mockModule("../../lib/prisma.js", () => ({ prisma }));
 const sendEmail = jest.fn(async () => undefined);
-jest.unstable_mockModule("../../lib/mailer.js", () => ({ sendEmail }));
+const sendBulkEmails = jest.fn(async () => undefined);
+jest.unstable_mockModule("../../lib/mailer.js", () => ({ sendEmail, sendBulkEmails }));
 
 const { buildApp } = await import("../../app.js");
 const app = buildApp();

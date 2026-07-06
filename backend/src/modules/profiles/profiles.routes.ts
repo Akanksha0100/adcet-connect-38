@@ -9,6 +9,7 @@ import {
   experienceSchema,
   skillsSchema,
   updateProfileSchema,
+  preferencesSchema,
 } from "./profiles.validators.js";
 
 export const profilesRouter = Router();
@@ -34,3 +35,7 @@ profilesRouter.post(
 profilesRouter.delete("/me/educations/:id", requireAuth, asyncHandler(ctrl.removeEducation));
 
 profilesRouter.put("/me/skills", requireAuth, validate(skillsSchema), asyncHandler(ctrl.setSkills));
+
+// Preferences (theme, notifications)
+profilesRouter.get("/me/preferences", requireAuth, asyncHandler(ctrl.getPreferences));
+profilesRouter.patch("/me/preferences", requireAuth, validate(preferencesSchema), asyncHandler(ctrl.updatePreferences));

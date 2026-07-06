@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "../../lib/pagination.js";
+import { DEPARTMENTS } from "../../config/constants.js";
 
 const eventBase = z.object({
   title: z.string().min(2).max(200),
@@ -11,6 +12,8 @@ const eventBase = z.object({
   endsAt: z.coerce.date().optional(),
   capacity: z.coerce.number().int().min(1).optional(),
   coverKey: z.string().optional(),
+  attachmentKey: z.string().optional(),
+  department: z.string().max(100).optional(),
 });
 
 const requireMeetingUrlWhenOnline = (d: {
@@ -35,8 +38,15 @@ export const eventListQuery = paginationSchema.extend({
   q: z.string().optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   upcoming: z.coerce.boolean().optional(),
+  department: z.string().optional(),
 });
 
 export const rsvpSchema = z.object({
   status: z.enum(["GOING", "INTERESTED", "NOT_GOING"]),
 });
+
+export const emailRsvpSchema = z.object({
+  token: z.string().min(1),
+  response: z.enum(["YES", "NO", "NOT_SURE", "MAYBE"]),
+});
+

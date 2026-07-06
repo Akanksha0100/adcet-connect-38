@@ -1,9 +1,9 @@
-import { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
-  AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut,
+  AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut, X,
   Search, User, Globe, FileText, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import NotificationsBell from "@/components/NotificationsBell";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 interface AdminOverview {
   pendingUsers: number;
@@ -27,9 +28,16 @@ interface AdminOverview {
 }
 
 const AdminLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   const { data: overview } = useQuery({
     queryKey: ["analytics", "admin-overview"],
@@ -62,16 +70,51 @@ const AdminLayout = () => {
     navigate("/login", { replace: true });
   };
 
+  const SidebarContent = () => (
+    <nav className="p-3 space-y-1">
+      {sidebarItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === "/admin"}
+          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          activeClassName="bg-primary/10 text-primary font-medium"
+        >
+          <item.icon className="h-4 w-4 flex-shrink-0" />
+          <span className="flex-1">{item.label}</span>
+          {item.badge && (
+            <Badge className="bg-destructive/15 text-destructive border-0 text-[10px] h-5 min-w-[20px] justify-center">
+              {item.badge}
+            </Badge>
+          )}
+        </NavLink>
+      ))}
+    </nav>
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Nav */}
-      <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-4 sticky top-0 z-50">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground transition-colors">
-          {sidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      <header className="h-14 border-b border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-4 sticky top-0 z-50">
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="text-muted-foreground hover:text-foreground transition-colors md:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2 mr-4">
-          <img src="/logo.jpeg" alt="ADCET Logo" className="w-8 h-8 rounded-lg object-cover" />
+        {/* Desktop sidebar toggle */}
+        <button
+          onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+          className="text-muted-foreground hover:text-foreground transition-colors hidden md:block"
+        >
+          {desktopSidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        <div className="flex items-center gap-2 mr-2 md:mr-4">
+          <img src="/logo.jpeg" alt="ADCET Logo" className="w-7 h-7 md:w-8 md:h-8 rounded-lg object-cover" />
           <span className="font-bold text-foreground hidden sm:inline text-sm">ADCET Admin</span>
         </div>
 
@@ -80,13 +123,14 @@ const AdminLayout = () => {
           <Input placeholder="Search anything..." className="pl-9 bg-muted border-0" />
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1 md:gap-2 ml-auto">
+          <ThemeSwitcher />
           <NotificationsBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-7 w-7 md:h-8 md:w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
                 </Avatar>
               </button>
@@ -102,9 +146,47 @@ const AdminLayout = () => {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
-          {sidebarOpen && (
+          {mobileSidebarOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="sidebar-overlay md:hidden"
+                onClick={() => setMobileSidebarOpen(false)}
+              />
+              <motion.aside
+                initial={{ x: -288 }}
+                animate={{ x: 0 }}
+                exit={{ x: -288 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-xl md:hidden overflow-y-auto"
+              >
+                <div className="h-14 border-b border-border flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.jpeg" alt="ADCET Logo" className="w-7 h-7 rounded-lg object-cover" />
+                    <span className="font-bold text-foreground text-sm">ADCET Admin</span>
+                  </div>
+                  <button
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <SidebarContent />
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop Sidebar */}
+        <AnimatePresence>
+          {desktopSidebarOpen && (
             <motion.aside
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
@@ -112,32 +194,14 @@ const AdminLayout = () => {
               transition={{ duration: 0.2 }}
               className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:block"
             >
-              <nav className="p-3 space-y-1">
-                {sidebarItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "/admin"}
-                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    activeClassName="bg-primary/10 text-primary font-medium"
-                  >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    <span className="flex-1">{item.label}</span>
-                    {item.badge && (
-                      <Badge className="bg-destructive/15 text-destructive border-0 text-[10px] h-5 min-w-[20px] justify-center">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </NavLink>
-                ))}
-              </nav>
+              <SidebarContent />
             </motion.aside>
           )}
         </AnimatePresence>
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <div className="p-6 max-w-7xl mx-auto">
+          <div className="p-4 md:p-6 max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>

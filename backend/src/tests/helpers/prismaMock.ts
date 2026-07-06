@@ -44,6 +44,7 @@ const MODELS = [
   "achievement",
   "donation",
   "donationCampaign",
+  "donationLedgerEntry",
   "auditLog",
   "notification",
   "newsItem",

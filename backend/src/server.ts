@@ -5,6 +5,7 @@ import { buildApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
+import { startEventReminderCron } from "./jobs/eventReminders.js";
 
 const app = buildApp();
 
@@ -16,8 +17,12 @@ const server = app.listen(env.PORT, () => {
   logger.info(`📚 Swagger UI: http://localhost:${env.PORT}/api/docs`);
 });
 
+// Start background jobs
+const stopEventReminders = startEventReminderCron();
+
 const shutdown = async (signal: string) => {
   logger.info({ signal }, "Shutting down...");
+  stopEventReminders();
   server.close(async () => {
     await prisma.$disconnect().catch(() => undefined);
     process.exit(0);

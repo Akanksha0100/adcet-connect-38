@@ -45,6 +45,16 @@ export interface RegisterInput {
   admissionYear?: number;
   graduationYear?: number;
   role?: "ALUMNI" | "STUDENT" | "RECRUITER";
+  // Step 2 fields
+  linkedinUrl: string;
+  githubUrl?: string;
+  twitterUrl?: string;
+  websiteUrl?: string;
+  phone?: string;
+  city?: string;
+  bio?: string;
+  currentCompany?: string;
+  currentRole?: string;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);

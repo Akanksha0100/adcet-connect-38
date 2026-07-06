@@ -27,3 +27,9 @@ export const adminMessageSchema = z.object({
   subject: z.string().trim().min(1).max(120),
   body: z.string().trim().min(1).max(2000),
 });
+
+export const bulkStatusSchema = z.object({
+  userIds: z.array(z.string().uuid()).min(1).max(100),
+  status: z.enum(["APPROVED", "REJECTED"]),
+  reason: z.string().max(1000).optional(),
+});

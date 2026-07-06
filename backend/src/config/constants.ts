@@ -31,5 +31,25 @@ export const RATE_LIMITS = {
   GLOBAL_MAX: 300,
 } as const;
 
-export const UPLOAD_SCOPES = ["avatar", "banner", "event", "achievement", "receipt", "resume"] as const;
+export const UPLOAD_SCOPES = [
+  "avatar", "banner", "event", "achievement", "receipt", "resume",
+  "event-attachment", "job-attachment",
+] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
+
+export const DEPARTMENTS = [
+  "CSE",
+  "CSE (IoT & Cyber Security)",
+  "CSE (AI & Data Science)",
+  "Robotics & Automation",
+  "Mechanical Engineering",
+  "Electrical Engineering",
+  "Civil Engineering",
+  "Aeronautical Engineering",
+  "Food Technology",
+  "E&TC",
+] as const;
+export type DepartmentName = (typeof DEPARTMENTS)[number];
+
+export const THEMES = ["default", "ocean", "sunset", "forest", "royal"] as const;
+export type ThemeName = (typeof THEMES)[number];

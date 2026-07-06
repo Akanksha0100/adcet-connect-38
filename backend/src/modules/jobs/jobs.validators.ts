@@ -13,6 +13,8 @@ export const jobInputSchema = z.object({
   salaryMax: z.coerce.number().int().min(0).optional(),
   currency: z.string().max(8).optional(),
   description: z.string().min(10).max(20000),
+  attachmentKey: z.string().optional(),
+  department: z.string().max(100).optional(),
   requirements: z.string().max(20000).optional(),
   vacancies: z.coerce.number().int().min(1).default(1),
   applyUrl: z.string().url().optional(),
@@ -27,6 +29,7 @@ export const jobListQuery = paginationSchema.extend({
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   isRemote: z.coerce.boolean().optional(),
   closed: z.coerce.boolean().optional(),
+  department: z.string().optional(),
 });
 
 export const applySchema = z.object({

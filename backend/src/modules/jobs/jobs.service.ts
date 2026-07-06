@@ -4,6 +4,10 @@ import { Forbidden, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
 import { notify } from "../notifications/notifications.service.js";
+import { sendEmail, sendBulkEmails, type EmailAttachment } from "../../lib/mailer.js";
+import { jobApplicationEmail, jobNotificationEmail } from "../../lib/email-templates.js";
+import { getStorage } from "../../storage/index.js";
+import { logger } from "../../lib/logger.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c?: Caller) => !!c?.roles.includes("ADMIN");
@@ -20,6 +24,7 @@ export const list = async (
     status?: ContentStatus;
     isRemote?: boolean;
     closed?: boolean;
+    department?: string;
   },
   caller?: Caller,
 ) => {
@@ -32,6 +37,7 @@ export const list = async (
     ...(q.location && { location: { contains: q.location, mode: "insensitive" } }),
     ...(q.employmentType && { employmentType: q.employmentType }),
     ...(q.isRemote !== undefined && { isRemote: q.isRemote }),
+    ...(q.department && { department: q.department }),
     ...(q.q && {
       OR: [
         { title: { contains: q.q, mode: "insensitive" } },
@@ -98,16 +104,105 @@ export const apply = async (
     update: { ...data },
     create: { jobId, userId, ...data },
   });
-  // Notify the poster.
+
+  // Fetch applicant info for the email
+  const applicant = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      profile: {
+        select: {
+          department: true,
+          graduationYear: true,
+          currentCompany: true,
+          currentRole: true,
+          linkedinUrl: true,
+        },
+      },
+    },
+  });
+
+  // Notify the poster in-app.
   await notify(job.createdById, {
     type: "job.application",
     title: `New application for "${job.title}"`,
-    body: `Someone applied to your posting at ${job.company}.`,
+    body: `${applicant ? `${applicant.firstName} ${applicant.lastName}` : "Someone"} applied to your posting at ${job.company}.`,
     data: { jobId, applicationId: application.id },
-    sendEmailToo: true,
+    sendEmailToo: false, // We send a richer email below
   });
+
+  // Send rich HTML email to job poster with applicant info + resume attachment
+  sendJobApplicationEmail(job, applicant, data).catch((err) =>
+    logger.error({ err, jobId, userId }, "failed to send job application email"),
+  );
+
   return application;
 };
+
+/**
+ * Internal: Send a branded email to the job poster with applicant details
+ * and resume attachment (if available).
+ */
+async function sendJobApplicationEmail(
+  job: { id: string; title: string; company: string; createdById: string },
+  applicant: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    profile?: {
+      department?: string | null;
+      graduationYear?: number | null;
+      currentCompany?: string | null;
+      currentRole?: string | null;
+      linkedinUrl?: string | null;
+    } | null;
+  } | null,
+  data: { resumeKey: string; coverLetter?: string },
+) {
+  if (!applicant) return;
+
+  const poster = await prisma.user.findUnique({ where: { id: job.createdById } });
+  if (!poster) return;
+
+  // Check poster's email notification preference
+  const prefs = await prisma.userPreferences.findUnique({ where: { userId: poster.id } });
+  if (prefs && !prefs.notificationsEmail) return;
+
+  const emailContent = jobApplicationEmail({
+    jobTitle: job.title,
+    company: job.company,
+    jobId: job.id,
+    applicantName: `${applicant.firstName} ${applicant.lastName}`.trim(),
+    applicantEmail: applicant.email,
+    applicantDepartment: applicant.profile?.department,
+    applicantGradYear: applicant.profile?.graduationYear,
+    applicantCompany: applicant.profile?.currentCompany,
+    applicantRole: applicant.profile?.currentRole,
+    applicantLinkedin: applicant.profile?.linkedinUrl,
+    coverLetter: data.coverLetter,
+  });
+
+  // Try to attach resume if uploaded
+  const attachments: EmailAttachment[] = [];
+  if (data.resumeKey) {
+    try {
+      const storage = getStorage();
+      const url = await storage.presignDownload(data.resumeKey);
+      attachments.push({
+        filename: "resume.pdf",
+        path: url,
+        contentType: "application/pdf",
+      });
+    } catch (err) {
+      logger.warn({ err, resumeKey: data.resumeKey }, "Could not attach resume to email");
+    }
+  }
+
+  await sendEmail({
+    to: poster.email,
+    ...emailContent,
+    attachments: attachments.length > 0 ? attachments : undefined,
+  });
+}
 
 export const listApplications = async (caller: Caller, jobId: string) => {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
@@ -190,8 +285,93 @@ export const moderate = async (
     data: { jobId: job.id },
     sendEmailToo: true,
   });
+
+  // When approved, send email notifications to department alumni (or all alumni)
+  if (status === "APPROVED") {
+    sendJobNotifications(job).catch((err) =>
+      logger.error({ err, jobId: job.id }, "failed to send job notification emails"),
+    );
+  }
+
   return job;
 };
+
+/**
+ * Send email notifications to all alumni in the targeted department (or all alumni
+ * if department is null) when a job is approved.
+ */
+async function sendJobNotifications(job: {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  isRemote: boolean;
+  employmentType: string;
+  department: string | null;
+  description: string;
+  experienceMin: number | null;
+  experienceMax: number | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  currency: string;
+}) {
+  const whereClause: Prisma.UserWhereInput = {
+    status: "APPROVED",
+    roles: { some: { role: "ALUMNI" } },
+  };
+
+  if (job.department && job.department !== "All") {
+    whereClause.profile = { department: job.department };
+  }
+
+  const alumni = await prisma.user.findMany({
+    where: whereClause,
+    select: {
+      email: true,
+      firstName: true,
+      lastName: true,
+      preferences: { select: { notificationsEmail: true } },
+    },
+  });
+
+  const recipients = alumni.filter(
+    (a) => !a.preferences || a.preferences.notificationsEmail,
+  );
+
+  if (recipients.length === 0) return;
+
+  const emails = recipients.map((recipient) => {
+    const recipientName = `${recipient.firstName} ${recipient.lastName}`.trim() || "Alumni";
+    return {
+      to: recipient.email,
+      ...jobNotificationEmail(
+        {
+          title: job.title,
+          company: job.company,
+          jobId: job.id,
+          location: job.location,
+          isRemote: job.isRemote,
+          employmentType: job.employmentType,
+          department: job.department,
+          description: job.description,
+          experienceMin: job.experienceMin,
+          experienceMax: job.experienceMax,
+          salaryMin: job.salaryMin,
+          salaryMax: job.salaryMax,
+          currency: job.currency,
+        },
+        recipientName,
+      ),
+    };
+  });
+
+  logger.info(
+    { jobId: job.id, recipientCount: emails.length },
+    `Sending job notification emails for "${job.title}"`,
+  );
+
+  await sendBulkEmails(emails);
+}
 
 export const listPending = async (q: PaginationQuery) => {
   const where = { status: "PENDING" as const };

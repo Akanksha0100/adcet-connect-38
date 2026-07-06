@@ -47,6 +47,13 @@ enum RsvpStatus {
   NOT_GOING
 }
 
+enum EmailRsvpStatus {
+  YES
+  NO
+  NOT_SURE
+  MAYBE
+}
+
 enum DonationStatus {
   PLEDGED
   RECEIVED
@@ -134,6 +141,7 @@ model Profile {
   country         String?     @default("India")
   linkedinUrl     String?
   githubUrl       String?
+  twitterUrl      String?
   websiteUrl      String?
 
   // Academic
@@ -204,6 +212,7 @@ model UserPreferences {
   notificationsPush    Boolean @default(true)
   darkMode             Boolean @default(false)
   language             String  @default("en")
+  theme                String  @default("default") // "default"|"ocean"|"sunset"|"forest"|"royal"
   user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -212,21 +221,23 @@ model UserPreferences {
 // =====================================================================
 
 model Event {
-  id          String         @id @default(uuid())
-  title       String
-  description String
-  location    String?
-  isOnline    Boolean        @default(false)
-  meetingUrl  String?
-  startsAt    DateTime
-  endsAt      DateTime?
-  capacity    Int?
-  coverKey    String?
-  status      ApprovalStatus @default(PENDING)
+  id              String         @id @default(uuid())
+  title           String
+  description     String
+  location        String?
+  isOnline        Boolean        @default(false)
+  meetingUrl      String?
+  startsAt        DateTime
+  endsAt          DateTime?
+  capacity        Int?
+  coverKey        String?
+  attachmentKey   String?        // PDF/image/doc attachment storage key
+  department      String?        // Target department for notifications (null = all)
+  status          ApprovalStatus @default(PENDING)
   rejectionReason String?
-  createdById String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdById     String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   createdBy   User           @relation("EventCreator", fields: [createdById], references: [id])
   rsvps       EventRsvp[]
@@ -235,11 +246,12 @@ model Event {
 }
 
 model EventRsvp {
-  id      String     @id @default(uuid())
-  eventId String
-  userId  String
-  status  RsvpStatus @default(GOING)
-  createdAt DateTime @default(now())
+  id              String           @id @default(uuid())
+  eventId         String
+  userId          String
+  status          RsvpStatus       @default(GOING)
+  emailRsvpStatus EmailRsvpStatus? // RSVP submitted via email link
+  createdAt       DateTime         @default(now())
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -264,6 +276,8 @@ model Job {
   salaryMax       Int?
   currency        String         @default("INR")
   description     String
+  attachmentKey   String?        // PDF/image/doc attachment storage key
+  department      String?        // Department filter for job listings
   requirements    String?
   vacancies       Int            @default(1)
   positionsFilled Int            @default(0)

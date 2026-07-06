@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const optionalUrl = z
+  .string()
+  .max(500)
+  .refine((v) => !v || /^https?:\/\//i.test(v), { message: "Must be a valid URL" })
+  .optional();
+
 export const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).max(128),
@@ -10,6 +16,17 @@ export const registerSchema = z.object({
   degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
   admissionYear: z.coerce.number().int().min(1980).max(2100).optional(),
   graduationYear: z.coerce.number().int().min(1980).max(2100).optional(),
+  // Step 2: social / professional links
+  linkedinUrl: z.string().min(1, "LinkedIn profile is required").max(500)
+    .refine((v) => /^https?:\/\//i.test(v), { message: "Must be a valid URL" }),
+  githubUrl: optionalUrl,
+  twitterUrl: optionalUrl,
+  websiteUrl: optionalUrl,
+  phone: z.string().max(40).optional(),
+  city: z.string().max(120).optional(),
+  bio: z.string().max(2000).optional(),
+  currentCompany: z.string().max(160).optional(),
+  currentRole: z.string().max(160).optional(),
 });
 
 export const loginSchema = z.object({

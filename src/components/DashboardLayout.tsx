@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { NavLink } from "@/components/NavLink";
 import { api } from "@/lib/api";
 import NotificationsBell from "@/components/NotificationsBell";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const mainNav = [
   { label: "Home", path: "/dashboard" },
@@ -49,7 +50,8 @@ const sidebarItems = [
 ];
 
 const DashboardLayout = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
@@ -61,6 +63,12 @@ const DashboardLayout = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatOpen]);
+
+  // Close mobile sidebar on route change
+  const location = useLocation();
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   const sendMessage = async () => {
     const text = chatInput.trim();
@@ -82,7 +90,6 @@ const DashboardLayout = () => {
   };
 
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
   const isApproved = user?.status === "APPROVED";
 
@@ -105,16 +112,71 @@ const DashboardLayout = () => {
     navigate("/login", { replace: true });
   };
 
+  // Shared sidebar content for both mobile and desktop
+  const SidebarContent = () => (
+    <nav className="p-3 space-y-1">
+      {visibleSidebar.filter(i => !(i as any).admin).map(item => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          end={item.path === "/dashboard"}
+          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          activeClassName="bg-primary/10 text-primary font-medium"
+        >
+          <item.icon className="h-4 w-4 flex-shrink-0" />
+          <span>{item.label}</span>
+        </NavLink>
+      ))}
+
+      {isAdmin && isApproved && (
+        <div className="border-t border-border my-2 pt-2">
+          <NavLink
+            to="/admin"
+            className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-accent hover:bg-accent/10 transition-colors font-medium"
+            activeClassName="bg-accent/10"
+          >
+            <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+            <span>Admin Panel</span>
+          </NavLink>
+        </div>
+      )}
+
+      {!isApproved && (
+        <NavLink
+          to="/dashboard/status"
+          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-amber-600 bg-amber-500/10 mt-2"
+          activeClassName=""
+        >
+          <ShieldCheck className="h-4 w-4 flex-shrink-0" />
+          <span>Account status</span>
+        </NavLink>
+      )}
+    </nav>
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top Nav */}
-      <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-4 sticky top-0 z-50">
-        <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-muted-foreground hover:text-foreground transition-colors lg:mr-2">
-          {sidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+      <header className="h-14 border-b border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-4 sticky top-0 z-50">
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="text-muted-foreground hover:text-foreground transition-colors md:hidden"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
         </button>
 
-        <div className="flex items-center gap-2 mr-6">
-          <img src="/logo.jpeg" alt="ADCET Logo" className="w-8 h-8 rounded-lg object-cover" />
+        {/* Desktop sidebar toggle */}
+        <button
+          onClick={() => setDesktopSidebarOpen(!desktopSidebarOpen)}
+          className="text-muted-foreground hover:text-foreground transition-colors hidden md:block lg:mr-2"
+        >
+          {desktopSidebarOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        <div className="flex items-center gap-2 mr-2 md:mr-6">
+          <img src="/logo.jpeg" alt="ADCET Logo" className="w-7 h-7 md:w-8 md:h-8 rounded-lg object-cover" />
           <span className="font-bold text-foreground hidden sm:inline text-sm">ADCET Alumni</span>
         </div>
 
@@ -147,13 +209,14 @@ const DashboardLayout = () => {
           </DropdownMenu>}
         </nav>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-1 md:gap-2 ml-auto">
+          <ThemeSwitcher />
           <NotificationsBell />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-7 w-7 md:h-8 md:w-8">
                   <AvatarFallback className="bg-primary text-primary-foreground text-xs">{initials}</AvatarFallback>
                 </Avatar>
               </button>
@@ -175,9 +238,63 @@ const DashboardLayout = () => {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar */}
+        {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
-          {sidebarOpen && (
+          {mobileSidebarOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="sidebar-overlay md:hidden"
+                onClick={() => setMobileSidebarOpen(false)}
+              />
+              <motion.aside
+                initial={{ x: -288 }}
+                animate={{ x: 0 }}
+                exit={{ x: -288 }}
+                transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                className="fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border shadow-xl md:hidden overflow-y-auto"
+              >
+                <div className="h-14 border-b border-border flex items-center justify-between px-4">
+                  <div className="flex items-center gap-2">
+                    <img src="/logo.jpeg" alt="ADCET Logo" className="w-7 h-7 rounded-lg object-cover" />
+                    <span className="font-bold text-foreground text-sm">ADCET Alumni</span>
+                  </div>
+                  <button
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className="text-muted-foreground hover:text-foreground"
+                    aria-label="Close menu"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <SidebarContent />
+
+                {/* Mobile nav items (shown in sidebar on mobile) */}
+                <div className="border-t border-border mx-3 my-2 pt-2">
+                  <p className="px-3 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Navigation</p>
+                  {[...visibleMainNav, ...visibleMoreItems].map(item => (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      end={item.path === "/dashboard"}
+                      className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Desktop Sidebar */}
+        <AnimatePresence>
+          {desktopSidebarOpen && (
             <motion.aside
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 240, opacity: 1 }}
@@ -185,65 +302,28 @@ const DashboardLayout = () => {
               transition={{ duration: 0.2 }}
               className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:block"
             >
-              <nav className="p-3 space-y-1">
-                {visibleSidebar.filter(i => !(i as any).admin).map(item => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "/dashboard"}
-                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    activeClassName="bg-primary/10 text-primary font-medium"
-                  >
-                    <item.icon className="h-4 w-4 flex-shrink-0" />
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-
-                {isAdmin && isApproved && (
-                  <div className="border-t border-border my-2 pt-2">
-                    <NavLink
-                      to="/admin"
-                      className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-accent hover:bg-accent/10 transition-colors font-medium"
-                      activeClassName="bg-accent/10"
-                    >
-                      <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-                      <span>Admin Panel</span>
-                    </NavLink>
-                  </div>
-                )}
-
-                {!isApproved && (
-                  <NavLink
-                    to="/dashboard/status"
-                    className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-amber-600 bg-amber-500/10 mt-2"
-                    activeClassName=""
-                  >
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0" />
-                    <span>Account status</span>
-                  </NavLink>
-                )}
-              </nav>
+              <SidebarContent />
             </motion.aside>
           )}
         </AnimatePresence>
 
         {/* Main Content */}
         <main className="flex-1 overflow-auto">
-          <div className="p-6 max-w-7xl mx-auto">
+          <div className="p-4 md:p-6 max-w-7xl mx-auto">
             <Outlet />
           </div>
         </main>
       </div>
 
       {/* Floating Chatbot */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40">
         <AnimatePresence>
           {chatOpen && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 10 }}
-              className="card-elevated w-80 h-96 mb-3 flex flex-col overflow-hidden"
+              className="card-elevated w-[calc(100vw-2rem)] sm:w-80 h-80 sm:h-96 mb-3 flex flex-col overflow-hidden"
             >
               <div className="hero-gradient px-4 py-3 flex items-center justify-between">
                 <span className="text-primary-foreground font-medium text-sm">Alumni Assistant</span>
@@ -301,9 +381,9 @@ const DashboardLayout = () => {
 
         <button
           onClick={() => setChatOpen(!chatOpen)}
-          className="w-12 h-12 rounded-full hero-gradient flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
+          className="w-10 h-10 md:w-12 md:h-12 rounded-full hero-gradient flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
         >
-          <MessageCircle className="h-5 w-5 text-primary-foreground" />
+          <MessageCircle className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
         </button>
       </div>
     </div>

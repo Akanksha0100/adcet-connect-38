@@ -49,14 +49,28 @@
 
 - **Authentication & RBAC** — JWT access + refresh tokens, four roles
   (`ADMIN`, `ALUMNI`, `STUDENT`, `RECRUITER`), roles stored in a separate
-  table to prevent privilege escalation.
+  table to prevent privilege escalation. Multi-step registration with
+  LinkedIn (required), GitHub, Twitter/X, and website URLs.
 - **Alumni Directory** with filters (department, year, company, city).
-- **Events** — alumni/students submit, admins approve, RSVP support.
-- **Jobs Board** — alumni & recruiters post, admins approve, applications.
+- **5 Themes** — Default, Ocean, Sunset, Forest, Royal — with dark mode toggle.
+  Persisted per-user in the database.
+- **Fully Responsive** — mobile-first design across all pages, dialogs, and admin views.
+- **Events** — admin-only creation with department targeting, file attachments
+  (PDF/image/doc), email notifications with in-email RSVP (Yes/Maybe/Not Sure/No),
+  meeting URL for online events, capacity tracking, and automatic reminders
+  1 day before events (to interested users and non-responders).
+- **Jobs Board** — any user can post (admin approves), department-targeted email
+  notifications on approval, file attachments, rich application flow with resume
+  upload and cover letter, email to poster with applicant info + resume attachment.
 - **Achievements** — submission + moderation pipeline.
-- **Donations** — campaigns, pledges, status tracking.
+- **Donations** — campaigns, pledges, status tracking, proof upload, ledger.
 - **Geo Insights** — alumni distribution by city × company.
-- **Admin Suite** — approvals, analytics, reports (CSV/JSON), audit log.
+- **Admin Suite** — user approvals with pagination, select-all, bulk approve/reject,
+  event/job/achievement moderation, analytics, reports (CSV/JSON), audit log.
+- **Pagination** — server-side pagination on all list views (events, jobs, users,
+  achievements, donations), default sort by latest first.
+- **Email Notifications** — branded HTML emails for events, jobs, applications,
+  RSVP confirmations, and moderation actions. SMTP configurable via env vars.
 - **Pluggable Storage** — MinIO (dev) → S3 (prod) via a single env switch.
 
 ## Tech Stack
@@ -181,11 +195,18 @@ Two env files at the project root for the frontend, two in `backend/`.
 | `JWT_ACCESS_SECRET` | _dev value_ | Access-token signing key |
 | `JWT_REFRESH_SECRET` | _dev value_ | Refresh-token signing key |
 | `CORS_ORIGIN` | `http://localhost:8080` | Allowed frontend origin |
+| `API_BASE_URL` | `http://localhost:4000/api/v1` | Public API URL (used in email RSVP links) |
 | `STORAGE_DRIVER` | `minio` | `minio` \| `s3` \| `local` |
 | `S3_ENDPOINT` | `http://localhost:9000` | MinIO endpoint |
 | `S3_BUCKET` | `adcet` | Default bucket |
 | `S3_ACCESS_KEY` | `minioadmin` | MinIO access key |
 | `S3_SECRET_KEY` | `minioadmin` | MinIO secret key |
+| `SMTP_HOST` | _(empty)_ | SMTP host for sending emails (e.g. `smtp.gmail.com`) |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_SECURE` | `false` | Use TLS for SMTP |
+| `SMTP_USER` | _(empty)_ | SMTP username |
+| `SMTP_PASS` | _(empty)_ | SMTP password |
+| `SMTP_FROM` | _(empty)_ | From address for outgoing emails |
 
 ### Backend — `backend/.env.production`
 
@@ -216,6 +237,8 @@ bucket/credentials, strong JWT secrets, and your public frontend origin.
 | `npm run prisma:studio` | Browse data in Prisma Studio |
 | `npm run seed` | Idempotent dev seed |
 | `npm run db:setup` | Migrate + seed in one go |
+| `npm test` | Run all Jest tests |
+| `npm run test:coverage` | Run tests with coverage report |
 
 ## Going to Production
 

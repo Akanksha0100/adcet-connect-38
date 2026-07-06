@@ -39,20 +39,28 @@ describe("/events list & detail", () => {
   });
 });
 
-describe("create / update / delete", () => {
-  it("422 when title is too short", async () => {
+describe("create / update / delete (admin only)", () => {
+  it("403 when a non-admin tries to create", async () => {
     const res = await request(app)
       .post("/api/v1/events")
       .set("Authorization", bearer(userToken))
       .send({ title: "x", description: "shortdesc", startsAt: new Date().toISOString() });
+    expect(res.status).toBe(403);
+  });
+
+  it("422 when title is too short (admin)", async () => {
+    const res = await request(app)
+      .post("/api/v1/events")
+      .set("Authorization", bearer(adminToken))
+      .send({ title: "x", description: "shortdesc", startsAt: new Date().toISOString() });
     expect(res.status).toBe(422);
   });
 
-  it("201 creates an event", async () => {
+  it("201 creates an event (admin)", async () => {
     prisma.event.create.mockResolvedValueOnce({ id: "e2" } as any);
     const res = await request(app)
       .post("/api/v1/events")
-      .set("Authorization", bearer(userToken))
+      .set("Authorization", bearer(adminToken))
       .send({
         title: "Reunion",
         description: "Annual meet of alumni from class of 2020.",
@@ -61,8 +69,7 @@ describe("create / update / delete", () => {
     expect(res.status).toBe(201);
   });
 
-  it("403 when patching someone else's event", async () => {
-    prisma.event.findUnique.mockResolvedValueOnce({ id: "e1", createdById: "u-other" } as any);
+  it("403 when non-admin tries to patch", async () => {
     const res = await request(app)
       .patch("/api/v1/events/e1")
       .set("Authorization", bearer(userToken))
@@ -70,11 +77,18 @@ describe("create / update / delete", () => {
     expect(res.status).toBe(403);
   });
 
-  it("404 deleting a missing event", async () => {
-    prisma.event.findUnique.mockResolvedValueOnce(null);
+  it("403 when non-admin tries to delete", async () => {
     const res = await request(app)
       .delete("/api/v1/events/missing")
       .set("Authorization", bearer(userToken));
+    expect(res.status).toBe(403);
+  });
+
+  it("404 deleting a missing event (admin)", async () => {
+    prisma.event.findUnique.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .delete("/api/v1/events/missing")
+      .set("Authorization", bearer(adminToken));
     expect(res.status).toBe(404);
   });
 });
@@ -98,9 +112,8 @@ describe("RSVP", () => {
   });
 });
 
-describe("admin moderation & rsvps list", () => {
-  it("403 when caller is not the event owner nor an admin", async () => {
-    prisma.event.findUnique.mockResolvedValueOnce({ id: "e1", createdById: "someone-else" } as any);
+describe("admin rsvps list", () => {
+  it("403 when caller is not admin", async () => {
     const res = await request(app)
       .get("/api/v1/events/e1/rsvps")
       .set("Authorization", bearer(userToken));
@@ -113,20 +126,6 @@ describe("admin moderation & rsvps list", () => {
     const res = await request(app)
       .get("/api/v1/events/e1/rsvps")
       .set("Authorization", bearer(adminToken));
-    expect(res.status).toBe(200);
-  });
-
-  it("200 admin moderates with REJECTED + reason", async () => {
-    prisma.event.update.mockResolvedValueOnce({
-      id: "e1",
-      title: "Spam",
-      createdById: "user-1",
-    } as any);
-    prisma.notification.create.mockResolvedValueOnce({} as any);
-    const res = await request(app)
-      .post("/api/v1/events/e1/moderate")
-      .set("Authorization", bearer(adminToken))
-      .send({ status: "REJECTED", reason: "Looks like spam" });
     expect(res.status).toBe(200);
   });
 });

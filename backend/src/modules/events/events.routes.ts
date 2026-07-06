@@ -6,7 +6,7 @@ import { requireApproved } from "../../middlewares/requireApproved.js";
 import { validate } from "../../middlewares/validate.js";
 import { paginationSchema } from "../../lib/pagination.js";
 import * as ctrl from "./events.controller.js";
-import { eventInputSchema, eventUpdateSchema, eventListQuery, rsvpSchema } from "./events.validators.js";
+import { eventInputSchema, eventUpdateSchema, eventListQuery, rsvpSchema, emailRsvpSchema } from "./events.validators.js";
 
 export const eventsRouter = Router();
 
@@ -21,6 +21,9 @@ eventsRouter.delete("/:id", requireAuth, requireAdmin, asyncHandler(ctrl.remove)
 
 // RSVP — any approved user
 eventsRouter.post("/:id/rsvp", requireAuth, requireApproved, validate(rsvpSchema), asyncHandler(ctrl.rsvp));
+
+// Email RSVP — public endpoint (token-based auth via signed JWT in query params)
+eventsRouter.get("/:id/email-rsvp", validate(emailRsvpSchema, "query"), asyncHandler(ctrl.emailRsvp));
 
 // RSVPs list — admin only
 eventsRouter.get("/:id/rsvps", requireAuth, requireAdmin, validate(paginationSchema, "query"), asyncHandler(ctrl.listRsvps));

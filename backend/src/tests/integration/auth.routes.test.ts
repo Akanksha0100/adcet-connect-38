@@ -51,11 +51,22 @@ describe("POST /api/v1/auth/register", () => {
       password: "Strong#Pass1",
       firstName: "Alice",
       lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
     });
     expect(res.status).toBe(201);
     expect(res.body.user.email).toBe("alice@example.com");
     expect(res.body.accessToken).toEqual(expect.any(String));
     expect(res.body.refreshToken).toEqual(expect.any(String));
+  });
+
+  it("422 when linkedinUrl is missing", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      firstName: "Alice",
+      lastName: "A",
+    });
+    expect(res.status).toBe(422);
   });
 
   it("409 when the email is already registered", async () => {
@@ -65,6 +76,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Strong#Pass1",
       firstName: "Alice",
       lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
     });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("CONFLICT");
@@ -78,6 +90,7 @@ describe("POST /api/v1/auth/register", () => {
       password: "Strong#Pass1",
       firstName: "Bob",
       lastName: "B",
+      linkedinUrl: "https://linkedin.com/in/bob",
     });
     expect(res.status).toBe(500);
     expect(res.body.error.code).toBe("INTERNAL");
@@ -245,6 +258,7 @@ describe("Prisma error mapping", () => {
       password: "Strong#Pass1",
       firstName: "Dup",
       lastName: "Lic",
+      linkedinUrl: "https://linkedin.com/in/dup",
     });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("CONFLICT");

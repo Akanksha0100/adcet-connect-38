@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Building2, MapPin, Briefcase, Users2, Calendar, Loader2, ExternalLink, Lock, Unlock, Upload } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Briefcase, Users2, Calendar, Loader2, ExternalLink, Lock, Unlock, Upload, Paperclip, Download, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,7 +22,13 @@ interface JobDetail {
   employmentType?: string;
   experienceMin?: number | null;
   experienceMax?: number | null;
+  salaryMin?: number | null;
+  salaryMax?: number | null;
+  currency?: string;
   description: string;
+  requirements?: string | null;
+  department?: string | null;
+  attachmentKey?: string | null;
   vacancies?: number | null;
   positionsFilled?: number | null;
   applyUrl?: string | null;
@@ -54,41 +60,65 @@ const JobDetailPage = () => {
     onError: (e: Error) => toast({ title: "Action failed", description: e.message, variant: "destructive" }),
   });
 
+  const downloadAttachment = async () => {
+    if (!job?.attachmentKey) return;
+    try {
+      const { url } = await api.post<{ url: string }>("/uploads/presign-download", { key: job.attachmentKey });
+      window.open(url, "_blank");
+    } catch {
+      toast({ title: "Download failed", variant: "destructive" });
+    }
+  };
+
   const isOwner = !!job && !!user && job.createdBy?.id === user.id;
   const canModerate = isOwner || isAdmin;
 
+  const empTypeLabel = (t?: string) => {
+    const map: Record<string, string> = { FULL_TIME: "Full-time", PART_TIME: "Part-time", INTERNSHIP: "Internship", CONTRACT: "Contract" };
+    return t ? map[t] || t.replace("_", "-").toLowerCase() : "";
+  };
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl mx-auto">
       <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-4 w-4" /> Back
       </Button>
 
-      {isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
+      {isLoading && <div className="text-sm text-muted-foreground">Loading...</div>}
       {error && <div className="text-sm text-destructive">Failed to load job.</div>}
       {job && (
-        <div className="card-elevated p-6 space-y-5">
+        <div className="card-elevated p-4 sm:p-6 space-y-5">
           {job.isClosed && (
             <div className="rounded-lg border border-muted bg-muted/40 p-3 text-sm flex items-center gap-2">
               <Lock className="h-4 w-4" />
               <span className="font-medium">Applications are closed for this posting.</span>
             </div>
           )}
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{job.title}</h1>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">{job.title}</h1>
               <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1.5">
                 <Building2 className="h-4 w-4" /> {job.company}
               </p>
             </div>
-            <Badge variant="secondary" className="capitalize">{job.status.toLowerCase()}</Badge>
+            <Badge variant="secondary" className="capitalize w-fit">{job.status.toLowerCase()}</Badge>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-2 sm:gap-3 text-sm text-muted-foreground">
             {job.location && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />{job.location}{job.isRemote ? " (Remote)" : ""}</span>}
-            {job.employmentType && <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" />{job.employmentType.replace("_", "-").toLowerCase()}</span>}
+            {!job.location && job.isRemote && <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" />Remote</span>}
+            {job.employmentType && <span className="flex items-center gap-1.5"><Briefcase className="h-4 w-4" />{empTypeLabel(job.employmentType)}</span>}
             {job.vacancies != null && <span className="flex items-center gap-1.5"><Users2 className="h-4 w-4" />{job.vacancies} positions ({(job.positionsFilled ?? 0)} filled)</span>}
             {job.expiresAt && <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" />Closes {new Date(job.expiresAt).toLocaleDateString()}</span>}
           </div>
+
+          {job.department && (
+            <div className="flex items-center gap-2 text-sm">
+              <Tag className="h-4 w-4 text-primary" />
+              <span className="text-muted-foreground">Department:</span>
+              <Badge variant="outline" className="text-primary">{job.department}</Badge>
+            </div>
+          )}
 
           {(job.experienceMin != null || job.experienceMax != null) && (
             <p className="text-sm text-muted-foreground">
@@ -96,10 +126,35 @@ const JobDetailPage = () => {
             </p>
           )}
 
+          {(job.salaryMin != null || job.salaryMax != null) && (
+            <p className="text-sm text-muted-foreground">
+              Salary: {job.currency || "INR"} {job.salaryMin?.toLocaleString() ?? "—"} – {job.salaryMax?.toLocaleString() ?? "—"}
+            </p>
+          )}
+
           <div>
             <h2 className="font-semibold text-foreground mb-2">Description</h2>
             <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{job.description}</p>
           </div>
+
+          {job.requirements && (
+            <div>
+              <h2 className="font-semibold text-foreground mb-2">Requirements</h2>
+              <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{job.requirements}</p>
+            </div>
+          )}
+
+          {job.attachmentKey && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm">
+                <Paperclip className="h-4 w-4 text-primary" />
+                <span className="font-medium text-foreground">Job attachment</span>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={downloadAttachment}>
+                <Download className="h-3.5 w-3.5" /> Download
+              </Button>
+            </div>
+          )}
 
           {job.createdBy && (
             <div className="text-xs text-muted-foreground border-t border-border pt-3">
@@ -111,7 +166,7 @@ const JobDetailPage = () => {
             </div>
           )}
 
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-wrap gap-2 pt-2">
             <ApplyJobDialog jobId={job.id} disabled={job.isClosed || job.status !== "APPROVED"} />
             {job.applyUrl && (
               <Button variant="outline" asChild>
@@ -197,7 +252,7 @@ const ApplyJobDialog = ({ jobId, disabled }: { jobId: string; disabled?: boolean
               rows={5}
               value={coverLetter}
               onChange={(e) => setCoverLetter(e.target.value)}
-              placeholder="Tell the recruiter why you're a great fit…"
+              placeholder="Tell the recruiter why you're a great fit..."
             />
           </div>
           <DialogFooter>

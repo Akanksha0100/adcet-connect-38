@@ -19,3 +19,15 @@ export const rsvp = async (req: Request, res: Response) =>
   res.json(await service.rsvp(req.params.id, req.auth!.sub, req.body.status));
 export const listRsvps = async (req: Request, res: Response) =>
   res.json(await service.listRsvps(caller(req)!, req.params.id));
+
+/** Public email RSVP handler — no auth required, token-based. */
+export const emailRsvp = async (req: Request, res: Response) => {
+  const { token, response } = req.query as { token: string; response: string };
+  const html = await service.handleEmailRsvp(
+    req.params.id,
+    token,
+    response as "YES" | "NO" | "NOT_SURE" | "MAYBE",
+  );
+  res.setHeader("Content-Type", "text/html; charset=utf-8");
+  res.send(html);
+};

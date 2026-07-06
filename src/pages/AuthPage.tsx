@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { Eye, EyeOff, Github, Linkedin, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Eye, EyeOff, Github, Linkedin, Loader2, ArrowLeft, ArrowRight, Twitter, Globe, Phone, MapPin, Briefcase, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,7 @@ const AuthPage = () => {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"register" | "login">("login");
+  const [regStep, setRegStep] = useState(1);
   const navigate = useNavigate();
   const { login, register, user, loading } = useAuth();
 
@@ -41,14 +43,40 @@ const AuthPage = () => {
     degree: "" as "" | "BE" | "ME" | "PHD" | "DIPLOMA",
     admissionYear: "",
     graduationYear: "",
+    // Step 2
+    linkedinUrl: "",
+    githubUrl: "",
+    twitterUrl: "",
+    websiteUrl: "",
+    phone: "",
+    city: "",
+    bio: "",
+    currentCompany: "",
+    currentRole: "",
   });
   const [registering, setRegistering] = useState(false);
+  const [step1Errors, setStep1Errors] = useState<string[]>([]);
 
-  // If already authenticated, jump to the right area.
   useEffect(() => {
     if (loading || !user) return;
     navigate(user.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
   }, [loading, user, navigate]);
+
+  const validateStep1 = (): boolean => {
+    const errors: string[] = [];
+    if (!reg.firstName.trim()) errors.push("First name is required");
+    if (!reg.lastName.trim()) errors.push("Last name is required");
+    if (!reg.email.trim()) errors.push("Email is required");
+    if (reg.password.length < 8) errors.push("Password must be at least 8 characters");
+    setStep1Errors(errors);
+    return errors.length === 0;
+  };
+
+  const handleNextStep = () => {
+    if (validateStep1()) {
+      setRegStep(2);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +96,10 @@ const AuthPage = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (registering) return;
+    if (!reg.linkedinUrl.trim()) {
+      toast({ title: "LinkedIn required", description: "Please provide your LinkedIn profile URL", variant: "destructive" });
+      return;
+    }
     setRegistering(true);
     try {
       const me = await register({
@@ -79,6 +111,15 @@ const AuthPage = () => {
         degree: reg.degree || undefined,
         admissionYear: reg.admissionYear ? Number(reg.admissionYear) : undefined,
         graduationYear: reg.graduationYear ? Number(reg.graduationYear) : undefined,
+        linkedinUrl: reg.linkedinUrl.trim(),
+        githubUrl: reg.githubUrl.trim() || undefined,
+        twitterUrl: reg.twitterUrl.trim() || undefined,
+        websiteUrl: reg.websiteUrl.trim() || undefined,
+        phone: reg.phone.trim() || undefined,
+        city: reg.city.trim() || undefined,
+        bio: reg.bio.trim() || undefined,
+        currentCompany: reg.currentCompany.trim() || undefined,
+        currentRole: reg.currentRole.trim() || undefined,
       });
       toast({
         title: "Account created",
@@ -95,112 +136,215 @@ const AuthPage = () => {
   };
 
   const startOAuth = (provider: "google" | "linkedin" | "github") => {
-    // Backend handles the redirect dance and bounces back to /auth/callback.
     window.location.href = apiUrl(`/auth/oauth/${provider}`);
   };
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left - Register */}
-      <div className={`flex-1 flex items-center justify-center p-6 lg:p-12 bg-card ${activeTab === "register" ? "flex" : "hidden lg:flex"}`}>
+      <div className={`flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-card ${activeTab === "register" ? "flex" : "hidden lg:flex"}`}>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground">Create Account</h2>
-            <p className="text-muted-foreground mt-1">Join the ADCET Alumni Network</p>
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="text-2xl font-bold text-foreground">Create Account</h2>
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                Step {regStep} of 2
+              </span>
+            </div>
+            <p className="text-muted-foreground text-sm">
+              {regStep === 1 ? "Join the ADCET Alumni Network" : "Complete your professional profile"}
+            </p>
+            {/* Step indicators */}
+            <div className="flex gap-2 mt-3">
+              <div className={`h-1 flex-1 rounded-full transition-colors ${regStep >= 1 ? "bg-primary" : "bg-muted"}`} />
+              <div className={`h-1 flex-1 rounded-full transition-colors ${regStep >= 2 ? "bg-primary" : "bg-muted"}`} />
+            </div>
           </div>
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" required value={reg.firstName} onChange={(e) => setReg({ ...reg, firstName: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" required value={reg.lastName} onChange={(e) => setReg({ ...reg, lastName: e.target.value })} />
-              </div>
-            </div>
+          <AnimatePresence mode="wait">
+            {regStep === 1 ? (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="firstName">First Name *</Label>
+                      <Input id="firstName" placeholder="John" required value={reg.firstName} onChange={(e) => setReg({ ...reg, firstName: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="lastName">Last Name *</Label>
+                      <Input id="lastName" placeholder="Doe" required value={reg.lastName} onChange={(e) => setReg({ ...reg, lastName: e.target.value })} />
+                    </div>
+                  </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="regEmail">Email</Label>
-              <Input id="regEmail" type="email" placeholder="john@example.com" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} />
-            </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="regEmail">Email *</Label>
+                    <Input id="regEmail" type="email" placeholder="john@example.com" required value={reg.email} onChange={(e) => setReg({ ...reg, email: e.target.value })} />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="admissionYear">Admission Year</Label>
-                <Select value={reg.admissionYear} onValueChange={(v) => setReg({ ...reg, admissionYear: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="gradYear">Graduation Year</Label>
-                <Select value={reg.graduationYear} onValueChange={(v) => setReg({ ...reg, graduationYear: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Admission Year</Label>
+                      <Select value={reg.admissionYear} onValueChange={(v) => setReg({ ...reg, admissionYear: v })}>
+                        <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Graduation Year</Label>
+                      <Select value={reg.graduationYear} onValueChange={(v) => setReg({ ...reg, graduationYear: v })}>
+                        <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
+                        <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Degree</Label>
-                <Select value={reg.degree} onValueChange={(v) => setReg({ ...reg, degree: v as typeof reg.degree })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {degrees.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Department</Label>
-                <Select value={reg.department} onValueChange={(v) => setReg({ ...reg, department: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Degree</Label>
+                      <Select value={reg.degree} onValueChange={(v) => setReg({ ...reg, degree: v as typeof reg.degree })}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>{degrees.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Department</Label>
+                      <Select value={reg.department} onValueChange={(v) => setReg({ ...reg, department: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="regPassword">Password</Label>
-              <div className="relative">
-                <Input id="regPassword" type={showRegPassword ? "text" : "password"} placeholder="Create a password (min 8 chars)" required minLength={8} value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} />
-                <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                  {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="regPassword">Password *</Label>
+                    <div className="relative">
+                      <Input id="regPassword" type={showRegPassword ? "text" : "password"} placeholder="Create a password (min 8 chars)" required minLength={8} value={reg.password} onChange={(e) => setReg({ ...reg, password: e.target.value })} />
+                      <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                        {showRegPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
 
-            <Button type="submit" className="w-full mt-2" disabled={registering}>
-              {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
-            </Button>
+                  {step1Errors.length > 0 && (
+                    <div className="text-sm text-destructive space-y-1">
+                      {step1Errors.map((e, i) => <p key={i}>{e}</p>)}
+                    </div>
+                  )}
 
-            <div className="grid grid-cols-3 gap-2 pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("google")}>Google</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("linkedin")}><Linkedin className="h-3 w-3 mr-1" /> LinkedIn</Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("github")}><Github className="h-3 w-3 mr-1" /> GitHub</Button>
-            </div>
-          </form>
+                  <Button type="button" className="w-full mt-2 gap-2" onClick={handleNextStep}>
+                    Next: Professional Profile <ArrowRight className="h-4 w-4" />
+                  </Button>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("google")}>Google</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("linkedin")}><Linkedin className="h-3 w-3 mr-1" /> LinkedIn</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => startOAuth("github")}><Github className="h-3 w-3 mr-1" /> GitHub</Button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form onSubmit={handleRegister} className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <Linkedin className="h-3.5 w-3.5 text-blue-600" /> LinkedIn Profile URL *
+                    </Label>
+                    <Input
+                      required
+                      type="url"
+                      placeholder="https://linkedin.com/in/yourprofile"
+                      value={reg.linkedinUrl}
+                      onChange={(e) => setReg({ ...reg, linkedinUrl: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">Required for verification and networking</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Github className="h-3.5 w-3.5" /> GitHub
+                      </Label>
+                      <Input type="url" placeholder="https://github.com/..." value={reg.githubUrl} onChange={(e) => setReg({ ...reg, githubUrl: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Twitter className="h-3.5 w-3.5 text-sky-500" /> Twitter / X
+                      </Label>
+                      <Input type="url" placeholder="https://x.com/..." value={reg.twitterUrl} onChange={(e) => setReg({ ...reg, twitterUrl: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5" /> Website / Portfolio
+                    </Label>
+                    <Input type="url" placeholder="https://yoursite.com" value={reg.websiteUrl} onChange={(e) => setReg({ ...reg, websiteUrl: e.target.value })} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Phone className="h-3.5 w-3.5" /> Phone
+                      </Label>
+                      <Input type="tel" placeholder="+91 9876543210" value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5" /> City
+                      </Label>
+                      <Input placeholder="e.g. Pune" value={reg.city} onChange={(e) => setReg({ ...reg, city: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <Briefcase className="h-3.5 w-3.5" /> Current Company
+                      </Label>
+                      <Input placeholder="e.g. TCS" value={reg.currentCompany} onChange={(e) => setReg({ ...reg, currentCompany: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="flex items-center gap-1.5">
+                        <UserIcon className="h-3.5 w-3.5" /> Current Role
+                      </Label>
+                      <Input placeholder="e.g. Software Engineer" value={reg.currentRole} onChange={(e) => setReg({ ...reg, currentRole: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Bio (brief introduction)</Label>
+                    <Textarea placeholder="Tell us a bit about yourself..." rows={2} value={reg.bio} onChange={(e) => setReg({ ...reg, bio: e.target.value })} />
+                  </div>
+
+                  <div className="flex gap-2 mt-2">
+                    <Button type="button" variant="outline" className="gap-1.5" onClick={() => setRegStep(1)}>
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
+                    <Button type="submit" className="flex-1" disabled={registering}>
+                      {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <p className="text-center text-sm text-muted-foreground mt-6 lg:hidden">
             Already have an account?{" "}
@@ -231,7 +375,7 @@ const AuthPage = () => {
       </div>
 
       {/* Right - Login */}
-      <div className={`flex-1 flex items-center justify-center p-6 lg:p-12 bg-background ${activeTab === "login" ? "flex" : "hidden lg:flex"}`}>
+      <div className={`flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-background ${activeTab === "login" ? "flex" : "hidden lg:flex"}`}>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -286,16 +430,12 @@ const AuthPage = () => {
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <Button variant="outline" className="w-full" onClick={() => startOAuth("google")}>
-              Google
-            </Button>
+            <Button variant="outline" className="w-full" onClick={() => startOAuth("google")}>Google</Button>
             <Button variant="outline" className="w-full" onClick={() => startOAuth("linkedin")}>
-              <Linkedin className="mr-2 h-4 w-4" />
-              LinkedIn
+              <Linkedin className="mr-2 h-4 w-4" /> LinkedIn
             </Button>
             <Button variant="outline" className="w-full" onClick={() => startOAuth("github")}>
-              <Github className="mr-2 h-4 w-4" />
-              GitHub
+              <Github className="mr-2 h-4 w-4" /> GitHub
             </Button>
           </div>
 

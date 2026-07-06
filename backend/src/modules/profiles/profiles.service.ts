@@ -59,3 +59,26 @@ export const setSkills = async (userId: string, skillNames: string[]) => {
   });
   return skills;
 };
+
+export const getPreferences = async (userId: string) => {
+  const prefs = await prisma.userPreferences.findUnique({ where: { userId } });
+  // Return defaults if not yet created
+  return prefs ?? {
+    userId,
+    notificationsEmail: true,
+    notificationsPush: true,
+    darkMode: false,
+    language: "en",
+    theme: "default",
+  };
+};
+
+export const updatePreferences = async (
+  userId: string,
+  data: Partial<{ theme: string; darkMode: boolean; notificationsEmail: boolean; notificationsPush: boolean }>,
+) =>
+  prisma.userPreferences.upsert({
+    where: { userId },
+    update: data,
+    create: { userId, ...data },
+  });

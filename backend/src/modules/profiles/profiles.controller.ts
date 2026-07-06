@@ -26,3 +26,9 @@ export const removeEducation = async (req: Request, res: Response) => {
 
 export const setSkills = async (req: Request, res: Response) =>
   res.json(await service.setSkills(req.auth!.sub, req.body.skills));
+
+export const getPreferences = async (req: Request, res: Response) =>
+  res.json(await service.getPreferences(req.auth!.sub));
+
+export const updatePreferences = async (req: Request, res: Response) =>
+  res.json(await service.updatePreferences(req.auth!.sub, req.body));

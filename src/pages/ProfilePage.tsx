@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera } from "lucide-react";
+import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera, Linkedin, Github, Twitter, Globe, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Profile {
   bio?: string | null; phone?: string | null; city?: string | null; country?: string | null;
-  linkedinUrl?: string | null; githubUrl?: string | null; websiteUrl?: string | null;
+  linkedinUrl?: string | null; githubUrl?: string | null; twitterUrl?: string | null; websiteUrl?: string | null;
   department?: string | null; degree?: "BE" | "ME" | "PHD" | "DIPLOMA" | null;
   admissionYear?: number | null; graduationYear?: number | null;
   currentCompany?: string | null; currentRole?: string | null;
@@ -24,7 +24,7 @@ interface Profile {
 
 /** Whitelist of writable fields so we never send `id`, relations, etc back. */
 const WRITABLE_FIELDS: (keyof Profile)[] = [
-  "bio", "phone", "city", "country", "linkedinUrl", "githubUrl", "websiteUrl",
+  "bio", "phone", "city", "country", "linkedinUrl", "githubUrl", "twitterUrl", "websiteUrl",
   "department", "degree", "admissionYear", "graduationYear",
   "currentCompany", "currentRole", "avatarKey",
 ];
@@ -186,6 +186,35 @@ const ProfilePage = () => {
                 </div>
               </div>
             ))}
+            {/* Social links */}
+            {[
+              { label: "LinkedIn", url: profile.data?.linkedinUrl, icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10" },
+              { label: "GitHub", url: profile.data?.githubUrl, icon: Github, color: "text-foreground", bg: "bg-foreground/10" },
+              { label: "Twitter / X", url: profile.data?.twitterUrl, icon: Twitter, color: "text-sky-500", bg: "bg-sky-500/10" },
+              { label: "Website", url: profile.data?.websiteUrl, icon: Globe, color: "text-emerald-600", bg: "bg-emerald-600/10" },
+            ].map((link) => (
+              <div key={link.label} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className={`w-9 h-9 rounded-lg ${link.bg} flex items-center justify-center`}>
+                  <link.icon className={`h-4 w-4 ${link.color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">{link.label}</p>
+                  {link.url ? (
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
+                    >
+                      <span className="truncate">{link.url.replace(/^https?:\/\/(www\.)?/, "")}</span>
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                    </a>
+                  ) : (
+                    <p className="text-sm font-medium text-foreground">—</p>
+                  )}
+                </div>
+              </div>
+            ))}
             {profile.data?.bio && (
               <div className="md:col-span-2 p-3 rounded-lg bg-muted/50">
                 <p className="text-xs text-muted-foreground mb-1">Bio</p>
@@ -202,7 +231,10 @@ const ProfilePage = () => {
             <div className="space-y-1.5"><Label>Graduation Year</Label><Input type="number" value={form.graduationYear ?? ""} onChange={(e) => setForm({ ...form, graduationYear: e.target.value ? Number(e.target.value) : undefined })} /></div>
             <div className="space-y-1.5"><Label>Current Company</Label><Input value={form.currentCompany ?? ""} onChange={(e) => setForm({ ...form, currentCompany: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Current Role</Label><Input value={form.currentRole ?? ""} onChange={(e) => setForm({ ...form, currentRole: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>LinkedIn URL</Label><Input value={form.linkedinUrl ?? ""} onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>LinkedIn URL</Label><Input type="url" placeholder="https://linkedin.com/in/..." value={form.linkedinUrl ?? ""} onChange={(e) => setForm({ ...form, linkedinUrl: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>GitHub URL</Label><Input type="url" placeholder="https://github.com/..." value={form.githubUrl ?? ""} onChange={(e) => setForm({ ...form, githubUrl: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Twitter / X URL</Label><Input type="url" placeholder="https://x.com/..." value={form.twitterUrl ?? ""} onChange={(e) => setForm({ ...form, twitterUrl: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Website URL</Label><Input type="url" placeholder="https://yoursite.com" value={form.websiteUrl ?? ""} onChange={(e) => setForm({ ...form, websiteUrl: e.target.value })} /></div>
             <div className="space-y-1.5 md:col-span-2"><Label>Bio</Label><Textarea value={form.bio ?? ""} onChange={(e) => setForm({ ...form, bio: e.target.value })} /></div>
           </div>
         )}

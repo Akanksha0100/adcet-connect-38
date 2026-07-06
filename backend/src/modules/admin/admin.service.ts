@@ -72,6 +72,32 @@ export const setUserStatus = async (
 };
 
 /**
+ * Bulk approve/reject multiple users in a single operation.
+ * Each user gets an audit log entry and notification.
+ */
+export const bulkSetUserStatus = async (
+  actorId: string,
+  userIds: string[],
+  status: "APPROVED" | "REJECTED",
+  reason?: string,
+) => {
+  const results: { id: string; status: string }[] = [];
+  const errors: { id: string; error: string }[] = [];
+
+  // Process each user (not a single transaction so partial success is possible)
+  for (const userId of userIds) {
+    try {
+      const result = await setUserStatus(actorId, userId, status, reason);
+      results.push(result);
+    } catch (e: any) {
+      errors.push({ id: userId, error: e?.message ?? "Unknown error" });
+    }
+  }
+
+  return { updated: results, errors, total: userIds.length };
+};
+
+/**
  * Fetch a single user with profile + roles for the admin detail view.
  * Strips passwordHash before returning.
  */
