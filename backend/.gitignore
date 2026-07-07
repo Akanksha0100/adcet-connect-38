@@ -1,0 +1,8 @@
+*.env
+logs
+*.env.development
+*.env.production
+*.env.production.local
+*.env.development.local
+.env.development
+.env.production

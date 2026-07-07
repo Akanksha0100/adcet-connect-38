@@ -14,12 +14,17 @@ import {
   Loader2,
   Lock,
   Users,
+  Plus,
+  Paperclip,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -66,6 +71,12 @@ interface Paginated<T> {
   items: T[];
   pagination: { total: number; page: number; pageSize: number };
 }
+
+const DEPARTMENTS = [
+  "All", "CSE", "CSE (IoT & Cyber Security)", "CSE (AI & Data Science)",
+  "Robotics & Automation", "Mechanical Engineering", "Electrical Engineering",
+  "Civil Engineering", "Aeronautical Engineering", "Food Technology", "E&TC",
+];
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-500/15 text-amber-600 border-0",
@@ -115,9 +126,12 @@ const JobApprovalsPage = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
-        <p className="text-muted-foreground text-sm mt-1">Review all jobs and inspect applicants.</p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+          <p className="text-muted-foreground text-sm mt-1">Create, review, and manage all job postings.</p>
+        </div>
+        <AdminCreateJobDialog onCreated={() => { qc.invalidateQueries({ queryKey: ["admin", "jobs"] }); qc.invalidateQueries({ queryKey: ["analytics", "admin-overview"] }); }} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
@@ -338,6 +352,140 @@ const ApplicationsSheet = ({ jobId, count }: { jobId: string; count: number }) =
         </div>
       </SheetContent>
     </Sheet>
+  );
+};
+
+/** Admin "Create Job" dialog — auto-approved, with attachment upload. */
+const AdminCreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({
+    title: "", company: "", location: "", description: "", department: "All",
+    employmentType: "FULL_TIME" as JobItem["employmentType"],
+    vacancies: "", isRemote: false,
+  });
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [attachUploading, setAttachUploading] = useState(false);
+
+  const uploadAttachment = async (file: File): Promise<string> => {
+    setAttachUploading(true);
+    try {
+      const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
+        scope: "job-attachment",
+        filename: file.name,
+        contentType: file.type,
+      });
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      return key;
+    } finally {
+      setAttachUploading(false);
+    }
+  };
+
+  const create = useMutation({
+    mutationFn: async () => {
+      let attachmentKey: string | undefined;
+      if (attachFile) attachmentKey = await uploadAttachment(attachFile);
+      return api.post("/jobs", {
+        ...form,
+        attachmentKey: attachmentKey || undefined,
+        department: form.department === "All" ? undefined : form.department,
+        vacancies: form.vacancies ? Number(form.vacancies) : undefined,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Job created & approved", description: "Notifications will be sent to alumni." });
+      setOpen(false);
+      onCreated();
+      setForm({ title: "", company: "", location: "", description: "", department: "All", employmentType: "FULL_TIME", vacancies: "", isRemote: false });
+      setAttachFile(null);
+    },
+    onError: (e: any) => toast({ title: "Could not create job", description: e?.message, variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Create Job</Button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+        <DialogHeader><DialogTitle>Create Job (Auto-Approved)</DialogTitle></DialogHeader>
+        <form onSubmit={(e) => { e.preventDefault(); create.mutate(); }} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Title</Label><Input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Company</Label><Input required value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5"><Label>Location</Label><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Vacancies</Label><Input type="number" min={1} value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Department</Label>
+              <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
+                <SelectTrigger><SelectValue placeholder="All departments" /></SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENTS.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Alumni in this department will be notified.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <Select value={form.employmentType} onValueChange={(v) => setForm({ ...form, employmentType: v as JobItem["employmentType"] })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FULL_TIME">Full-time</SelectItem>
+                  <SelectItem value="PART_TIME">Part-time</SelectItem>
+                  <SelectItem value="INTERNSHIP">Internship</SelectItem>
+                  <SelectItem value="CONTRACT">Contract</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.isRemote} onChange={(e) => setForm({ ...form, isRemote: e.target.checked })} />
+            Remote position
+          </label>
+          <div className="space-y-1.5"><Label>Description</Label><Textarea required rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div className="space-y-1.5">
+            <Label>Attachment (PDF, Image, or Doc)</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => document.getElementById("admin-job-attach")?.click()}
+                disabled={attachUploading}
+              >
+                {attachUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                {attachFile ? attachFile.name : "Choose file"}
+              </Button>
+              {attachFile && (
+                <button type="button" className="text-xs text-destructive hover:underline" onClick={() => setAttachFile(null)}>
+                  Remove
+                </button>
+              )}
+            </div>
+            <input
+              id="admin-job-attach"
+              type="file"
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) setAttachFile(f); e.target.value = ""; }}
+            />
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={create.isPending || attachUploading}>
+              {create.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create & Notify"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

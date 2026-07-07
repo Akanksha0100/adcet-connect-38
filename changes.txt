@@ -1,0 +1,22 @@
+Make Sure but most of Done: Major and important changes requires is to make the entire application responsive and mobile friendly. Currently for mobile users it is not mobile friendly.
+
+Done: There are no theme change functionality but clients want 5 different themes to be implemented.
+
+Some work left:About Events currently we are adding information is good but in addition we want to attach a file with it which will information serving and can be pdf, image or word file.
+When a event is created admin can specify department and by default (If not specified) it is for all after that a email notification will be sent to all the alumni of that department or All alumni as per event specification. The email should consist the information about the event and any image/pdf or any doc as attachement which is uploaded by admin while creating event. Inside the notification there should be a button which will redirect to that event page on the portal.
+In email notification only for a event the alumni have options for the event like "Would you like to attend?" options will be No, Not Sure or May be or Yes. and no need to open the portal as well. (Make sure events work end to end flawlessly with notifications and all that)
+As per update a reminder notification should also be sent to interested people 1 day before the event. and a reminder mail should also be sent to those who have not responded yet, 1 day before the event. based on the responses a mail should be sent to all with updated information.
+
+Make Sure: On User/Alumni Approve implement pagination there. admin should be able to do select all and approve or select multiple and approve or just approve one by one and same for reject as well. in short give all functionality about selecting and deleting and approving and rejecting for one or many.
+The pagination is important give pagination wherever needed, because as alumni, events, jobs, achievements and other things grow it will be difficult to manage without pagination. and by default sort anything by date latest first so new things appear first.
+
+Done: On alumni profile there are links we also want to ask linkedin profile link as well. so while creating account as of now there are only essential fields are asked can you please add step two and ask remaining fields such as linkedin profile link(make it required), github profile link, twitter profile link and other links can be added. if you want add anything in this step that can be asked for alumni.
+
+Make Sure: About jobs when anyone create job he/she cannot upload any document which can provide more info about the job so give a option to attach pdf/image or doc file along with the job description. In job form also specify other fields such as if for specific department or for all, etc. so we can send email for that department informing new job. Inside email there should be button to redirect to that job page on portal.
+
+Make Sure: When anyone applies for job a email should be sent to job poster along with applicants info and resume attachement if applicant has uploaded resume.
+Apply pagination on job section for both admin and alumni. Also give filter to jobs, so that alumni can filter jobs by department or any other and take that info while job creation.
+
+Not Done i think see what environment variables we are using and configure them in .env file. Configure required fields in .env so i can put and test. Also add required test cases and maintain high coverage.
+update other documentation and readme files.
+Can You please see all this functionality is added or not if anything missing or not implemented properly or not upto the mark or remain half implemented or incomplete please implement it as told. If you find any bug, any error, any remaining test case, implement it as well. Look for above changes not once but twice as it is not a simple task it will be a production ready application and we have to make sure it is bug free and works flawlessly.

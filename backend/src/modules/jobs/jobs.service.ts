@@ -73,8 +73,20 @@ export const getById = async (id: string) => {
   return job;
 };
 
-export const create = (caller: Caller, data: Omit<Prisma.JobUncheckedCreateInput, "createdById">) =>
-  prisma.job.create({ data: { ...data, createdById: caller.sub } });
+export const create = async (caller: Caller, data: Omit<Prisma.JobUncheckedCreateInput, "createdById">) => {
+  // Admin-created jobs are auto-approved
+  const status = isAdmin(caller) ? "APPROVED" : "PENDING";
+  const job = await prisma.job.create({ data: { ...data, createdById: caller.sub, status } });
+
+  // If auto-approved (admin), fire department notifications
+  if (status === "APPROVED") {
+    sendJobNotifications(job).catch((err) =>
+      logger.error({ err, jobId: job.id }, "failed to send job notification emails"),
+    );
+  }
+
+  return job;
+};
 
 export const update = async (caller: Caller, id: string, data: Prisma.JobUpdateInput) => {
   const existing = await prisma.job.findUnique({ where: { id } });

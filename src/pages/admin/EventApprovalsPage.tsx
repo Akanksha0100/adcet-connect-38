@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Users, Calendar, CalendarX, Loader2, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Calendar, CalendarX, Loader2, ChevronRight, Paperclip } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -22,6 +23,12 @@ import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 
+const DEPARTMENTS = [
+  "All", "CSE", "CSE (IoT & Cyber Security)", "CSE (AI & Data Science)",
+  "Robotics & Automation", "Mechanical Engineering", "Electrical Engineering",
+  "Civil Engineering", "Aeronautical Engineering", "Food Technology", "E&TC",
+];
+
 interface EventItem {
   id: string;
   title: string;
@@ -32,6 +39,8 @@ interface EventItem {
   startsAt: string;
   endsAt?: string | null;
   capacity?: number | null;
+  department?: string | null;
+  attachmentKey?: string | null;
   status: string;
   _count?: { rsvps: number };
 }
@@ -44,7 +53,10 @@ interface Rsvp {
 }
 
 const toLocal = (iso?: string | null) => iso ? new Date(iso).toISOString().slice(0, 16) : "";
-const emptyForm = () => ({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "" });
+const emptyForm = () => ({
+  title: "", description: "", location: "", isOnline: false, meetingUrl: "",
+  startsAt: "", endsAt: "", capacity: "", department: "All", attachmentKey: "",
+});
 
 const EventApprovalsPage = () => {
   const qc = useQueryClient();
@@ -52,6 +64,8 @@ const EventApprovalsPage = () => {
   const [editing, setEditing] = useState<EventItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<EventItem | null>(null);
   const [form, setForm] = useState(emptyForm());
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [attachUploading, setAttachUploading] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "events"],
@@ -59,7 +73,7 @@ const EventApprovalsPage = () => {
   });
   const events = data?.items ?? [];
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm()); setFormOpen(true); };
+  const openCreate = () => { setEditing(null); setForm(emptyForm()); setAttachFile(null); setFormOpen(true); };
   const openEdit = (e: EventItem) => {
     setEditing(e);
     setForm({
@@ -67,14 +81,38 @@ const EventApprovalsPage = () => {
       isOnline: e.isOnline ?? false, meetingUrl: e.meetingUrl ?? "",
       startsAt: toLocal(e.startsAt), endsAt: toLocal(e.endsAt),
       capacity: e.capacity != null ? String(e.capacity) : "",
+      department: e.department ?? "All",
+      attachmentKey: e.attachmentKey ?? "",
     });
+    setAttachFile(null);
     setFormOpen(true);
   };
 
+  const uploadAttachment = async (file: File): Promise<string> => {
+    setAttachUploading(true);
+    try {
+      const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
+        scope: "event-attachment",
+        filename: file.name,
+        contentType: file.type,
+      });
+      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      return key;
+    } finally {
+      setAttachUploading(false);
+    }
+  };
+
   const save = useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
+      let attachmentKey = form.attachmentKey;
+      if (attachFile) {
+        attachmentKey = await uploadAttachment(attachFile);
+      }
       const body = {
         ...form,
+        attachmentKey: attachmentKey || undefined,
+        department: form.department === "All" ? undefined : form.department,
         meetingUrl: form.isOnline ? form.meetingUrl : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         startsAt: new Date(form.startsAt).toISOString(),
@@ -85,10 +123,11 @@ const EventApprovalsPage = () => {
         : api.post("/events", body);
     },
     onSuccess: () => {
-      toast({ title: editing ? "Event updated" : "Event created" });
+      toast({ title: editing ? "Event updated" : "Event created", description: editing ? undefined : "Notifications will be sent to alumni." });
       qc.invalidateQueries({ queryKey: ["admin", "events"] });
       qc.invalidateQueries({ queryKey: ["events"] });
       setFormOpen(false);
+      setAttachFile(null);
     },
     onError: (e: any) => toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
   });
@@ -126,11 +165,15 @@ const EventApprovalsPage = () => {
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-foreground">{e.title}</h3>
-                  <Badge variant="secondary" className="text-[10px] capitalize">{e.isOnline ? "Online" : "Offline"}</Badge>
+                  <div className="flex items-center gap-1">
+                    {e.department && <Badge variant="outline" className="text-[10px]">{e.department}</Badge>}
+                    <Badge variant="secondary" className="text-[10px] capitalize">{e.isOnline ? "Online" : "Offline"}</Badge>
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(e.startsAt).toLocaleDateString()}</span>
                   <span className="flex items-center gap-1"><Users className="h-3 w-3" />{e._count?.rsvps ?? 0} registered</span>
+                  {e.attachmentKey && <span className="flex items-center gap-1"><Paperclip className="h-3 w-3" />Attachment</span>}
                 </div>
                 <div className="flex items-center gap-2 pt-1 border-t border-border">
                   <RsvpsSheet eventId={e.id} count={e._count?.rsvps ?? 0} />
@@ -149,7 +192,7 @@ const EventApprovalsPage = () => {
 
       {/* Create / Edit dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit Event" : "Create Event"}</DialogTitle></DialogHeader>
           <form onSubmit={(e) => { e.preventDefault(); save.mutate(); }} className="space-y-3">
             <div className="space-y-1.5"><Label>Title</Label>
@@ -157,6 +200,18 @@ const EventApprovalsPage = () => {
             </div>
             <div className="space-y-1.5"><Label>Description</Label>
               <Textarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Department (target audience)</Label>
+              <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
+                <SelectTrigger><SelectValue placeholder="All alumni" /></SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENTS.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Email notifications will be sent to alumni in this department.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Starts</Label>
@@ -180,13 +235,52 @@ const EventApprovalsPage = () => {
             </label>
             {form.isOnline && (
               <div className="space-y-1.5"><Label>Meeting URL</Label>
-                <Input type="url" required={form.isOnline} value={form.meetingUrl} onChange={(e) => setForm({ ...form, meetingUrl: e.target.value })} />
+                <Input type="url" required={form.isOnline} placeholder="https://meet.google.com/..." value={form.meetingUrl} onChange={(e) => setForm({ ...form, meetingUrl: e.target.value })} />
               </div>
             )}
-            <DialogFooter>
+            <div className="space-y-1.5">
+              <Label>Attachment (PDF, Image, or Doc)</Label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => document.getElementById('admin-event-attach-input')?.click()}
+                  disabled={attachUploading}
+                >
+                  {attachUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+                  {attachFile ? attachFile.name : (form.attachmentKey ? "Replace file" : "Choose file")}
+                </Button>
+                {(attachFile || form.attachmentKey) && (
+                  <button
+                    type="button"
+                    className="text-xs text-destructive hover:underline"
+                    onClick={() => { setAttachFile(null); setForm({ ...form, attachmentKey: "" }); }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+              <input
+                id="admin-event-attach-input"
+                type="file"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.webp"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setAttachFile(f);
+                  e.target.value = "";
+                }}
+              />
+              {form.attachmentKey && !attachFile && (
+                <p className="text-xs text-muted-foreground">Existing attachment will be kept unless you choose a new file or remove it.</p>
+              )}
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={save.isPending}>
-                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing ? "Save Changes" : "Create")}
+              <Button type="submit" disabled={save.isPending || attachUploading}>
+                {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (editing ? "Save Changes" : "Create & Notify")}
               </Button>
             </DialogFooter>
           </form>

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, CheckCircle, XCircle, Filter, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, CheckCircle, XCircle, Filter, Users, ChevronLeft, ChevronRight, Mail, ShieldCheck, ShieldX, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,6 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -49,13 +58,22 @@ const statusColors: Record<string, string> = {
   REJECTED: "bg-destructive/15 text-destructive border-0",
 };
 
+const statusIcons: Record<string, typeof CheckCircle> = {
+  PENDING: RotateCcw,
+  APPROVED: ShieldCheck,
+  REJECTED: ShieldX,
+};
+
 const UserApprovalsPage = () => {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<"all" | ApprovalStatus>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rejectId, setRejectId] = useState<string | null>(null);
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [messageTarget, setMessageTarget] = useState<{ id: string; name: string } | null>(null);
+  const [messageForm, setMessageForm] = useState({ subject: "", body: "" });
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "users", filter, search, page],
@@ -74,6 +92,7 @@ const UserApprovalsPage = () => {
     onSuccess: (_d, v) => {
       toast({ title: `User ${v.status.toLowerCase()}` });
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      qc.invalidateQueries({ queryKey: ["analytics", "admin-overview"] });
       setSelectedIds((s) => { const n = new Set(s); n.delete(v.id); return n; });
     },
     onError: (e: Error) => toast({ title: "Action failed", description: e.message, variant: "destructive" }),
@@ -88,18 +107,30 @@ const UserApprovalsPage = () => {
     onSuccess: (result) => {
       toast({
         title: `Bulk action complete`,
-        description: `${result.updated.length} updated, ${result.errors.length} failed`,
+        description: `${result.updated.length} updated${result.errors.length ? `, ${result.errors.length} failed` : ""}`,
       });
       setSelectedIds(new Set());
+      setBulkRejectOpen(false);
       qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      qc.invalidateQueries({ queryKey: ["analytics", "admin-overview"] });
     },
     onError: (e: Error) => toast({ title: "Bulk action failed", description: e.message, variant: "destructive" }),
   });
 
+  const sendMessage = useMutation({
+    mutationFn: ({ id, subject, body }: { id: string; subject: string; body: string }) =>
+      api.post(`/admin/users/${id}/message`, { subject, body }),
+    onSuccess: () => {
+      toast({ title: "Message sent" });
+      setMessageTarget(null);
+      setMessageForm({ subject: "", body: "" });
+    },
+    onError: (e: Error) => toast({ title: "Send failed", description: e.message, variant: "destructive" }),
+  });
+
   const users = data?.items ?? [];
   const pagination = data?.pagination;
-  const pendingUsers = users.filter((u) => u.status === "PENDING");
-  const allPendingSelected = pendingUsers.length > 0 && pendingUsers.every((u) => selectedIds.has(u.id));
+  const allOnPageSelected = users.length > 0 && users.every((u) => selectedIds.has(u.id));
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -111,19 +142,24 @@ const UserApprovalsPage = () => {
   };
 
   const toggleSelectAll = () => {
-    if (allPendingSelected) {
+    if (allOnPageSelected) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(pendingUsers.map((u) => u.id)));
+      setSelectedIds(new Set(users.map((u) => u.id)));
     }
   };
+
+  // Determine what actions are possible on the selected set
+  const selectedUsers = users.filter((u) => selectedIds.has(u.id));
+  const canApproveSelection = selectedUsers.some((u) => u.status !== "APPROVED");
+  const canRejectSelection = selectedUsers.some((u) => u.status !== "REJECTED");
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
-        <h1 className="text-xl md:text-2xl font-bold text-foreground">User Approvals</h1>
+        <h1 className="text-xl md:text-2xl font-bold text-foreground">User Management</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Review and manage user registration requests.
+          Manage all users — approve, reject, message, or change status.
         </p>
       </div>
 
@@ -137,7 +173,7 @@ const UserApprovalsPage = () => {
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           />
         </div>
-        <Select value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); }}>
+        <Select value={filter} onValueChange={(v) => { setFilter(v as any); setPage(1); setSelectedIds(new Set()); }}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
             <SelectValue placeholder="Status" />
@@ -161,34 +197,33 @@ const UserApprovalsPage = () => {
           <span className="text-sm font-medium text-foreground">
             {selectedIds.size} user{selectedIds.size > 1 ? "s" : ""} selected
           </span>
-          <div className="flex gap-2 ml-auto">
-            <Button
-              size="sm"
-              className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5"
-              disabled={bulkStatus.isPending}
-              onClick={() =>
-                bulkStatus.mutate({
-                  userIds: Array.from(selectedIds),
-                  status: "APPROVED",
-                })
-              }
-            >
-              <CheckCircle className="h-3.5 w-3.5" /> Approve Selected
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="gap-1.5"
-              disabled={bulkStatus.isPending}
-              onClick={() =>
-                bulkStatus.mutate({
-                  userIds: Array.from(selectedIds),
-                  status: "REJECTED",
-                })
-              }
-            >
-              <XCircle className="h-3.5 w-3.5" /> Reject Selected
-            </Button>
+          <div className="flex flex-wrap gap-2 ml-auto">
+            {canApproveSelection && (
+              <Button
+                size="sm"
+                className="bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5"
+                disabled={bulkStatus.isPending}
+                onClick={() =>
+                  bulkStatus.mutate({
+                    userIds: Array.from(selectedIds),
+                    status: "APPROVED",
+                  })
+                }
+              >
+                <CheckCircle className="h-3.5 w-3.5" /> Approve
+              </Button>
+            )}
+            {canRejectSelection && (
+              <Button
+                size="sm"
+                variant="destructive"
+                className="gap-1.5"
+                disabled={bulkStatus.isPending}
+                onClick={() => setBulkRejectOpen(true)}
+              >
+                <XCircle className="h-3.5 w-3.5" /> Reject
+              </Button>
+            )}
             <Button
               size="sm"
               variant="ghost"
@@ -201,15 +236,15 @@ const UserApprovalsPage = () => {
       )}
 
       {/* Select All */}
-      {pendingUsers.length > 0 && (
+      {users.length > 0 && (
         <div className="flex items-center gap-2 px-1">
           <Checkbox
-            checked={allPendingSelected}
+            checked={allOnPageSelected}
             onCheckedChange={toggleSelectAll}
             id="select-all"
           />
           <label htmlFor="select-all" className="text-sm text-muted-foreground cursor-pointer">
-            Select all pending on this page ({pendingUsers.length})
+            Select all on this page ({users.length})
           </label>
         </div>
       )}
@@ -229,23 +264,22 @@ const UserApprovalsPage = () => {
               .slice(0, 2)
               .toUpperCase();
             const isSelected = selectedIds.has(u.id);
+            const StatusIcon = statusIcons[u.status] ?? RotateCcw;
             return (
               <motion.div
                 key={u.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`card-elevated p-4 md:p-5 flex flex-col gap-4 hover:-translate-y-0.5 ${
+                className={`card-elevated p-4 md:p-5 flex flex-col gap-4 hover:-translate-y-0.5 transition-transform ${
                   isSelected ? "ring-2 ring-primary/40" : ""
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {u.status === "PENDING" && (
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => toggleSelect(u.id)}
-                      className="flex-shrink-0"
-                    />
-                  )}
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => toggleSelect(u.id)}
+                    className="flex-shrink-0"
+                  />
                   <Link
                     to={`/admin/users/${u.id}`}
                     className="flex items-center gap-3 group focus:outline-none flex-1 min-w-0"
@@ -260,7 +294,8 @@ const UserApprovalsPage = () => {
                       <p className="text-sm font-semibold text-foreground truncate group-hover:underline">{name}</p>
                       <p className="text-xs text-muted-foreground truncate">{u.email}</p>
                     </div>
-                    <Badge className={`text-[10px] capitalize ${statusColors[u.status]}`}>
+                    <Badge className={`text-[10px] capitalize gap-1 ${statusColors[u.status]}`}>
+                      <StatusIcon className="h-3 w-3" />
                       {u.status.toLowerCase()}
                     </Badge>
                   </Link>
@@ -287,8 +322,9 @@ const UserApprovalsPage = () => {
                   </div>
                 </div>
 
-                {u.status === "PENDING" && (
-                  <div className="flex gap-2">
+                {/* Actions — shown for ALL users, context-appropriate */}
+                <div className="flex flex-wrap gap-2">
+                  {u.status !== "APPROVED" && (
                     <Button
                       size="sm"
                       className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5"
@@ -297,6 +333,8 @@ const UserApprovalsPage = () => {
                     >
                       <CheckCircle className="h-3.5 w-3.5" /> Approve
                     </Button>
+                  )}
+                  {u.status !== "REJECTED" && (
                     <Button
                       size="sm"
                       variant="destructive"
@@ -306,8 +344,16 @@ const UserApprovalsPage = () => {
                     >
                       <XCircle className="h-3.5 w-3.5" /> Reject
                     </Button>
-                  </div>
-                )}
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => setMessageTarget({ id: u.id, name })}
+                  >
+                    <Mail className="h-3.5 w-3.5" /> Message
+                  </Button>
+                </div>
               </motion.div>
             );
           })}
@@ -327,6 +373,7 @@ const UserApprovalsPage = () => {
           </Button>
           <span className="text-sm text-muted-foreground px-3">
             Page {pagination.page} of {pagination.totalPages}
+            {pagination.total != null && ` (${pagination.total} users)`}
           </span>
           <Button
             variant="outline"
@@ -339,16 +386,78 @@ const UserApprovalsPage = () => {
         </div>
       )}
 
+      {/* Reject single user dialog */}
       <RejectReasonDialog
         open={!!rejectId}
         onOpenChange={(o) => !o && setRejectId(null)}
-        title="Reject user application"
-        description="The user will be notified in-app and via email."
+        title="Reject user"
+        description="The user will be notified. They will lose access to the portal."
         pending={setStatus.isPending}
         onConfirm={async (reason) => {
           if (rejectId) await setStatus.mutateAsync({ id: rejectId, status: "REJECTED", reason });
         }}
       />
+
+      {/* Bulk reject dialog */}
+      <RejectReasonDialog
+        open={bulkRejectOpen}
+        onOpenChange={(o) => !o && setBulkRejectOpen(false)}
+        title={`Reject ${selectedIds.size} user${selectedIds.size > 1 ? "s" : ""}`}
+        description="All selected users will be rejected and notified."
+        pending={bulkStatus.isPending}
+        onConfirm={async (reason) => {
+          await bulkStatus.mutateAsync({
+            userIds: Array.from(selectedIds),
+            status: "REJECTED",
+            reason,
+          });
+        }}
+      />
+
+      {/* Send Message Dialog */}
+      <Dialog open={!!messageTarget} onOpenChange={(o) => { if (!o) { setMessageTarget(null); setMessageForm({ subject: "", body: "" }); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Message {messageTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (messageTarget) sendMessage.mutate({ id: messageTarget.id, ...messageForm });
+            }}
+            className="space-y-3"
+          >
+            <div className="space-y-1.5">
+              <Label>Subject</Label>
+              <Input
+                required
+                maxLength={120}
+                value={messageForm.subject}
+                onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
+                placeholder="e.g., Welcome to the portal"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Message</Label>
+              <Textarea
+                required
+                maxLength={2000}
+                rows={4}
+                value={messageForm.body}
+                onChange={(e) => setMessageForm({ ...messageForm, body: e.target.value })}
+                placeholder="Write your message..."
+              />
+            </div>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button type="button" variant="outline" onClick={() => setMessageTarget(null)}>Cancel</Button>
+              <Button type="submit" disabled={sendMessage.isPending} className="gap-1.5">
+                {sendMessage.isPending ? <span className="h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full" /> : <Mail className="h-3.5 w-3.5" />}
+                Send
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 };
