@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../lib/pagination.js";
+import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
 
 export const jobInputSchema = z.object({
   title: z.string().min(2).max(200),
@@ -27,8 +27,8 @@ export const jobListQuery = paginationSchema.extend({
   location: z.string().optional(),
   employmentType: z.enum(["FULL_TIME", "PART_TIME", "INTERNSHIP", "CONTRACT"]).optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
-  isRemote: z.coerce.boolean().optional(),
-  closed: z.coerce.boolean().optional(),
+  isRemote: booleanQueryParam,
+  closed: booleanQueryParam,
   department: z.string().optional(),
 });
 

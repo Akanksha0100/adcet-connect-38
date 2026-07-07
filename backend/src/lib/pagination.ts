@@ -16,6 +16,21 @@ export const paginationSchema = z.object({
 
 export type PaginationQuery = z.infer<typeof paginationSchema>;
 
+/**
+ * Parse an optional boolean from a query-string param.
+ *
+ * `z.coerce.boolean()` is unsafe for query strings: it applies JS `Boolean()`,
+ * so the string "false" becomes `true` (every non-empty string is truthy),
+ * making `?flag=false` behave like `?flag=true`. This maps "true"/"false"
+ * (and "1"/"0") to real booleans and leaves anything else undefined.
+ */
+export const booleanQueryParam = z.preprocess((v) => {
+  if (typeof v === "boolean") return v;
+  if (v === "true" || v === "1") return true;
+  if (v === "false" || v === "0") return false;
+  return undefined;
+}, z.boolean().optional());
+
 export const paginate = (q: PaginationQuery) => ({
   skip: (q.page - 1) * q.pageSize,
   take: q.pageSize,

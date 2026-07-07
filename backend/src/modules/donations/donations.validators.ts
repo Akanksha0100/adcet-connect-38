@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../lib/pagination.js";
+import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
 
 export const campaignInputSchema = z.object({
   title: z.string().min(2).max(200),
@@ -28,7 +28,7 @@ export const donationStatusSchema = z.object({
 });
 
 export const listCampaignsQuery = paginationSchema.extend({
-  active: z.coerce.boolean().optional(),
+  active: booleanQueryParam,
 });
 
 export const listDonationsQuery = paginationSchema.extend({

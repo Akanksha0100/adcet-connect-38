@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../lib/pagination.js";
+import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
 import { DEPARTMENTS } from "../../config/constants.js";
 
 const eventBase = z.object({
@@ -37,7 +37,7 @@ export const eventUpdateSchema = eventBase
 export const eventListQuery = paginationSchema.extend({
   q: z.string().optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
-  upcoming: z.coerce.boolean().optional(),
+  upcoming: booleanQueryParam,
   department: z.string().optional(),
 });
 

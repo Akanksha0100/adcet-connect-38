@@ -1,5 +1,11 @@
 import { describe, expect, it } from "@jest/globals";
-import { paginate, paginationMeta, paginationSchema } from "../../lib/pagination.js";
+import { z } from "zod";
+import {
+  booleanQueryParam,
+  paginate,
+  paginationMeta,
+  paginationSchema,
+} from "../../lib/pagination.js";
 
 describe("lib/pagination", () => {
   describe("paginationSchema", () => {
@@ -21,6 +27,30 @@ describe("lib/pagination", () => {
     it("rejects non-positive pages", () => {
       expect(() => paginationSchema.parse({ page: 0 })).toThrow();
       expect(() => paginationSchema.parse({ page: -1 })).toThrow();
+    });
+  });
+
+  describe("booleanQueryParam", () => {
+    const schema = z.object({ flag: booleanQueryParam });
+
+    it("parses the string 'false' as false (regression: coerce.boolean() got this wrong)", () => {
+      expect(schema.parse({ flag: "false" }).flag).toBe(false);
+      expect(schema.parse({ flag: "0" }).flag).toBe(false);
+    });
+
+    it("parses the string 'true' as true", () => {
+      expect(schema.parse({ flag: "true" }).flag).toBe(true);
+      expect(schema.parse({ flag: "1" }).flag).toBe(true);
+    });
+
+    it("passes through real booleans", () => {
+      expect(schema.parse({ flag: true }).flag).toBe(true);
+      expect(schema.parse({ flag: false }).flag).toBe(false);
+    });
+
+    it("is undefined when absent or unrecognized", () => {
+      expect(schema.parse({}).flag).toBeUndefined();
+      expect(schema.parse({ flag: "maybe" }).flag).toBeUndefined();
     });
   });
 
