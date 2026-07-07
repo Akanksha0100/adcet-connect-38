@@ -14,6 +14,11 @@ import {
 
 export const achievementsRouter = Router();
 
+// Public (no auth) — home-page slider feed + shareable single view.
+// Declared before the auth-gated routes so "/featured" isn't shadowed by "/:id".
+achievementsRouter.get("/featured", asyncHandler(ctrl.listFeatured));
+achievementsRouter.get("/public/:id", asyncHandler(ctrl.getPublicById));
+
 achievementsRouter.get("/", requireAuth, requireApproved, validate(listQuerySchema, "query"), asyncHandler(ctrl.list));
 achievementsRouter.get(
   "/pending",

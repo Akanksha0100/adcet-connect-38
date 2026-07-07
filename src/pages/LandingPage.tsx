@@ -1,7 +1,10 @@
-import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Users, Briefcase, Calendar, Trophy, MapPin, Phone, Mail, Globe, Quote } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Users, Briefcase, Calendar, Trophy, MapPin, Phone, Mail, Globe, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 
 const stats = [
   { value: "25+", label: "Years of Excellence" },
@@ -36,6 +39,127 @@ const departments = [
   "AI & Data Science", "CSE (IoT & Cyber Security)", "Robotics & AI",
   "Electronics & Telecom", "BBA", "BCA",
 ];
+
+const STORAGE_BASE =
+  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
+  "http://localhost:9000/adcet-alumni";
+
+interface FeaturedAchievement {
+  id: string;
+  title: string;
+  description: string;
+  category?: string | null;
+  occurredOn?: string | null;
+  imageKey?: string | null;
+  user?: { firstName?: string; lastName?: string } | null;
+}
+
+function AchievementsSlider() {
+  const { data } = useQuery({
+    queryKey: ["achievements", "featured"],
+    queryFn: () => api.get<{ items: FeaturedAchievement[] }>("/achievements/featured", { limit: 8 }),
+  });
+  const items = data?.items ?? [];
+  const [index, setIndex] = useState(0);
+
+  // Auto-advance every 6s; pause implicitly resets when items change.
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const t = setInterval(() => setIndex((i) => (i + 1) % items.length), 6000);
+    return () => clearInterval(t);
+  }, [items.length]);
+
+  if (items.length === 0) return null;
+
+  const safeIndex = index % items.length;
+  const a = items[safeIndex];
+  const authorName = a.user
+    ? `${a.user.firstName ?? ""} ${a.user.lastName ?? ""}`.trim() || "Alumnus"
+    : "Alumnus";
+  const imageUrl = a.imageKey ? `${STORAGE_BASE}/${a.imageKey}` : undefined;
+  const go = (dir: number) => setIndex((i) => (i + dir + items.length) % items.length);
+
+  return (
+    <section className="py-16 px-6 bg-card border-b border-border">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
+            <Trophy className="h-6 w-6 text-primary" /> Alumni Achievements
+          </h2>
+          <p className="text-muted-foreground text-sm">Celebrating the milestones of our community</p>
+        </div>
+
+        <div className="relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={a.id}
+              initial={{ opacity: 0, x: 24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -24 }}
+              transition={{ duration: 0.4 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center border border-border rounded-2xl overflow-hidden bg-background"
+            >
+              <div className="h-56 md:h-64 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center">
+                {imageUrl ? (
+                  <img src={imageUrl} alt={a.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-6xl">🏆</span>
+                )}
+              </div>
+              <div className="p-6 md:p-8 space-y-3">
+                {a.category && (
+                  <span className="inline-block text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {a.category}
+                  </span>
+                )}
+                <h3 className="text-xl font-bold text-foreground leading-snug">{a.title}</h3>
+                <p className="text-xs text-muted-foreground">By {authorName}</p>
+                <p className="text-sm text-muted-foreground line-clamp-3">{a.description}</p>
+                <Button size="sm" className="gap-1.5 mt-1" asChild>
+                  <Link to={`/achievements/${a.id}`}>Read More <ArrowRight className="h-3.5 w-3.5" /></Link>
+                </Button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
+          {items.length > 1 && (
+            <>
+              <button
+                onClick={() => go(-1)}
+                aria-label="Previous achievement"
+                className="absolute left-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => go(1)}
+                aria-label="Next achievement"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-card border border-border shadow-md flex items-center justify-center hover:bg-muted transition-colors"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+
+        {items.length > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {items.map((it, i) => (
+              <button
+                key={it.id}
+                aria-label={`Go to achievement ${i + 1}`}
+                onClick={() => setIndex(i)}
+                className={`h-2 rounded-full transition-all ${
+                  i === safeIndex ? "w-6 bg-primary" : "w-2 bg-border hover:bg-muted-foreground/40"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 
 export default function LandingPage() {
   return (
@@ -107,6 +231,9 @@ export default function LandingPage() {
           <p className="text-xs text-muted-foreground">Founder, ADCET — Sant Dnyaneshwar Shikshan Sanstha</p>
         </div>
       </section>
+
+      {/* Alumni Achievements slider (auto-latest approved) */}
+      <AchievementsSlider />
 
       {/* Features */}
       <section className="py-16 px-6 bg-card">

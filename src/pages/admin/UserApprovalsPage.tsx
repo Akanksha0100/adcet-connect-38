@@ -66,7 +66,7 @@ const statusIcons: Record<string, typeof CheckCircle> = {
 
 const UserApprovalsPage = () => {
   const qc = useQueryClient();
-  const [filter, setFilter] = useState<"all" | ApprovalStatus>("all");
+  const [filter, setFilter] = useState<"all" | ApprovalStatus>("PENDING");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -322,12 +322,19 @@ const UserApprovalsPage = () => {
                   </div>
                 </div>
 
-                {/* Actions — shown for ALL users, context-appropriate */}
+                {/* Actions — colored only for PENDING users; for approved/rejected
+                    the status is already shown as a tag, so status-change actions
+                    are de-emphasized to plain outline buttons. */}
                 <div className="flex flex-wrap gap-2">
                   {u.status !== "APPROVED" && (
                     <Button
                       size="sm"
-                      className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground gap-1.5"
+                      variant={u.status === "PENDING" ? "default" : "outline"}
+                      className={`flex-1 gap-1.5 ${
+                        u.status === "PENDING"
+                          ? "bg-accent hover:bg-accent/90 text-accent-foreground"
+                          : ""
+                      }`}
                       disabled={setStatus.isPending}
                       onClick={() => setStatus.mutate({ id: u.id, status: "APPROVED" })}
                     >
@@ -337,7 +344,7 @@ const UserApprovalsPage = () => {
                   {u.status !== "REJECTED" && (
                     <Button
                       size="sm"
-                      variant="destructive"
+                      variant={u.status === "PENDING" ? "destructive" : "outline"}
                       className="flex-1 gap-1.5"
                       disabled={setStatus.isPending}
                       onClick={() => setRejectId(u.id)}

@@ -324,7 +324,9 @@ model Achievement {
   description String
   category    String?        // "Award", "Promotion", "Publication", ...
   occurredOn  DateTime?
-  imageKey    String?
+  imageKey    String?        // Cover image (shown in cards / home slider)
+  attachmentKey String?      // Certificate / supporting doc (pdf/doc/image)
+  link        String?        // External link (article, certificate URL, ...)
   status      ApprovalStatus @default(PENDING)
   rejectionReason String?
   createdAt   DateTime       @default(now())

@@ -44,16 +44,21 @@ describe("modules/achievements/service", () => {
     await expect(svc.update(ALUMNI, "a-1", {} as any)).rejects.toMatchObject({ status: 403 });
   });
 
-  it("moderate APPROVED notifies the author with sendEmailToo", async () => {
+  it("moderate APPROVED notifies the author in-app (branded email sent separately)", async () => {
     prismaMock.achievement.update.mockResolvedValueOnce({
       id: "a-1",
       title: "Award",
+      description: "Won a national award",
       userId: "u-1",
+      user: { firstName: "Alice", lastName: "A", email: "alice@adcet.in" },
     });
+    prismaMock.siteSection.findUnique.mockResolvedValueOnce(null);
     await svc.moderate("a-1", "APPROVED");
+    // Approval emails the author with a rich branded template directly, so the
+    // in-app notification is dispatched WITHOUT the generic email (sendEmailToo=false).
     expect(notifyMock).toHaveBeenCalledWith(
       "u-1",
-      expect.objectContaining({ type: "achievement.approved", sendEmailToo: true }),
+      expect.objectContaining({ type: "achievement.approved", sendEmailToo: false }),
     );
   });
 
@@ -61,7 +66,9 @@ describe("modules/achievements/service", () => {
     prismaMock.achievement.update.mockResolvedValueOnce({
       id: "a-1",
       title: "Award",
+      description: "Won a national award",
       userId: "u-1",
+      user: { firstName: "Alice", lastName: "A", email: "alice@adcet.in" },
     });
     await svc.moderate("a-1", "REJECTED", "Unverified");
     expect((prismaMock.achievement.update.mock.calls[0][0] as any).data.rejectionReason).toBe(
@@ -125,7 +132,14 @@ describe("achievements/service — branch coverage extras", () => {
   });
 
   it("moderate APPROVED clears prior rejectionReason", async () => {
-    prismaMock.achievement.update.mockResolvedValueOnce({ id: "a-1", title: "x", userId: "u-1" });
+    prismaMock.achievement.update.mockResolvedValueOnce({
+      id: "a-1",
+      title: "x",
+      description: "desc",
+      userId: "u-1",
+      user: { firstName: "Alice", lastName: "A", email: "alice@adcet.in" },
+    });
+    prismaMock.siteSection.findUnique.mockResolvedValueOnce(null);
     await svc.moderate("a-1", "APPROVED");
     expect((prismaMock.achievement.update.mock.calls[0][0] as any).data.rejectionReason).toBeNull();
   });

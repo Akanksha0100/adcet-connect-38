@@ -7,6 +7,12 @@ export const achievementInputSchema = z.object({
   category: z.string().max(80).optional(),
   occurredOn: z.coerce.date().optional(),
   imageKey: z.string().optional(),
+  attachmentKey: z.string().optional(),
+  // Accept an empty string from the form and treat it as "no link".
+  link: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.string().url().max(2000).optional(),
+  ),
 });
 
 export const listQuerySchema = paginationSchema.extend({

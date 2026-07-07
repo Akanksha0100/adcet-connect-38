@@ -21,3 +21,9 @@ export const moderate = async (req: Request, res: Response) =>
   res.json(await service.moderate(req.params.id, req.body.status, req.body.reason));
 export const listPending = async (req: Request, res: Response) =>
   res.json(await service.listPending(req.query as unknown as Parameters<typeof service.listPending>[0]));
+export const listFeatured = async (req: Request, res: Response) => {
+  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+  res.json({ items: await service.listFeatured(limit) });
+};
+export const getPublicById = async (req: Request, res: Response) =>
+  res.json(await service.getPublicById(req.params.id));

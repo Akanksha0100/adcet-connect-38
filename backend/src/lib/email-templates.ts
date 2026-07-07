@@ -521,6 +521,100 @@ export const jobNotificationEmail = (
 
 // ── Simple RSVP confirmation page (returned by the email-rsvp endpoint) ─
 
+// ── Achievement emails ──────────────────────────────────────────────────
+
+export interface AchievementEmailData {
+  id: string;
+  title: string;
+  description: string;
+  category?: string | null;
+  occurredOn?: Date | null;
+  link?: string | null;
+}
+
+const achievementDetails = (a: AchievementEmailData): string => {
+  const url = `${PORTAL_URL}/achievements/${a.id}`;
+  return `
+    <div style="margin: 20px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px; width: 120px;">Title</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px; font-weight: 600;">${esc(a.title)}</td>
+        </tr>
+        ${a.category ? `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Category</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;"><span class="badge badge-dept">${esc(a.category)}</span></td>
+        </tr>` : ""}
+        ${a.occurredOn ? `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Date</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">${new Date(a.occurredOn).toLocaleDateString()}</td>
+        </tr>` : ""}
+        ${a.link ? `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Link</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;"><a href="${esc(a.link)}" style="color:#1e3a5f;">${esc(a.link)}</a></td>
+        </tr>` : ""}
+      </table>
+    </div>
+    <p>${esc(a.description.slice(0, 400))}${a.description.length > 400 ? "..." : ""}</p>
+    <div style="text-align: center; margin-top: 24px;">
+      <a href="${url}" class="btn btn-primary">View Achievement →</a>
+    </div>
+  `;
+};
+
+/** Sent to the author when their achievement is approved. */
+export const achievementApprovedEmail = (
+  a: AchievementEmailData,
+  authorName: string,
+): { subject: string; text: string; html: string } => {
+  const url = `${PORTAL_URL}/achievements/${a.id}`;
+  const body = `
+    <h2>🏆 Your achievement has been approved!</h2>
+    <p>Hi ${esc(authorName)},</p>
+    <p>Great news — your achievement <strong>"${esc(a.title)}"</strong> has been reviewed and is now published on the ADCET Alumni Portal for the community to see.</p>
+    ${achievementDetails(a)}
+  `;
+  const text =
+    `Your achievement was approved!\n\n` +
+    `Hi ${authorName},\n\n` +
+    `"${a.title}" is now published on the ADCET Alumni Portal.\n\n` +
+    `View it: ${url}\n`;
+  return {
+    subject: `🏆 Approved: "${a.title}" — ADCET Alumni`,
+    text,
+    html: wrap("Achievement Approved", body),
+  };
+};
+
+/** Sent to college authorities (director, principal, marketing, ...) on approval. */
+export const achievementAnnouncementEmail = (
+  a: AchievementEmailData,
+  authorName: string,
+): { subject: string; text: string; html: string } => {
+  const url = `${PORTAL_URL}/achievements/${a.id}`;
+  const body = `
+    <h2>🏆 New alumni achievement published</h2>
+    <p>A new achievement by <strong>${esc(authorName)}</strong> has been approved and published on the ADCET Alumni Portal. Sharing it with you for visibility and possible feature in college communications.</p>
+    ${achievementDetails(a)}
+  `;
+  const text =
+    `New alumni achievement published\n\n` +
+    `By: ${authorName}\n` +
+    `Title: ${a.title}\n` +
+    `${a.category ? `Category: ${a.category}\n` : ""}` +
+    `${a.link ? `Link: ${a.link}\n` : ""}` +
+    `\n${a.description.slice(0, 500)}\n\n` +
+    `View it: ${url}\n`;
+  return {
+    subject: `🏆 Alumni Achievement: "${a.title}" by ${authorName}`,
+    text,
+    html: wrap("New Alumni Achievement", body),
+  };
+};
+
 export const rsvpConfirmationHtml = (
   eventTitle: string,
   response: string,

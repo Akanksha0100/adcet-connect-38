@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Trophy } from "lucide-react";
+import { CheckCircle, XCircle, Trophy, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,6 +17,9 @@ interface AchievementItem {
   description: string;
   category?: string | null;
   occurredOn?: string | null;
+  imageKey?: string | null;
+  attachmentKey?: string | null;
+  link?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
   user?: { id: string; firstName: string; lastName: string } | null;
 }
@@ -24,6 +27,10 @@ interface Paginated<T> {
   items: T[];
   pagination: { total: number; page: number; pageSize: number };
 }
+
+const STORAGE_BASE =
+  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
+  "http://localhost:9000/adcet-alumni";
 
 const tabs = ["Pending", "Approved"] as const;
 
@@ -87,9 +94,13 @@ const AchievementsAdminPage = () => {
           {items.map((a) => (
             <motion.div key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className="card-elevated overflow-hidden hover:-translate-y-0.5">
-              <div className="h-24 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
-                🏆
-              </div>
+              {a.imageKey ? (
+                <img src={`${STORAGE_BASE}/${a.imageKey}`} alt={a.title} className="h-24 w-full object-cover" />
+              ) : (
+                <div className="h-24 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
+                  🏆
+                </div>
+              )}
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
@@ -112,6 +123,20 @@ const AchievementsAdminPage = () => {
                 </div>
                 {a.category && <Badge variant="secondary" className="text-[10px]">{a.category}</Badge>}
                 <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
+                {(a.link || a.attachmentKey) && (
+                  <div className="flex flex-wrap items-center gap-3">
+                    {a.link && (
+                      <a href={a.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                        <ExternalLink className="h-3 w-3" /> Link
+                      </a>
+                    )}
+                    {a.attachmentKey && (
+                      <a href={`${STORAGE_BASE}/${a.attachmentKey}`} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                        <FileText className="h-3 w-3" /> Document
+                      </a>
+                    )}
+                  </div>
+                )}
                 {a.status === "PENDING" && (
                   <div className="flex gap-2 pt-1">
                     <Button size="sm"

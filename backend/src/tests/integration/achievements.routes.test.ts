@@ -77,8 +77,15 @@ describe("/achievements", () => {
   });
 
   it("200 admin moderates approve", async () => {
-    prisma.achievement.update.mockResolvedValueOnce({ id: "a1", title: "Won", userId: "user-1" } as any);
+    prisma.achievement.update.mockResolvedValueOnce({
+      id: "a1",
+      title: "Won",
+      description: "First place",
+      userId: "user-1",
+      user: { firstName: "Alice", lastName: "A", email: "alice@adcet.in" },
+    } as any);
     prisma.notification.create.mockResolvedValueOnce({} as any);
+    prisma.siteSection.findUnique.mockResolvedValueOnce(null as any);
     const res = await request(app)
       .post("/api/v1/achievements/a1/moderate")
       .set("Authorization", bearer(adminToken))

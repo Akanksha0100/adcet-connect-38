@@ -57,6 +57,33 @@ const SettingsPage = () => {
     if (profile.data) setForm(pick(profile.data));
   }, [profile.data]);
 
+  // Achievement notification recipients (director, principal, marketing, ...).
+  const [recipients, setRecipients] = useState("");
+  const recipientsSection = useQuery({
+    queryKey: ["content", "section", "achievement_recipients"],
+    queryFn: () =>
+      api.get<{ key: string; title: string; body: string } | null>(
+        "/content/sections/achievement_recipients",
+      ),
+  });
+  useEffect(() => {
+    if (recipientsSection.data) setRecipients(recipientsSection.data.body ?? "");
+  }, [recipientsSection.data]);
+
+  const saveRecipients = useMutation({
+    mutationFn: () =>
+      api.put("/content/sections/achievement_recipients", {
+        title: "Achievement Notification Recipients",
+        body: recipients.trim() || " ",
+      }),
+    onSuccess: () => {
+      toast({ title: "Recipients saved" });
+      qc.invalidateQueries({ queryKey: ["content", "section", "achievement_recipients"] });
+    },
+    onError: (e: any) =>
+      toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+  });
+
   const save = useMutation({
     mutationFn: () => api.patch("/profiles/me", pick(form)),
     onSuccess: () => {
@@ -308,6 +335,39 @@ const SettingsPage = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="card-elevated p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Mail className="h-4 w-4" /> Achievement Notification Recipients
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            When an achievement is approved, an announcement email is sent to these
+            addresses (e.g. director, principal, editing & marketing team) in addition
+            to the alumnus who submitted it. Enter one email per line (commas also work).
+          </p>
+        </div>
+        {recipientsSection.isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : (
+          <>
+            <Textarea
+              rows={5}
+              value={recipients}
+              onChange={(e) => setRecipients(e.target.value)}
+              placeholder={"director@adcet.in\nprincipal@adcet.in\nmarketing@adcet.in"}
+            />
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => saveRecipients.mutate()}
+              disabled={saveRecipients.isPending}
+            >
+              {saveRecipients.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save recipients"}
+            </Button>
+          </>
+        )}
       </div>
     </motion.div>
   );

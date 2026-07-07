@@ -25,6 +25,7 @@ import GeoMapPage from "./pages/GeoMapPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
+import AchievementDetailPage from "./pages/AchievementDetailPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -66,6 +67,7 @@ const App = () => (
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/news" element={<NewsPage />} />
               <Route path="/support" element={<SupportPage />} />
+              <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
               {/* Any logged-in user (any role) can access /dashboard. */}
