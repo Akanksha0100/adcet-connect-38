@@ -2,6 +2,7 @@
  * Auth domain logic. Stateless functions that wrap Prisma + crypto utilities.
  * Controllers stay thin and delegate here.
  */
+import crypto from "node:crypto";
 import { prisma } from "../../lib/prisma.js";
 import { hashPassword, verifyPassword } from "../../lib/password.js";
 import {
@@ -10,12 +11,24 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../../lib/jwt.js";
-import { Conflict, Unauthorized } from "../../lib/errors.js";
+import { BadRequest, Conflict, Unauthorized } from "../../lib/errors.js";
+import { sendEmail } from "../../lib/mailer.js";
+import { passwordResetEmail } from "../../lib/email-templates.js";
+import { logger } from "../../lib/logger.js";
+import { env } from "../../config/env.js";
 import type { AppRoleName } from "../../config/constants.js";
 import type { LoginInput, RegisterInput } from "./auth.validators.js";
 import type { OAuthProfile } from "./providers/index.js";
 
 const REFRESH_TTL_DAYS = 7;
+const RESET_TTL_MINUTES = 60;
+
+/** Best-effort resolution of the frontend base URL for building links. */
+const frontendBaseUrl = (): string => {
+  const origin = env.CORS_ORIGIN;
+  if (!origin || origin === "*") return "http://localhost:8080";
+  return origin.split(",")[0].trim();
+};
 
 const issueTokens = async (user: { id: string; email: string }, roles: AppRoleName[]) => {
   const accessToken = signAccessToken({ sub: user.id, email: user.email, roles });
@@ -128,6 +141,74 @@ export const me = async (userId: string) => {
   });
   if (!user) throw Unauthorized();
   return publicUser(user, user.roles.map((r) => r.role as AppRoleName));
+};
+
+/**
+ * Start a password reset. Always resolves without revealing whether the email
+ * exists (prevents account enumeration). If the account exists and has a
+ * password, a single-use, time-limited token is emailed as a reset link.
+ */
+export const forgotPassword = async (email: string): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { email } });
+  // Silently succeed for unknown or OAuth-only accounts.
+  if (!user || !user.passwordHash) return;
+
+  // Invalidate any outstanding tokens for this user, then mint a fresh one.
+  await prisma.passwordResetToken.updateMany({
+    where: { userId: user.id, usedAt: null },
+    data: { usedAt: new Date() },
+  });
+
+  const rawToken = crypto.randomBytes(32).toString("hex");
+  await prisma.passwordResetToken.create({
+    data: {
+      userId: user.id,
+      tokenHash: hashToken(rawToken),
+      expiresAt: new Date(Date.now() + RESET_TTL_MINUTES * 60 * 1000),
+    },
+  });
+
+  const resetUrl = `${frontendBaseUrl()}/reset-password?token=${rawToken}`;
+  try {
+    const mail = passwordResetEmail(resetUrl, user.firstName, RESET_TTL_MINUTES);
+    await sendEmail({ to: user.email, subject: mail.subject, text: mail.text, html: mail.html });
+  } catch (e) {
+    logger.error({ err: e, userId: user.id }, "failed to send password reset email");
+  }
+};
+
+/** Complete a password reset with a valid, unexpired, unused token. */
+export const resetPassword = async (token: string, newPassword: string): Promise<void> => {
+  const row = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashToken(token) } });
+  if (!row || row.usedAt || row.expiresAt < new Date()) {
+    throw BadRequest("This reset link is invalid or has expired. Please request a new one.");
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: row.userId }, data: { passwordHash } }),
+    prisma.passwordResetToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+    // Log the user out of all existing sessions after a reset.
+    prisma.refreshToken.updateMany({
+      where: { userId: row.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+};
+
+/** Change password for a logged-in user (requires the current password). */
+export const changePassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> => {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.passwordHash) {
+    throw BadRequest("Password change is not available for this account.");
+  }
+  const ok = await verifyPassword(currentPassword, user.passwordHash);
+  if (!ok) throw BadRequest("Your current password is incorrect.");
+  const passwordHash = await hashPassword(newPassword);
+  await prisma.user.update({ where: { id: userId }, data: { passwordHash } });
 };
 
 /**

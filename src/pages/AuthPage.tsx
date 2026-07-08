@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiUrl } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
 const departments = ["Computer Engineering", "Information Technology", "Electronics & Telecom", "Mechanical Engineering", "Civil Engineering", "Electrical Engineering"];
 const degrees: Array<{ value: "BE" | "ME" | "PHD" | "DIPLOMA"; label: string }> = [
@@ -25,6 +26,7 @@ const AuthPage = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<"register" | "login">("login");
   const [regStep, setRegStep] = useState(1);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
   const { login, register, user, loading } = useAuth();
 
@@ -405,7 +407,7 @@ const AuthPage = () => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="loginPassword">Password</Label>
-                <button type="button" className="text-xs text-accent hover:underline">Forgot password?</button>
+                <button type="button" onClick={() => setForgotOpen(true)} className="text-xs text-accent hover:underline">Forgot password?</button>
               </div>
               <div className="relative">
                 <Input id="loginPassword" type={showLoginPassword ? "text" : "password"} placeholder="Enter your password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} />
@@ -445,6 +447,7 @@ const AuthPage = () => {
           </p>
         </motion.div>
       </div>
+      <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={loginEmail} />
     </div>
   );
 };

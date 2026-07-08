@@ -23,6 +23,11 @@ export const revokeRole = async (req: Request, res: Response) => {
 export const auditLog = async (req: Request, res: Response) =>
   res.json(await service.getAuditLog(req.query as unknown as Parameters<typeof service.getAuditLog>[0]));
 
+export const recentActivity = async (req: Request, res: Response) => {
+  const limit = req.query.limit ? Math.min(Number(req.query.limit) || 12, 50) : 12;
+  res.json({ items: await service.recentActivity(limit) });
+};
+
 export const generateReport = async (req: Request, res: Response) => {
   const result = await service.generateReport(req.body);
   if ("csv" in result) {

@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 
 interface Profile {
   bio?: string | null; phone?: string | null; city?: string | null; country?: string | null;
@@ -239,6 +240,8 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
+
+      <ChangePasswordCard />
     </motion.div>
   );
 };

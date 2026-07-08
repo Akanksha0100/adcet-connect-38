@@ -264,3 +264,50 @@ describe("Prisma error mapping", () => {
     expect(res.body.error.code).toBe("CONFLICT");
   });
 });
+describe("Password reset & change flows", () => {
+  it("202 forgot-password for any email (no enumeration)", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null as any);
+    const res = await request(app)
+      .post("/api/v1/auth/forgot-password")
+      .send({ email: "unknown@example.com" });
+    expect(res.status).toBe(202);
+  });
+
+  it("422 forgot-password with a malformed email", async () => {
+    const res = await request(app).post("/api/v1/auth/forgot-password").send({ email: "nope" });
+    expect(res.status).toBe(422);
+  });
+
+  it("400 reset-password with an invalid/expired token", async () => {
+    prisma.passwordResetToken.findUnique.mockResolvedValueOnce(null as any);
+    const res = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ token: "0123456789abcdef", newPassword: "NewStrong#1" });
+    expect(res.status).toBe(400);
+  });
+
+  it("422 reset-password with a too-short password", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/reset-password")
+      .send({ token: "0123456789abcdef", newPassword: "short" });
+    expect(res.status).toBe(422);
+  });
+
+  it("401 change-password without a bearer token", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/change-password")
+      .send({ currentPassword: "x", newPassword: "NewStrong#1" });
+    expect(res.status).toBe(401);
+  });
+
+  it("400 change-password with an incorrect current password", async () => {
+    const { signAccessToken } = await import("../../lib/jwt.js");
+    const access = signAccessToken({ sub: "user-1", email: "alice@example.com", roles: ["ALUMNI"] });
+    prisma.user.findUnique.mockResolvedValueOnce({ id: "user-1", passwordHash: "$2a$12$invalidhashvalue" } as any);
+    const res = await request(app)
+      .post("/api/v1/auth/change-password")
+      .set("Authorization", `Bearer ${access}`)
+      .send({ currentPassword: "wrong", newPassword: "NewStrong#1" });
+    expect(res.status).toBe(400);
+  });
+});

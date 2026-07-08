@@ -133,6 +133,88 @@ export const getAuditLog = async (q: PaginationQuery) => {
   return { items, pagination: paginationMeta(total, q) };
 };
 
+/* -------------------------------------------------------------------------- */
+/*  Recent activity feed for the admin dashboard.                             */
+/*  Merges the latest records across the platform into one readable stream.   */
+/* -------------------------------------------------------------------------- */
+
+export interface ActivityItem {
+  id: string;
+  category: "user" | "event" | "job" | "achievement" | "donation" | "moderation";
+  title: string;
+  subtitle: string;
+  at: Date;
+}
+
+const AUDIT_LABELS: Record<string, string> = {
+  "user.approve": "Approved a user account",
+  "user.reject": "Rejected a user account",
+  "alumni.bulk_email": "Sent an email to alumni",
+};
+
+export const recentActivity = async (limit = 12): Promise<ActivityItem[]> => {
+  const nm = (u?: { firstName?: string | null; lastName?: string | null } | null) =>
+    u ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() : "";
+  const notAdmin = { roles: { none: { role: "ADMIN" as const } } };
+
+  const [users, events, jobs, achievements, donations, audits] = await Promise.all([
+    prisma.user.findMany({
+      where: notAdmin,
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, firstName: true, lastName: true, status: true, createdAt: true },
+    }),
+    prisma.event.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, title: true, status: true, createdAt: true, createdBy: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.job.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, title: true, company: true, status: true, createdAt: true },
+    }),
+    prisma.achievement.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, title: true, status: true, createdAt: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.donation.findMany({
+      where: { status: "RECEIVED" },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: { id: true, amount: true, donorName: true, paidAt: true, createdAt: true, user: { select: { firstName: true, lastName: true } } },
+    }),
+    prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+  ]);
+
+  const items: ActivityItem[] = [];
+  for (const u of users)
+    items.push({ id: `user-${u.id}`, category: "user", title: nm(u) || "New member", subtitle: `New registration · ${u.status.toLowerCase()}`, at: u.createdAt });
+  for (const e of events)
+    items.push({ id: `event-${e.id}`, category: "event", title: e.title, subtitle: `Event created${nm(e.createdBy) ? ` by ${nm(e.createdBy)}` : ""} · ${e.status.toLowerCase()}`, at: e.createdAt });
+  for (const j of jobs)
+    items.push({ id: `job-${j.id}`, category: "job", title: j.title, subtitle: `Job at ${j.company} · ${j.status.toLowerCase()}`, at: j.createdAt });
+  for (const a of achievements)
+    items.push({ id: `ach-${a.id}`, category: "achievement", title: a.title, subtitle: `Achievement${nm(a.user) ? ` by ${nm(a.user)}` : ""} · ${a.status.toLowerCase()}`, at: a.createdAt });
+  for (const d of donations)
+    items.push({ id: `don-${d.id}`, category: "donation", title: `₹${d.amount.toLocaleString("en-IN")} donation`, subtitle: `from ${d.donorName || nm(d.user) || "a donor"}`, at: d.paidAt ?? d.createdAt });
+  for (const au of audits) {
+    const meta = (au.metadata ?? {}) as Record<string, unknown>;
+    let subtitle = "";
+    if (au.action === "alumni.bulk_email") {
+      subtitle = `${meta.subject ? `"${meta.subject}" · ` : ""}${(meta.recipientCount as number) ?? 0} recipients`;
+    } else if (meta.reason) {
+      subtitle = `Reason: ${meta.reason}`;
+    }
+    items.push({ id: `audit-${au.id}`, category: "moderation", title: AUDIT_LABELS[au.action] ?? au.action, subtitle, at: au.createdAt });
+  }
+
+  return items
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, limit);
+};
+
 export type ReportType =
   | "users"
   | "alumni"

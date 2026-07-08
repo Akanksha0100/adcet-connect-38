@@ -45,4 +45,5 @@ adminRouter.post(
 );
 
 adminRouter.get("/audit-log", validate(paginationSchema, "query"), asyncHandler(ctrl.auditLog));
+adminRouter.get("/activity", asyncHandler(ctrl.recentActivity));
 adminRouter.post("/reports", validate(reportSchema), asyncHandler(ctrl.generateReport));

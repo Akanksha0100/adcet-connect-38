@@ -5,6 +5,7 @@ import { requireAuth } from "../../middlewares/auth.js";
 import { authLimiter } from "../../middlewares/rateLimit.js";
 import * as ctrl from "./auth.controller.js";
 import {
+  changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   refreshSchema,
@@ -22,6 +23,7 @@ authRouter.get("/me", requireAuth, asyncHandler(ctrl.me));
 
 authRouter.post("/forgot-password", authLimiter, validate(forgotPasswordSchema), asyncHandler(ctrl.forgotPassword));
 authRouter.post("/reset-password", authLimiter, validate(resetPasswordSchema), asyncHandler(ctrl.resetPassword));
+authRouter.post("/change-password", requireAuth, validate(changePasswordSchema), asyncHandler(ctrl.changePassword));
 
 // OAuth (stubbed)
 authRouter.get("/oauth/:provider", asyncHandler(ctrl.oauthStart));

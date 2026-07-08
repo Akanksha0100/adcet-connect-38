@@ -94,10 +94,17 @@ export const oauthCallback = async (req: Request, res: Response) => {
   return res.redirect(`${target}#${fragment}`);
 };
 
-export const forgotPassword = async (_req: Request, res: Response) => {
-  // Email provider not wired — always return 202 to avoid user enumeration.
-  res.status(202).json({ message: "If the email exists, a reset link has been sent." });
+export const forgotPassword = async (req: Request, res: Response) => {
+  await service.forgotPassword(req.body.email);
+  // Always 202 regardless of whether the email exists (no user enumeration).
+  res.status(202).json({ message: "If an account exists for that email, a reset link has been sent." });
 };
-export const resetPassword = async (_req: Request, _res: Response) => {
-  throw NotImplemented("Password reset flow not wired (no email provider)");
+export const resetPassword = async (req: Request, res: Response) => {
+  await service.resetPassword(req.body.token, req.body.newPassword);
+  res.json({ message: "Your password has been reset. You can now sign in." });
+};
+export const changePassword = async (req: Request, res: Response) => {
+  if (!req.auth) throw Unauthorized();
+  await service.changePassword(req.auth.sub, req.body.currentPassword, req.body.newPassword);
+  res.json({ message: "Password updated." });
 };

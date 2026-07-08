@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requestPushPermission, usePreferences, type PreferenceKey } from "@/lib/preferences";
+import ChangePasswordCard from "@/components/ChangePasswordCard";
 
 interface AdminProfile {
   bio?: string | null;
@@ -369,6 +370,8 @@ const SettingsPage = () => {
           </>
         )}
       </div>
+
+      <ChangePasswordCard />
     </motion.div>
   );
 };

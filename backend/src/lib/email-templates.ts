@@ -84,6 +84,38 @@ const wrap = (title: string, body: string) => `
  */
 export const wrapHtmlEmail = (title: string, bodyHtml: string): string => wrap(title, bodyHtml);
 
+/** Password reset email with a time-limited reset link. */
+export const passwordResetEmail = (
+  resetUrl: string,
+  firstName: string,
+  ttlMinutes: number,
+): { subject: string; text: string; html: string } => {
+  const body = `
+    <h2>🔒 Reset your password</h2>
+    <p>Hi ${esc(firstName)},</p>
+    <p>We received a request to reset the password for your ADCET Alumni Portal account.
+       Click the button below to choose a new password. This link expires in
+       <strong>${ttlMinutes} minutes</strong>.</p>
+    <div style="text-align:center; margin: 28px 0;">
+      <a href="${resetUrl}" class="btn btn-primary">Reset Password →</a>
+    </div>
+    <p style="font-size:13px; color:#6c757d;">
+      If the button doesn't work, copy and paste this link into your browser:<br/>
+      <a href="${resetUrl}" style="color:#1e3a5f; word-break:break-all;">${esc(resetUrl)}</a>
+    </p>
+    <p style="font-size:13px; color:#6c757d;">
+      If you didn't request this, you can safely ignore this email — your password will not change.
+    </p>
+  `;
+  const text =
+    `Reset your password\n\n` +
+    `Hi ${firstName},\n\n` +
+    `Use the link below to reset your ADCET Alumni Portal password (expires in ${ttlMinutes} minutes):\n` +
+    `${resetUrl}\n\n` +
+    `If you didn't request this, ignore this email.\n`;
+  return { subject: "🔒 Reset your ADCET Alumni Portal password", text, html: wrap("Reset your password", body) };
+};
+
 // ── Event notification email ────────────────────────────────────────────
 
 export interface EventEmailData {

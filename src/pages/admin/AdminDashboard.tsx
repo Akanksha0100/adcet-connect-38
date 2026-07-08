@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import {
-  Users, Briefcase, Calendar, Heart, Clock, ArrowUpRight,
-  UserCheck, CalendarPlus, BriefcaseBusiness
+  Users, Briefcase, Calendar, Heart, Clock,
+  UserCheck, CalendarPlus, BriefcaseBusiness, UserPlus, Trophy, ShieldCheck, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,31 @@ interface Overview {
 interface AdminOverview {
   pendingUsers: number; pendingEvents: number; pendingJobs: number; pendingAchievements: number;
 }
-interface AuditEntry {
-  id: string; action: string; entity: string; entityId?: string | null;
-  metadata?: any; createdAt: string;
+type ActivityCategory = "user" | "event" | "job" | "achievement" | "donation" | "moderation";
+interface ActivityItem {
+  id: string; category: ActivityCategory; title: string; subtitle: string; at: string;
 }
 
 const formatINR = (n: number) =>
   n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${n.toLocaleString("en-IN")}`;
+
+const ACTIVITY_META: Record<ActivityCategory, { icon: LucideIcon; cls: string }> = {
+  user: { icon: UserPlus, cls: "bg-primary/10 text-primary" },
+  event: { icon: Calendar, cls: "bg-accent/10 text-accent" },
+  job: { icon: Briefcase, cls: "bg-blue-500/10 text-blue-600" },
+  achievement: { icon: Trophy, cls: "bg-amber-500/10 text-amber-600" },
+  donation: { icon: Heart, cls: "bg-rose-500/10 text-rose-600" },
+  moderation: { icon: ShieldCheck, cls: "bg-emerald-500/10 text-emerald-600" },
+};
+
+const timeAgo = (iso: string) => {
+  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (s < 60) return "just now";
+  const m = Math.floor(s / 60); if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60); if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24); if (d < 30) return `${d}d ago`;
+  return new Date(iso).toLocaleDateString();
+};
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
 const item = { hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -39,10 +57,9 @@ const AdminDashboard = () => {
     queryKey: ["analytics", "admin-overview"],
     queryFn: () => api.get<AdminOverview>("/analytics/admin/overview"),
   });
-  const audit = useQuery({
-    queryKey: ["admin", "audit-log", { pageSize: 8 }],
-    queryFn: () =>
-      api.get<{ items: AuditEntry[] }>("/admin/audit-log", { pageSize: 8 }),
+  const activity = useQuery({
+    queryKey: ["admin", "activity"],
+    queryFn: () => api.get<{ items: ActivityItem[] }>("/admin/activity", { limit: 6 }),
   });
 
   const pendingTotal =
@@ -89,30 +106,28 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div variants={item} className="lg:col-span-2 card-elevated p-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
-          <div className="space-y-3">
-            {audit.isLoading ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))
-            ) : (audit.data?.items ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                No activity yet.
-              </p>
+          <div className="space-y-1">
+            {activity.isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
+            ) : (activity.data?.items ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">No activity yet.</p>
             ) : (
-              audit.data!.items.map((a) => (
-                <div key={a.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted transition-colors">
-                  <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground truncate">{a.action} · {a.entity}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {new Date(a.createdAt).toLocaleString()}
-                    </p>
+              activity.data!.items.map((a) => {
+                const meta = ACTIVITY_META[a.category];
+                const Icon = meta.icon;
+                return (
+                  <div key={a.id} className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted transition-colors">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${meta.cls}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{a.title}</p>
+                      {a.subtitle && <p className="text-xs text-muted-foreground truncate">{a.subtitle}</p>}
+                    </div>
+                    <span className="text-xs text-muted-foreground flex-shrink-0 whitespace-nowrap">{timeAgo(a.at)}</span>
                   </div>
-                  <Badge variant="secondary" className="text-[10px] capitalize flex-shrink-0">
-                    {a.entity.toLowerCase()}
-                  </Badge>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </motion.div>

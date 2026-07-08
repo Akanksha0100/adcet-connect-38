@@ -152,3 +152,28 @@ describe("modules/admin/service — generateReport", () => {
     expect((out as any).csv).toContain("Name,Email");
   });
 });
+describe("modules/admin/service — recentActivity", () => {
+  it("merges sources, humanizes audits, and sorts by time desc", async () => {
+    prismaMock.user.findMany.mockResolvedValueOnce([
+      { id: "u1", firstName: "Al", lastName: "Ice", status: "APPROVED", createdAt: new Date("2024-03-03") },
+    ]);
+    prismaMock.event.findMany.mockResolvedValueOnce([
+      { id: "e1", title: "Meetup", status: "APPROVED", createdAt: new Date("2024-03-01"), createdBy: { firstName: "Bo", lastName: "B" } },
+    ]);
+    prismaMock.job.findMany.mockResolvedValueOnce([]);
+    prismaMock.achievement.findMany.mockResolvedValueOnce([]);
+    prismaMock.donation.findMany.mockResolvedValueOnce([
+      { id: "d1", amount: 5000, donorName: "Al Ice", paidAt: new Date("2024-03-05"), createdAt: new Date("2024-03-05"), user: null },
+    ]);
+    prismaMock.auditLog.findMany.mockResolvedValueOnce([
+      { id: "a1", action: "user.approve", entity: "User", metadata: { reason: "ok" }, createdAt: new Date("2024-03-02") },
+    ]);
+
+    const items = await svc.recentActivity(10);
+    // Newest first: donation (03-05) then user (03-03) then audit (03-02) then event (03-01)
+    expect(items[0].category).toBe("donation");
+    expect(items.map((i: any) => i.category)).toEqual(["donation", "user", "moderation", "event"]);
+    const audit = items.find((i: any) => i.category === "moderation");
+    expect(audit.title).toBe("Approved a user account");
+  });
+});
