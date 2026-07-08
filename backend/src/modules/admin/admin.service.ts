@@ -133,44 +133,415 @@ export const getAuditLog = async (q: PaginationQuery) => {
   return { items, pagination: paginationMeta(total, q) };
 };
 
-/** Generate a simple report — JSON or CSV. */
-export const generateReport = async (input: {
-  type: "users" | "alumni" | "events" | "jobs" | "donations" | "achievements";
-  format: "csv" | "json";
+export type ReportType =
+  | "users"
+  | "alumni"
+  | "pending-approvals"
+  | "events"
+  | "event-rsvps"
+  | "jobs"
+  | "job-applications"
+  | "achievements"
+  | "donations"
+  | "donations-summary";
+
+interface ReportFilters {
   from?: Date;
   to?: Date;
-}) => {
-  const range =
-    input.from || input.to
-      ? { createdAt: { ...(input.from && { gte: input.from }), ...(input.to && { lte: input.to }) } }
-      : {};
-  const rows = await fetchReportRows(input.type, range);
-  if (input.format === "json") return { rows };
+  status?: string;
+  department?: string;
+}
+
+type Row = Record<string, unknown>;
+
+// A hard cap so a runaway export can never exhaust memory.
+const MAX_ROWS = 50_000;
+
+const d10 = (v?: Date | string | null) => (v ? new Date(v).toISOString().slice(0, 10) : "");
+const dt = (v?: Date | string | null) =>
+  v ? new Date(v).toISOString().slice(0, 16).replace("T", " ") : "";
+const fullName = (u?: { firstName?: string | null; lastName?: string | null } | null) =>
+  u ? `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() : "";
+const dateRange = (from?: Date, to?: Date) =>
+  from || to ? { ...(from && { gte: from }), ...(to && { lte: to }) } : undefined;
+
+// Reports list alumni/students/recruiters — platform administrators are never
+// included as report subjects. Use as a `User` where-filter, or nested under
+// `{ user: NOT_ADMIN }` for records owned by a user.
+const NOT_ADMIN = { roles: { none: { role: "ADMIN" as const } } };
+
+/**
+ * Generate an administrative report. Returns detailed rows (human-friendly
+ * column labels) plus a small summary of headline KPIs. `format: "csv"`
+ * streams the same rows as CSV; `json` returns `{ rows, summary }`.
+ */
+export const generateReport = async (
+  input: ReportFilters & { type: ReportType; format: "csv" | "json" },
+) => {
+  const { rows, summary } = await buildReport(input.type, input);
+  if (input.format === "json") return { rows, summary };
   return { csv: toCsv(rows) };
 };
 
-const fetchReportRows = async (
-  type: string,
-  where: Record<string, unknown>,
-): Promise<Record<string, unknown>[]> => {
+const buildReport = async (
+  type: ReportType,
+  f: ReportFilters,
+): Promise<{ rows: Row[]; summary: Record<string, number | string> }> => {
+  const created = dateRange(f.from, f.to);
+
   switch (type) {
     case "users":
-      return prisma.user.findMany({ where, select: { id: true, email: true, firstName: true, lastName: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
-    case "alumni":
-      return prisma.profile.findMany({
-        where: { user: { status: "APPROVED" } },
-        select: { userId: true, department: true, graduationYear: true, currentCompany: true, city: true },
-      }) as Promise<Record<string, unknown>[]>;
-    case "events":
-      return prisma.event.findMany({ where, select: { id: true, title: true, status: true, startsAt: true, location: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
-    case "jobs":
-      return prisma.job.findMany({ where, select: { id: true, title: true, company: true, status: true, vacancies: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
-    case "donations":
-      return prisma.donation.findMany({ where, select: { id: true, userId: true, amount: true, currency: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
-    case "achievements":
-      return prisma.achievement.findMany({ where, select: { id: true, title: true, status: true, createdAt: true } }) as Promise<Record<string, unknown>[]>;
+    case "pending-approvals": {
+      const forcedStatus = type === "pending-approvals" ? "PENDING" : f.status || undefined;
+      const users = await prisma.user.findMany({
+        where: {
+          ...(created && { createdAt: created }),
+          ...(forcedStatus && { status: forcedStatus as never }),
+          ...(f.department && { profile: { department: f.department } }),
+          ...NOT_ADMIN,
+        },
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          status: true,
+          createdAt: true,
+          roles: { select: { role: true } },
+          profile: { select: { department: true, graduationYear: true, city: true, phone: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = users.map((u) => ({
+        Name: fullName(u),
+        Email: u.email,
+        Role: u.roles.map((r) => r.role).join(", "),
+        Status: u.status,
+        Department: u.profile?.department ?? "",
+        "Graduation Year": u.profile?.graduationYear ?? "",
+        City: u.profile?.city ?? "",
+        Phone: u.profile?.phone ?? "",
+        "Registered On": d10(u.createdAt),
+      }));
+      const summary: Record<string, number | string> = {
+        Total: users.length,
+        Approved: users.filter((u) => u.status === "APPROVED").length,
+        Pending: users.filter((u) => u.status === "PENDING").length,
+        Rejected: users.filter((u) => u.status === "REJECTED").length,
+      };
+      return { rows, summary };
+    }
+
+    case "alumni": {
+      const profiles = await prisma.profile.findMany({
+        where: {
+          user: { status: "APPROVED", ...NOT_ADMIN },
+          ...(f.department && { department: f.department }),
+        },
+        select: {
+          department: true,
+          graduationYear: true,
+          currentCompany: true,
+          currentRole: true,
+          city: true,
+          linkedinUrl: true,
+          user: { select: { firstName: true, lastName: true, email: true, createdAt: true } },
+        },
+        orderBy: { graduationYear: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = profiles.map((p) => ({
+        Name: fullName(p.user),
+        Email: p.user?.email ?? "",
+        Department: p.department ?? "",
+        "Graduation Year": p.graduationYear ?? "",
+        Company: p.currentCompany ?? "",
+        Role: p.currentRole ?? "",
+        City: p.city ?? "",
+        LinkedIn: p.linkedinUrl ?? "",
+      }));
+      const employed = profiles.filter((p) => p.currentCompany).length;
+      return {
+        rows,
+        summary: { "Total Alumni": profiles.length, Employed: employed },
+      };
+    }
+
+    case "events": {
+      const events = await prisma.event.findMany({
+        where: {
+          ...(created && { createdAt: created }),
+          ...(f.status && { status: f.status as never }),
+          ...(f.department && { department: f.department }),
+        },
+        select: {
+          title: true,
+          status: true,
+          department: true,
+          location: true,
+          isOnline: true,
+          startsAt: true,
+          capacity: true,
+          createdAt: true,
+          createdBy: { select: { firstName: true, lastName: true } },
+          _count: { select: { rsvps: true } },
+        },
+        orderBy: { startsAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = events.map((e) => ({
+        Title: e.title,
+        Status: e.status,
+        Department: e.department ?? "All",
+        Mode: e.isOnline ? "Online" : "In-person",
+        Location: e.location ?? "",
+        "Starts On": dt(e.startsAt),
+        Capacity: e.capacity ?? "",
+        RSVPs: e._count.rsvps,
+        Organizer: fullName(e.createdBy),
+        "Created On": d10(e.createdAt),
+      }));
+      return {
+        rows,
+        summary: {
+          Total: events.length,
+          Approved: events.filter((e) => e.status === "APPROVED").length,
+          Pending: events.filter((e) => e.status === "PENDING").length,
+          "Total RSVPs": events.reduce((s, e) => s + e._count.rsvps, 0),
+        },
+      };
+    }
+
+    case "event-rsvps": {
+      const rsvps = await prisma.eventRsvp.findMany({
+        where: { ...(created && { createdAt: created }), user: NOT_ADMIN },
+        select: {
+          status: true,
+          emailRsvpStatus: true,
+          createdAt: true,
+          event: { select: { title: true, department: true, startsAt: true } },
+          user: { select: { firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = rsvps.map((r) => ({
+        Event: r.event?.title ?? "",
+        Department: r.event?.department ?? "All",
+        "Event Date": d10(r.event?.startsAt),
+        Attendee: fullName(r.user),
+        Email: r.user?.email ?? "",
+        Response: r.status,
+        "Via Email": r.emailRsvpStatus ?? "",
+        "Responded On": d10(r.createdAt),
+      }));
+      return {
+        rows,
+        summary: {
+          Total: rsvps.length,
+          Going: rsvps.filter((r) => r.status === "GOING").length,
+          Interested: rsvps.filter((r) => r.status === "INTERESTED").length,
+        },
+      };
+    }
+
+    case "jobs": {
+      const jobs = await prisma.job.findMany({
+        where: {
+          ...(created && { createdAt: created }),
+          ...(f.status && { status: f.status as never }),
+          ...(f.department && { department: f.department }),
+        },
+        select: {
+          title: true,
+          company: true,
+          status: true,
+          department: true,
+          location: true,
+          employmentType: true,
+          vacancies: true,
+          isClosed: true,
+          createdAt: true,
+          createdBy: { select: { firstName: true, lastName: true } },
+          _count: { select: { applications: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = jobs.map((j) => ({
+        Title: j.title,
+        Company: j.company,
+        Status: j.status,
+        "Open/Closed": j.isClosed ? "Closed" : "Open",
+        Type: j.employmentType,
+        Department: j.department ?? "All",
+        Location: j.location ?? "",
+        Vacancies: j.vacancies,
+        Applications: j._count.applications,
+        "Posted By": fullName(j.createdBy),
+        "Posted On": d10(j.createdAt),
+      }));
+      return {
+        rows,
+        summary: {
+          Total: jobs.length,
+          Approved: jobs.filter((j) => j.status === "APPROVED").length,
+          Open: jobs.filter((j) => !j.isClosed).length,
+          "Total Applications": jobs.reduce((s, j) => s + j._count.applications, 0),
+        },
+      };
+    }
+
+    case "job-applications": {
+      const apps = await prisma.jobApplication.findMany({
+        where: { ...(created && { createdAt: created }), user: NOT_ADMIN },
+        select: {
+          createdAt: true,
+          resumeKey: true,
+          job: { select: { title: true, company: true } },
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              profile: { select: { currentCompany: true, city: true, graduationYear: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = apps.map((a) => ({
+        Job: a.job?.title ?? "",
+        Company: a.job?.company ?? "",
+        Applicant: fullName(a.user),
+        Email: a.user?.email ?? "",
+        "Current Company": a.user?.profile?.currentCompany ?? "",
+        "Graduation Year": a.user?.profile?.graduationYear ?? "",
+        City: a.user?.profile?.city ?? "",
+        Resume: a.resumeKey ? "Yes" : "No",
+        "Applied On": d10(a.createdAt),
+      }));
+      return { rows, summary: { "Total Applications": apps.length } };
+    }
+
+    case "achievements": {
+      const achievements = await prisma.achievement.findMany({
+        where: {
+          ...(created && { createdAt: created }),
+          ...(f.status && { status: f.status as never }),
+          user: NOT_ADMIN,
+        },
+        select: {
+          title: true,
+          category: true,
+          status: true,
+          occurredOn: true,
+          createdAt: true,
+          user: { select: { firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = achievements.map((a) => ({
+        Title: a.title,
+        Author: fullName(a.user),
+        Email: a.user?.email ?? "",
+        Category: a.category ?? "",
+        Status: a.status,
+        "Achieved On": d10(a.occurredOn),
+        "Submitted On": d10(a.createdAt),
+      }));
+      return {
+        rows,
+        summary: {
+          Total: achievements.length,
+          Approved: achievements.filter((a) => a.status === "APPROVED").length,
+          Pending: achievements.filter((a) => a.status === "PENDING").length,
+        },
+      };
+    }
+
+    case "donations": {
+      const donations = await prisma.donation.findMany({
+        where: {
+          ...(created && { createdAt: created }),
+          ...(f.status && { status: f.status as never }),
+          user: NOT_ADMIN,
+        },
+        select: {
+          receiptNo: true,
+          donorName: true,
+          donorEmail: true,
+          amount: true,
+          currency: true,
+          status: true,
+          paymentMethod: true,
+          razorpayPaymentId: true,
+          isAnonymous: true,
+          paidAt: true,
+          createdAt: true,
+          user: { select: { firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: MAX_ROWS,
+      });
+      const rows: Row[] = donations.map((d) => ({
+        "Receipt No": d.receiptNo ?? "",
+        Donor: d.donorName || fullName(d.user),
+        Email: d.donorEmail || d.user?.email || "",
+        "Amount (INR)": d.amount,
+        Status: d.status,
+        Method: d.paymentMethod ?? "",
+        "Payment ID": d.razorpayPaymentId ?? "",
+        Anonymous: d.isAnonymous ? "Yes" : "No",
+        "Paid On": dt(d.paidAt),
+        "Created On": d10(d.createdAt),
+      }));
+      const received = donations.filter((d) => d.status === "RECEIVED");
+      return {
+        rows,
+        summary: {
+          "Total Records": donations.length,
+          "Received Count": received.length,
+          "Total Received (INR)": received.reduce((s, d) => s + d.amount, 0),
+        },
+      };
+    }
+
+    case "donations-summary": {
+      const donations = await prisma.donation.findMany({
+        where: { status: "RECEIVED", ...(created && { createdAt: created }), user: NOT_ADMIN },
+        select: { amount: true, paidAt: true, createdAt: true },
+        take: MAX_ROWS,
+      });
+      const byMonth = new Map<string, { count: number; total: number }>();
+      for (const d of donations) {
+        const month = new Date(d.paidAt ?? d.createdAt).toISOString().slice(0, 7); // YYYY-MM
+        const cur = byMonth.get(month) ?? { count: 0, total: 0 };
+        cur.count += 1;
+        cur.total += d.amount;
+        byMonth.set(month, cur);
+      }
+      const rows: Row[] = [...byMonth.entries()]
+        .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+        .map(([month, v]) => ({
+          Month: month,
+          Donations: v.count,
+          "Amount Received (INR)": v.total,
+        }));
+      return {
+        rows,
+        summary: {
+          Months: rows.length,
+          "Total Received (INR)": donations.reduce((s, d) => s + d.amount, 0),
+          Transactions: donations.length,
+        },
+      };
+    }
+
     default:
-      return [];
+      return { rows: [], summary: {} };
   }
 };
 

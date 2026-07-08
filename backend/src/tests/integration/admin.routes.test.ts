@@ -161,24 +161,35 @@ describe("/admin/audit-log & reports", () => {
     expect(res.status).toBe(422);
   });
 
+  const sampleUser = {
+    firstName: "A",
+    lastName: "B",
+    email: "a@b.com",
+    status: "APPROVED",
+    createdAt: new Date(),
+    roles: [{ role: "ALUMNI" }],
+    profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: null },
+  };
+
   it("200 JSON users report", async () => {
-    prisma.user.findMany.mockResolvedValueOnce([{ id: "u1", email: "a@b.com" } as any]);
+    prisma.user.findMany.mockResolvedValueOnce([sampleUser as any]);
     const res = await request(app)
       .post("/api/v1/admin/reports")
       .set("Authorization", bearer(adminToken))
       .send({ type: "users", format: "json" });
     expect(res.status).toBe(200);
     expect(res.body.rows).toHaveLength(1);
+    expect(res.body.summary).toBeDefined();
   });
 
   it("200 CSV report sets text/csv content-type", async () => {
-    prisma.user.findMany.mockResolvedValueOnce([{ id: "u1", email: "a@b.com" } as any]);
+    prisma.user.findMany.mockResolvedValueOnce([sampleUser as any]);
     const res = await request(app)
       .post("/api/v1/admin/reports")
       .set("Authorization", bearer(adminToken))
       .send({ type: "users", format: "csv" });
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toMatch(/text\/csv/);
-    expect(res.text).toContain("id,email");
+    expect(res.text).toContain("Name,Email");
   });
 });

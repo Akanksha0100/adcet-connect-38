@@ -126,19 +126,29 @@ describe("modules/admin/service — role assignment", () => {
 });
 
 describe("modules/admin/service — generateReport", () => {
-  it("returns JSON rows when format=json", async () => {
-    prismaMock.user.findMany.mockResolvedValueOnce([{ id: "u-1" }]);
-    const out = await svc.generateReport({ type: "users", format: "json" } as any);
-    expect(out).toEqual({ rows: [{ id: "u-1" }] });
+  const sampleUser = {
+    firstName: "A",
+    lastName: "B",
+    email: "a@b",
+    status: "APPROVED",
+    createdAt: new Date("2024-01-01"),
+    roles: [{ role: "ALUMNI" }],
+    profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: null },
+  };
+
+  it("returns JSON rows + summary when format=json", async () => {
+    prismaMock.user.findMany.mockResolvedValueOnce([sampleUser]);
+    const out = (await svc.generateReport({ type: "users", format: "json" } as any)) as any;
+    expect(out.rows).toHaveLength(1);
+    expect(out.rows[0].Email).toBe("a@b");
+    expect(out.summary).toBeDefined();
   });
 
   it("returns CSV string when format=csv", async () => {
-    prismaMock.user.findMany.mockResolvedValueOnce([
-      { id: "u-1", email: "a@b", firstName: "A", lastName: "B", status: "APPROVED" },
-    ]);
+    prismaMock.user.findMany.mockResolvedValueOnce([sampleUser]);
     const out = await svc.generateReport({ type: "users", format: "csv" } as any);
     expect("csv" in out).toBe(true);
-    expect((out as any).csv).toContain("u-1");
     expect((out as any).csv).toContain("a@b");
+    expect((out as any).csv).toContain("Name,Email");
   });
 });

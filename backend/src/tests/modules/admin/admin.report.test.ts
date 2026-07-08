@@ -22,10 +22,27 @@ beforeEach(() => {
 });
 
 describe("admin.service — generateReport", () => {
-  it("JSON: returns rows for users", async () => {
-    prismaMock.user.findMany.mockResolvedValueOnce([{ id: "u-1", email: "a@b" }]);
-    const out = await svc.generateReport({ type: "users", format: "json" });
-    expect(out).toEqual({ rows: [{ id: "u-1", email: "a@b" }] });
+  it("JSON: returns detailed rows + summary for users", async () => {
+    prismaMock.user.findMany.mockResolvedValueOnce([
+      {
+        firstName: "Alice",
+        lastName: "A",
+        email: "a@b",
+        status: "APPROVED",
+        createdAt: new Date("2024-05-01"),
+        roles: [{ role: "ALUMNI" }],
+        profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: "123" },
+      },
+    ]);
+    const out = (await svc.generateReport({ type: "users", format: "json" })) as any;
+    expect(out.rows[0]).toMatchObject({
+      Name: "Alice A",
+      Email: "a@b",
+      Role: "ALUMNI",
+      Status: "APPROVED",
+      Department: "CSE",
+    });
+    expect(out.summary).toMatchObject({ Total: 1, Approved: 1 });
   });
 
   it("CSV: empty rows return empty string", async () => {
@@ -34,35 +51,53 @@ describe("admin.service — generateReport", () => {
   });
 
   it("CSV: properly escapes quotes, commas, newlines", async () => {
-    prismaMock.job.findMany.mockResolvedValueOnce([
-      { id: "j-1", title: 'A "tricky", title\nwith newline', company: "Acme" },
+    prismaMock.achievement.findMany.mockResolvedValueOnce([
+      {
+        title: 'A "tricky", title\nwith newline',
+        category: "Award",
+        status: "APPROVED",
+        occurredOn: null,
+        createdAt: new Date("2024-01-01"),
+        user: { firstName: "Bob", lastName: "B", email: "bob@x" },
+      },
     ]);
-    const out = (await svc.generateReport({ type: "jobs", format: "csv" })) as { csv: string };
+    const out = (await svc.generateReport({ type: "achievements", format: "csv" })) as { csv: string };
     expect(out.csv).toContain('"A ""tricky"", title\nwith newline"');
-    expect(out.csv.split("\n")[0]).toBe("id,title,company");
+    expect(out.csv.split("\n")[0]).toBe("Title,Author,Email,Category,Status,Achieved On,Submitted On");
   });
 
-  it("CSV: handles null/undefined cell values as empty", async () => {
-    prismaMock.donation.findMany.mockResolvedValueOnce([{ id: "d-1", amount: null }]);
-    const out = (await svc.generateReport({ type: "donations", format: "csv" })) as { csv: string };
-    expect(out.csv).toBe("id,amount\nd-1,");
-  });
-
-  it("achievements path", async () => {
-    prismaMock.achievement.findMany.mockResolvedValueOnce([{ id: "a-1" }]);
-    const out = await svc.generateReport({ type: "achievements", format: "json" });
-    expect(out).toEqual({ rows: [{ id: "a-1" }] });
+  it("donations: computes total received in summary", async () => {
+    prismaMock.donation.findMany.mockResolvedValueOnce([
+      { amount: 5000, status: "RECEIVED", user: null, paidAt: new Date("2024-06-01"), createdAt: new Date("2024-06-01") },
+      { amount: 1000, status: "PLEDGED", user: null, paidAt: null, createdAt: new Date("2024-06-02") },
+    ]);
+    const out = (await svc.generateReport({ type: "donations", format: "json" })) as any;
+    expect(out.summary).toMatchObject({ "Total Records": 2, "Received Count": 1, "Total Received (INR)": 5000 });
   });
 
   it("alumni path uses approved-user filter", async () => {
-    prismaMock.profile.findMany.mockResolvedValueOnce([{ userId: "u-1" }]);
+    prismaMock.profile.findMany.mockResolvedValueOnce([{ user: { firstName: "A", lastName: "B", email: "a@b" } }]);
     await svc.generateReport({ type: "alumni", format: "json" });
     expect((prismaMock.profile.findMany.mock.calls[0][0] as any).where.user.status).toBe("APPROVED");
   });
 
+  it("pending-approvals forces status=PENDING", async () => {
+    prismaMock.user.findMany.mockResolvedValueOnce([]);
+    await svc.generateReport({ type: "pending-approvals", format: "json" });
+    expect((prismaMock.user.findMany.mock.calls[0][0] as any).where.status).toBe("PENDING");
+  });
+
+  it("status + department filters are forwarded (jobs)", async () => {
+    prismaMock.job.findMany.mockResolvedValueOnce([]);
+    await svc.generateReport({ type: "jobs", format: "json", status: "APPROVED", department: "CSE" });
+    const where = (prismaMock.job.findMany.mock.calls[0][0] as any).where;
+    expect(where.status).toBe("APPROVED");
+    expect(where.department).toBe("CSE");
+  });
+
   it("unknown type falls through to empty rows", async () => {
-    const out = await svc.generateReport({ type: "bogus" as any, format: "json" });
-    expect(out).toEqual({ rows: [] });
+    const out = (await svc.generateReport({ type: "bogus" as any, format: "json" })) as any;
+    expect(out.rows).toEqual([]);
   });
 
   it("from/to filter is forwarded as createdAt range", async () => {

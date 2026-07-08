@@ -16,11 +16,26 @@ export const assignRoleSchema = z.object({
   role: z.enum(["ALUMNI", "STUDENT", "ADMIN", "RECRUITER"]),
 });
 
+export const REPORT_TYPES = [
+  "users",
+  "alumni",
+  "pending-approvals",
+  "events",
+  "event-rsvps",
+  "jobs",
+  "job-applications",
+  "achievements",
+  "donations",
+  "donations-summary",
+] as const;
+
 export const reportSchema = z.object({
-  type: z.enum(["users", "alumni", "events", "jobs", "donations", "achievements"]),
+  type: z.enum(REPORT_TYPES),
   format: z.enum(["csv", "json"]).default("json"),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  status: z.string().max(40).optional(),
+  department: z.string().max(120).optional(),
 });
 
 export const adminMessageSchema = z.object({
