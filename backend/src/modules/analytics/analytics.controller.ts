@@ -12,3 +12,7 @@ export const alumniList = async (req: Request, res: Response) =>
   res.json(await service.alumniList(req.query as unknown as Parameters<typeof service.alumniList>[0]));
 export const alumniFacets = async (_req: Request, res: Response) =>
   res.json(await service.alumniFacets());
+export const insights = async (req: Request, res: Response) =>
+  res.json(await service.adminInsights(req.query as unknown as Parameters<typeof service.adminInsights>[0]));
+export const bulkEmail = async (req: Request, res: Response) =>
+  res.json(await service.sendAlumniBulkEmail(req.auth!.sub, req.body));

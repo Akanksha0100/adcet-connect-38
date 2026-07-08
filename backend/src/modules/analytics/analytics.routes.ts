@@ -5,7 +5,7 @@ import { requireAdmin } from "../../middlewares/rbac.js";
 import { requireApproved } from "../../middlewares/requireApproved.js";
 import { validate } from "../../middlewares/validate.js";
 import * as ctrl from "./analytics.controller.js";
-import { alumniAnalyticsQuery } from "./analytics.validators.js";
+import { alumniAnalyticsQuery, insightsQuery, bulkEmailSchema } from "./analytics.validators.js";
 
 export const analyticsRouter = Router();
 
@@ -21,3 +21,17 @@ analyticsRouter.get(
   asyncHandler(ctrl.alumniList),
 );
 analyticsRouter.get("/admin/alumni/facets", requireAuth, requireAdmin, asyncHandler(ctrl.alumniFacets));
+analyticsRouter.get(
+  "/admin/insights",
+  requireAuth,
+  requireAdmin,
+  validate(insightsQuery, "query"),
+  asyncHandler(ctrl.insights),
+);
+analyticsRouter.post(
+  "/admin/alumni/email",
+  requireAuth,
+  requireAdmin,
+  validate(bulkEmailSchema),
+  asyncHandler(ctrl.bulkEmail),
+);

@@ -131,16 +131,17 @@ export const sendEmail = async (mail: OutgoingEmail): Promise<void> => {
  */
 export const sendBulkEmails = async (
   mails: OutgoingEmail[],
-): Promise<void> => {
+): Promise<{ sent: number; failed: number }> => {
   const t = getTransport();
   const results = await Promise.allSettled(mails.map((m) => t.send(m)));
-  const failed = results.filter((r) => r.status === "rejected");
-  if (failed.length) {
+  const failed = results.filter((r) => r.status === "rejected").length;
+  if (failed) {
     logger.warn(
-      { failedCount: failed.length, total: mails.length },
-      `[mailer] ${failed.length}/${mails.length} bulk emails failed`,
+      { failedCount: failed, total: mails.length },
+      `[mailer] ${failed}/${mails.length} bulk emails failed`,
     );
   }
+  return { sent: mails.length - failed, failed };
 };
 
 /** Reset transport (useful for testing). */

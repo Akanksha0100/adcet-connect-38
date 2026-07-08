@@ -78,6 +78,12 @@ const wrap = (title: string, body: string) => `
 </html>
 `;
 
+/**
+ * Wrap arbitrary admin-authored HTML (e.g. from the alumni bulk-email composer)
+ * in the shared branded container so broadcasts match the portal's emails.
+ */
+export const wrapHtmlEmail = (title: string, bodyHtml: string): string => wrap(title, bodyHtml);
+
 // ── Event notification email ────────────────────────────────────────────
 
 export interface EventEmailData {
