@@ -156,11 +156,14 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
       /* ignore */
     }
     if (res.status === 401) handleAuthFailure();
+    // The backend wraps errors as `{ error: { code, message, details } }`.
+    // Fall back to a top-level shape (and finally a generic message) for safety.
+    const err = payload?.error ?? payload;
     throw new ApiError(
-      payload?.message ?? `Request failed with ${res.status}`,
+      err?.message ?? `Request failed with ${res.status}`,
       res.status,
-      payload?.code,
-      payload?.details,
+      err?.code,
+      err?.details,
     );
   }
 

@@ -83,22 +83,42 @@ describe("/donations/campaigns", () => {
   });
 });
 
-describe("/donations (pledge & admin list)", () => {
-  it("422 with missing amount", async () => {
+describe("/donations (order/verify & admin list)", () => {
+  it("422 create order with missing amount", async () => {
     const res = await request(app)
-      .post("/api/v1/donations")
+      .post("/api/v1/donations/order")
       .set("Authorization", bearer(userToken))
       .send({});
     expect(res.status).toBe(422);
   });
 
-  it("201 user pledges a donation", async () => {
-    prisma.donation.create.mockResolvedValueOnce({ id: "d1" } as any);
+  it("501 create order when Razorpay is not configured", async () => {
+    // The test environment has no RAZORPAY_* keys, so ordering is unavailable.
     const res = await request(app)
-      .post("/api/v1/donations")
+      .post("/api/v1/donations/order")
       .set("Authorization", bearer(userToken))
       .send({ amount: 500 });
-    expect(res.status).toBe(201);
+    expect(res.status).toBe(501);
+  });
+
+  it("400 verify with an invalid signature", async () => {
+    const res = await request(app)
+      .post("/api/v1/donations/verify")
+      .set("Authorization", bearer(userToken))
+      .send({
+        razorpay_order_id: "order_1",
+        razorpay_payment_id: "pay_1",
+        razorpay_signature: "deadbeef",
+      });
+    expect(res.status).toBe(400);
+  });
+
+  it("400 webhook with an invalid signature", async () => {
+    const res = await request(app)
+      .post("/api/v1/donations/webhook")
+      .set("x-razorpay-signature", "bad")
+      .send({ event: "payment.captured" });
+    expect(res.status).toBe(400);
   });
 
   it("403 non-admin cannot list all donations", async () => {

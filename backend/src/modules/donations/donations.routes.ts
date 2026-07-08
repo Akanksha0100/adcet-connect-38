@@ -7,13 +7,18 @@ import { validate } from "../../middlewares/validate.js";
 import * as ctrl from "./donations.controller.js";
 import {
   campaignInputSchema,
-  donationInputSchema,
+  createOrderSchema,
+  verifyPaymentSchema,
   donationStatusSchema,
   listCampaignsQuery,
   listDonationsQuery,
 } from "./donations.validators.js";
 
 export const donationsRouter = Router();
+
+// Razorpay webhook — PUBLIC (no auth). Razorpay signs the payload; we verify
+// the HMAC signature in the service. Must be declared before auth-gated routes.
+donationsRouter.post("/webhook", asyncHandler(ctrl.webhook));
 
 // Campaigns (public read, admin write)
 donationsRouter.get(
@@ -45,8 +50,21 @@ donationsRouter.delete(
   asyncHandler(ctrl.deleteCampaign),
 );
 
-// Donations
-donationsRouter.post("/", requireAuth, requireApproved, validate(donationInputSchema), asyncHandler(ctrl.pledge));
+// Donations — Razorpay payment flow (create order → pay → verify)
+donationsRouter.post(
+  "/order",
+  requireAuth,
+  requireApproved,
+  validate(createOrderSchema),
+  asyncHandler(ctrl.createOrder),
+);
+donationsRouter.post(
+  "/verify",
+  requireAuth,
+  requireApproved,
+  validate(verifyPaymentSchema),
+  asyncHandler(ctrl.verifyPayment),
+);
 donationsRouter.get("/me", requireAuth, requireApproved, asyncHandler(ctrl.myDonations));
 donationsRouter.get(
   "/",

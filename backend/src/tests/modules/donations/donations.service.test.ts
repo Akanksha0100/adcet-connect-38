@@ -8,6 +8,17 @@ import { createPrismaMock } from "../../helpers/prismaMock.js";
 
 const prismaMock = createPrismaMock();
 jest.unstable_mockModule("../../../lib/prisma.js", () => ({ prisma: prismaMock }));
+
+const razorpayMock = {
+  isConfigured: jest.fn(() => true),
+  getPublicKeyId: jest.fn(() => "rzp_test_key"),
+  createOrder: jest.fn(async () => ({ id: "order_123", amount: 500000, currency: "INR", status: "created" })),
+  verifyPaymentSignature: jest.fn(() => false),
+  verifyWebhookSignature: jest.fn(() => false),
+  fetchPayment: jest.fn(async () => null),
+};
+jest.unstable_mockModule("../../../lib/razorpay.js", () => razorpayMock);
+
 const svc = await import("../../../modules/donations/donations.service.js");
 
 beforeEach(() => {
@@ -86,13 +97,71 @@ describe("donations.service — listDonations", () => {
   });
 });
 
-describe("donations.service — pledge", () => {
-  it("forces status=PLEDGED and the userId from caller", async () => {
-    prismaMock.donation.create.mockResolvedValueOnce({});
-    await svc.pledge("u-9", { amount: 100, campaignId: "c-1", currency: "INR" } as any);
-    expect((prismaMock.donation.create.mock.calls[0][0] as any).data).toMatchObject({
+describe("donations.service — createOrder", () => {
+  it("creates a Razorpay order and a PLEDGED donation with the donor snapshot", async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: "u-9",
+      firstName: "Alice",
+      lastName: "A",
+      email: "alice@adcet.in",
+    });
+    prismaMock.donation.create.mockResolvedValueOnce({ id: "d-1", amount: 5000 });
+    prismaMock.donationLedgerEntry.create.mockResolvedValueOnce({});
+
+    const out = await svc.createOrder("u-9", { amount: 5000, message: "For the library" });
+
+    expect(razorpayMock.createOrder).toHaveBeenCalledWith(
+      expect.objectContaining({ amountPaise: 500000 }),
+    );
+    const created = (prismaMock.donation.create.mock.calls[0][0] as any).data;
+    expect(created).toMatchObject({
       userId: "u-9",
       status: "PLEDGED",
+      razorpayOrderId: "order_123",
+      donorName: "Alice A",
+      donorEmail: "alice@adcet.in",
     });
+    expect(out).toMatchObject({ orderId: "order_123", keyId: "rzp_test_key", amount: 5000 });
+  });
+});
+
+describe("donations.service — verifyPayment", () => {
+  it("rejects a tampered/invalid signature", async () => {
+    razorpayMock.verifyPaymentSignature.mockReturnValueOnce(false);
+    await expect(
+      svc.verifyPayment("u-9", {
+        razorpay_order_id: "order_123",
+        razorpay_payment_id: "pay_1",
+        razorpay_signature: "bad",
+      }),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("blocks completing another user's donation", async () => {
+    razorpayMock.verifyPaymentSignature.mockReturnValueOnce(true);
+    prismaMock.donation.findUnique.mockResolvedValueOnce({ id: "d-1", userId: "someone-else" });
+    await expect(
+      svc.verifyPayment("u-9", {
+        razorpay_order_id: "order_123",
+        razorpay_payment_id: "pay_1",
+        razorpay_signature: "good",
+      }),
+    ).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe("donations.service — handleWebhook", () => {
+  it("rejects an invalid webhook signature", async () => {
+    razorpayMock.verifyWebhookSignature.mockReturnValueOnce(false);
+    await expect(
+      svc.handleWebhook(Buffer.from("{}"), "sig"),
+    ).rejects.toMatchObject({ status: 400 });
+  });
+
+  it("acknowledges unknown events without side effects", async () => {
+    razorpayMock.verifyWebhookSignature.mockReturnValueOnce(true);
+    const out = await svc.handleWebhook(Buffer.from(JSON.stringify({ event: "order.created" })), "sig");
+    expect(out).toEqual({ received: true });
+    expect(prismaMock.donation.findUnique).not.toHaveBeenCalled();
   });
 });

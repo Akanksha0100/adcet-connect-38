@@ -45,6 +45,14 @@ const schema = z.object({
 
   GITHUB_CLIENT_ID: z.string().optional(),
   GITHUB_CLIENT_SECRET: z.string().optional(),
+
+  // === Payments (Razorpay) — optional; donation endpoints return 501 if unset ===
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+  // Public org details printed on receipts.
+  ORG_NAME: z.string().default("Annasaheb Dange College of Engineering & Technology, Ashta"),
+  ORG_ADDRESS: z.string().default("Ashta, Dist. Sangli, Maharashtra 416301"),
 });
 
 const parsed = schema.safeParse(process.env);

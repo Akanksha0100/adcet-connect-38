@@ -615,6 +615,79 @@ export const achievementAnnouncementEmail = (
   };
 };
 
+// ── Donation receipt email ──────────────────────────────────────────────
+
+export interface DonationReceiptEmailData {
+  donorName: string;
+  amount: number; // rupees
+  currency: string;
+  receiptNo: string;
+  paymentId?: string | null;
+  method?: string | null;
+  paidAt: Date;
+  message?: string | null;
+}
+
+export const donationReceiptEmail = (
+  d: DonationReceiptEmailData,
+): { subject: string; text: string; html: string } => {
+  const amountStr = `₹${d.amount.toLocaleString("en-IN")}`;
+  const body = `
+    <div style="text-align:center; margin-bottom: 8px;">
+      <div style="font-size: 44px;">🙏</div>
+      <h2 style="margin: 8px 0;">Thank you for your donation!</h2>
+    </div>
+    <p>Dear ${esc(d.donorName)},</p>
+    <p>We gratefully acknowledge your generous contribution to the ADCET Alumni community.
+       Your donation has been received successfully. A PDF receipt is attached to this email.</p>
+
+    <div class="rsvp-section" style="text-align:left;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color:#6c757d; font-size:13px; width:150px;">Amount</td>
+          <td style="padding: 8px 0; color:#2d8a6e; font-size:18px; font-weight:700;">${amountStr}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color:#6c757d; font-size:13px;">Receipt No.</td>
+          <td style="padding: 8px 0; color:#2c3e50; font-size:14px; font-weight:600;">${esc(d.receiptNo)}</td>
+        </tr>
+        ${d.paymentId ? `
+        <tr>
+          <td style="padding: 8px 0; color:#6c757d; font-size:13px;">Payment ID</td>
+          <td style="padding: 8px 0; color:#2c3e50; font-size:14px;">${esc(d.paymentId)}</td>
+        </tr>` : ""}
+        ${d.method ? `
+        <tr>
+          <td style="padding: 8px 0; color:#6c757d; font-size:13px;">Method</td>
+          <td style="padding: 8px 0; color:#2c3e50; font-size:14px;">${esc(d.method.toUpperCase())}</td>
+        </tr>` : ""}
+        <tr>
+          <td style="padding: 8px 0; color:#6c757d; font-size:13px;">Date</td>
+          <td style="padding: 8px 0; color:#2c3e50; font-size:14px;">${d.paidAt.toLocaleString("en-IN")}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="text-align:center; margin-top: 24px;">With gratitude,<br/><strong>ADCET Alumni Team</strong></p>
+  `;
+
+  const text =
+    `Thank you for your donation!\n\n` +
+    `Dear ${d.donorName},\n\n` +
+    `We have received your donation of ${amountStr}.\n\n` +
+    `Receipt No: ${d.receiptNo}\n` +
+    `${d.paymentId ? `Payment ID: ${d.paymentId}\n` : ""}` +
+    `${d.method ? `Method: ${d.method.toUpperCase()}\n` : ""}` +
+    `Date: ${d.paidAt.toLocaleString("en-IN")}\n\n` +
+    `A PDF receipt is attached. With gratitude, ADCET Alumni Team.\n`;
+
+  return {
+    subject: `🙏 Donation Receipt ${d.receiptNo} — Thank you (${amountStr})`,
+    text,
+    html: wrap("Donation Receipt", body),
+  };
+};
+
 export const rsvpConfirmationHtml = (
   eventTitle: string,
   response: string,

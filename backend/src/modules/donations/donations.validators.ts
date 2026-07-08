@@ -12,13 +12,18 @@ export const campaignInputSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const donationInputSchema = z.object({
-  campaignId: z.string().uuid().optional(),
-  amount: z.coerce.number().int().min(1),
-  currency: z.string().max(8).optional(),
+/** Create a Razorpay order for a general donation. Amount is in whole rupees. */
+export const createOrderSchema = z.object({
+  amount: z.coerce.number().int().min(1).max(10_000_000),
   message: z.string().max(1000).optional(),
-  proofKey: z.string().min(1).max(500).optional(),
   isAnonymous: z.boolean().optional(),
+});
+
+/** Payload returned by Razorpay Checkout, verified on the backend. */
+export const verifyPaymentSchema = z.object({
+  razorpay_order_id: z.string().min(1),
+  razorpay_payment_id: z.string().min(1),
+  razorpay_signature: z.string().min(1),
 });
 
 export const donationStatusSchema = z.object({

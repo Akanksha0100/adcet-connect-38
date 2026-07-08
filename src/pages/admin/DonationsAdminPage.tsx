@@ -19,7 +19,15 @@ interface DonationItem {
   message?: string | null;
   proofKey?: string | null;
   receiptKey?: string | null;
+  isAnonymous?: boolean;
   createdAt: string;
+  paidAt?: string | null;
+  donorName?: string | null;
+  donorEmail?: string | null;
+  paymentMethod?: string | null;
+  razorpayPaymentId?: string | null;
+  razorpayOrderId?: string | null;
+  receiptNo?: string | null;
   campaignId?: string | null;
   campaign?: { id: string; title: string } | null;
   user: { id: string | null; firstName: string; lastName: string; email?: string };
@@ -132,75 +140,95 @@ const DonationsAdminPage = () => {
               <TableRow>
                 <TableHead>Donor</TableHead>
                 <TableHead>Amount</TableHead>
-                <TableHead>Campaign</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead>Receipt No.</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Proof</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Receipt</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((d) => (
-                <TableRow key={d.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium text-foreground">
-                    <div>
-                      <p>{d.user.firstName} {d.user.lastName}</p>
-                      {d.user.email && <p className="text-xs text-muted-foreground">{d.user.email}</p>}
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-semibold text-foreground">{formatINR(d.amount)}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {d.campaign?.title ?? "General"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`text-[10px] ${statusColors[d.status]}`}>{d.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {d.proofKey ? (
+              {items.map((d) => {
+                const donorName =
+                  d.donorName || `${d.user.firstName} ${d.user.lastName}`.trim() || "—";
+                const donorEmail = d.donorEmail || d.user.email;
+                return (
+                  <TableRow key={d.id} className="hover:bg-muted/50 align-top">
+                    <TableCell className="font-medium text-foreground">
+                      <div>
+                        <p className="flex items-center gap-1.5">
+                          {donorName}
+                          {d.isAnonymous && (
+                            <span className="text-[10px] text-muted-foreground font-normal">(anon)</span>
+                          )}
+                        </p>
+                        {donorEmail && <p className="text-xs text-muted-foreground">{donorEmail}</p>}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-semibold text-foreground">{formatINR(d.amount)}</TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {d.paymentMethod ? (
+                          <Badge variant="secondary" className="text-[10px] uppercase">{d.paymentMethod}</Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                        {d.razorpayPaymentId && (
+                          <p
+                            className="text-[11px] font-mono text-muted-foreground max-w-[140px] truncate"
+                            title={d.razorpayPaymentId}
+                          >
+                            {d.razorpayPaymentId}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-xs font-mono text-muted-foreground">
+                      {d.receiptNo ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`text-[10px] ${statusColors[d.status]}`}>{d.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                      {new Date(d.paidAt ?? d.createdAt).toLocaleDateString("en-IN")}
+                    </TableCell>
+                    <TableCell>
+                      {d.receiptKey ? (
+                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => download(d.receiptKey!)}>
+                          <Download className="h-3 w-3" /> PDF
+                        </Button>
+                      ) : d.proofKey ? (
                         <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => download(d.proofKey!)}>
                           <Download className="h-3 w-3" /> Proof
                         </Button>
                       ) : (
-                        <span className="text-xs text-muted-foreground">None</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
-                      {d.receiptKey && (
-                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => download(d.receiptKey!)}>
-                          <Download className="h-3 w-3" /> Receipt
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">
-                    {new Date(d.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      {d.status !== "RECEIVED" && (
-                        <Button
-                          size="sm"
-                          className="h-8 gap-1 bg-accent hover:bg-accent/90 text-accent-foreground"
-                          disabled={updateStatus.isPending}
-                          onClick={() => updateStatus.mutate({ id: d.id, nextStatus: "RECEIVED" })}
-                        >
-                          <CheckCircle className="h-3 w-3" /> Receive
-                        </Button>
-                      )}
-                      {d.status !== "CANCELLED" && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="h-8 gap-1"
-                          disabled={updateStatus.isPending}
-                          onClick={() => updateStatus.mutate({ id: d.id, nextStatus: "CANCELLED" })}
-                        >
-                          <XCircle className="h-3 w-3" /> Cancel
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {d.status === "PLEDGED" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="h-8 gap-1"
+                            disabled={updateStatus.isPending}
+                            onClick={() => updateStatus.mutate({ id: d.id, nextStatus: "CANCELLED" })}
+                          >
+                            <XCircle className="h-3 w-3" /> Void
+                          </Button>
+                        )}
+                        {d.status === "RECEIVED" && (
+                          <span className="inline-flex items-center gap-1 text-xs text-accent">
+                            <CheckCircle className="h-3.5 w-3.5" /> Verified
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}

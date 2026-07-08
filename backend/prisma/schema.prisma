@@ -369,6 +369,21 @@ model Donation {
   isAnonymous  Boolean        @default(false)
   createdAt    DateTime       @default(now())
 
+  // Snapshot of the donor at time of donation — records stay correct even if
+  // the user later edits their profile, and the receipt/email need them.
+  donorName    String?
+  donorEmail   String?
+
+  // Razorpay payment tracking (backend-verified, independent of the frontend).
+  provider          String?    @default("razorpay")
+  razorpayOrderId   String?    @unique
+  razorpayPaymentId String?
+  razorpaySignature String?
+  paymentMethod     String?    // upi | card | netbanking | wallet | ...
+  receiptNo         String?    @unique
+  paidAt            DateTime?
+  receiptSentAt     DateTime?
+
   campaign     DonationCampaign? @relation(fields: [campaignId], references: [id])
   user         User              @relation(fields: [userId], references: [id])
   ledgerEntries DonationLedgerEntry[]
@@ -376,6 +391,7 @@ model Donation {
   @@index([campaignId])
   @@index([userId])
   @@index([status, createdAt])
+  @@index([razorpayPaymentId])
 }
 
 model DonationLedgerEntry {
