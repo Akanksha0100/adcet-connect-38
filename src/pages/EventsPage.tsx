@@ -242,12 +242,13 @@ const CreateEventDialog = ({
   const uploadAttachment = async (file: File): Promise<string> => {
     setAttachUploading(true);
     try {
-      const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
+      const { uploadUrl, key } = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
         scope: "event-attachment",
-        filename: file.name,
-        contentType: file.type,
+        fileName: file.name,
+        contentType: file.type || "application/octet-stream",
       });
-      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+      const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
+      if (!put.ok) throw new Error(`Attachment upload failed (${put.status})`);
       return key;
     } finally {
       setAttachUploading(false);

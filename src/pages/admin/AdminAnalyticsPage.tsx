@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Download, FileSpreadsheet, Printer, Search, Mail, Image as ImageIcon,
+  Download, FileSpreadsheet, Printer, Search, Mail, Image as ImageIcon, X,
   FileDown, Users, GraduationCap, Calendar, Briefcase, Trophy, IndianRupee, CalendarCheck, UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -112,7 +112,9 @@ const EmptyChart = () => <p className="text-sm text-muted-foreground text-center
 /* ---------------------------------- page ---------------------------------- */
 const AdminAnalyticsPage = () => {
   const [range, setRange] = useState({ from: "", to: "", department: "all" });
-  const [filters, setFilters] = useState({ q: "", company: "", location: "", branch: "", graduationYear: "", degree: "all", skill: "" });
+  const EMPTY_FILTERS = { q: "", company: "", location: "", branch: "", graduationYear: "", degree: "all", skill: "" };
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => v !== EMPTY_FILTERS[k as keyof typeof EMPTY_FILTERS]);
   const [mailOpen, setMailOpen] = useState(false);
   const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const setRef = (id: string) => (el: HTMLDivElement | null) => { chartRefs.current[id] = el; };
@@ -432,6 +434,14 @@ const AdminAnalyticsPage = () => {
           </Select>
           <Input placeholder="Skill" value={filters.skill} onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))} />
         </div>
+
+        {hasActiveFilters && (
+          <div className="flex justify-end">
+            <Button size="sm" variant="ghost" className="gap-1.5 text-muted-foreground" onClick={() => setFilters(EMPTY_FILTERS)}>
+              <X className="h-3.5 w-3.5" /> Clear filters
+            </Button>
+          </div>
+        )}
 
         <div className="overflow-x-auto border border-border rounded-lg">
           <Table>

@@ -13,8 +13,11 @@ export const getStorage = (): StorageService => {
   if (instance) return instance;
   switch (env.STORAGE_DRIVER) {
     case "s3":
-    case "minio":
       instance = new S3Storage();
+      break;
+    case "minio":
+      // Dev MinIO: self-provision the bucket so a fresh instance never 404s.
+      instance = new S3Storage({ ensureBucket: true });
       break;
     case "local":
       instance = new LocalStorage();

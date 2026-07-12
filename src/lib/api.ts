@@ -159,12 +159,17 @@ export async function apiRequest<T = unknown>(path: string, opts: RequestOptions
     // The backend wraps errors as `{ error: { code, message, details } }`.
     // Fall back to a top-level shape (and finally a generic message) for safety.
     const err = payload?.error ?? payload;
-    throw new ApiError(
-      err?.message ?? `Request failed with ${res.status}`,
-      res.status,
-      err?.code,
-      err?.details,
-    );
+    let message: string = err?.message ?? `Request failed with ${res.status}`;
+    // Zod validation errors carry per-field messages in details.fieldErrors —
+    // surface them so toasts say *what* failed, not just "Validation failed".
+    const fieldErrors = err?.details?.fieldErrors as Record<string, string[]> | undefined;
+    if (fieldErrors && typeof fieldErrors === "object") {
+      const parts = Object.entries(fieldErrors)
+        .filter(([, msgs]) => Array.isArray(msgs) && msgs.length)
+        .map(([field, msgs]) => `${field}: ${msgs[0]}`);
+      if (parts.length) message = `${message} — ${parts.join("; ")}`;
+    }
+    throw new ApiError(message, res.status, err?.code, err?.details);
   }
 
   if (raw) return (await res.text()) as unknown as T;
