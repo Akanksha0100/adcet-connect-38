@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
@@ -39,12 +40,6 @@ interface Paginated<T> {
   items: T[];
   pagination: { total: number; page: number; pageSize: number; totalPages: number };
 }
-
-const DEPARTMENTS = [
-  "All", "CSE", "CSE (IoT & Cyber Security)", "CSE (AI & Data Science)",
-  "Robotics & Automation", "Mechanical Engineering", "Electrical Engineering",
-  "Civil Engineering", "Aeronautical Engineering", "Food Technology", "E&TC",
-];
 
 function hiringBadge(vacancies?: number | null, filled?: number | null) {
   if (!vacancies) return { label: "Open", className: "bg-accent/10 text-accent border-accent/20" };

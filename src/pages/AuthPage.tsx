@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Github, Linkedin, Loader2, ArrowLeft, ArrowRight, Twitter, Globe, Phone, MapPin, Briefcase, User as UserIcon } from "lucide-react";
+import { Eye, EyeOff, Github, Linkedin, Loader2, ArrowLeft, ArrowRight, Twitter, Globe, Phone, MapPin, Briefcase, User as UserIcon, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,18 +8,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { apiUrl } from "@/lib/api";
+import { api, apiUrl } from "@/lib/api";
+import { DEPARTMENTS as departments } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
-const departments = ["Computer Engineering", "Information Technology", "Electronics & Telecom", "Mechanical Engineering", "Civil Engineering", "Electrical Engineering"];
 const degrees: Array<{ value: "BE" | "ME" | "PHD" | "DIPLOMA"; label: string }> = [
   { value: "BE", label: "B.E." },
   { value: "ME", label: "M.E." },
   { value: "PHD", label: "Ph.D." },
   { value: "DIPLOMA", label: "Diploma" },
 ];
-const years = Array.from({ length: 30 }, (_, i) => (2000 + i).toString());
+// Years run from the current year backwards — an alumnus can never have a
+// graduation (or admission) year in the future.
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: currentYear - 1980 + 1 }, (_, i) => String(currentYear - i));
 
 const AuthPage = () => {
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -59,6 +62,17 @@ const AuthPage = () => {
   const [registering, setRegistering] = useState(false);
   const [step1Errors, setStep1Errors] = useState<string[]>([]);
 
+  // Step 3: email OTP verification
+  const [otp, setOtp] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setInterval(() => setResendCooldown((s) => s - 1), 1000);
+    return () => clearInterval(t);
+  }, [resendCooldown]);
+
   useEffect(() => {
     if (loading || !user) return;
     navigate(user.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
@@ -70,6 +84,10 @@ const AuthPage = () => {
     if (!reg.lastName.trim()) errors.push("Last name is required");
     if (!reg.email.trim()) errors.push("Email is required");
     if (reg.password.length < 8) errors.push("Password must be at least 8 characters");
+    if (reg.graduationYear && Number(reg.graduationYear) > currentYear)
+      errors.push("Graduation year cannot be in the future");
+    if (reg.admissionYear && reg.graduationYear && Number(reg.graduationYear) < Number(reg.admissionYear))
+      errors.push("Graduation year cannot be before admission year");
     setStep1Errors(errors);
     return errors.length === 0;
   };
@@ -95,16 +113,42 @@ const AuthPage = () => {
     }
   };
 
+  /** Send (or resend) the email verification code and move to step 3. */
+  const sendOtp = async () => {
+    if (sendingOtp) return;
+    setSendingOtp(true);
+    try {
+      await api.post("/auth/register/send-otp", { email: reg.email.trim() }, { anonymous: true });
+      toast({ title: "Verification code sent", description: `Check ${reg.email.trim()} for a 6-digit code.` });
+      setResendCooldown(30);
+      setRegStep(3);
+    } catch (err: any) {
+      toast({ title: "Could not send code", description: err?.message ?? "Please try again", variant: "destructive" });
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleStep2 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reg.linkedinUrl.trim()) {
+      toast({ title: "LinkedIn required", description: "Please provide your LinkedIn profile URL", variant: "destructive" });
+      return;
+    }
+    await sendOtp();
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (registering) return;
-    if (!reg.linkedinUrl.trim()) {
-      toast({ title: "LinkedIn required", description: "Please provide your LinkedIn profile URL", variant: "destructive" });
+    if (otp.trim().length !== 6) {
+      toast({ title: "Invalid code", description: "Enter the 6-digit code sent to your email", variant: "destructive" });
       return;
     }
     setRegistering(true);
     try {
       const me = await register({
+        otp: otp.trim(),
         email: reg.email.trim(),
         password: reg.password,
         firstName: reg.firstName.trim(),
@@ -155,16 +199,21 @@ const AuthPage = () => {
             <div className="flex items-center gap-2 mb-2">
               <h2 className="text-2xl font-bold text-foreground">Create Account</h2>
               <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
-                Step {regStep} of 2
+                Step {regStep} of 3
               </span>
             </div>
             <p className="text-muted-foreground text-sm">
-              {regStep === 1 ? "Join the ADCET Alumni Network" : "Complete your professional profile"}
+              {regStep === 1
+                ? "Join the ADCET Alumni Network"
+                : regStep === 2
+                  ? "Complete your professional profile"
+                  : "Verify your email address"}
             </p>
             {/* Step indicators */}
             <div className="flex gap-2 mt-3">
               <div className={`h-1 flex-1 rounded-full transition-colors ${regStep >= 1 ? "bg-primary" : "bg-muted"}`} />
               <div className={`h-1 flex-1 rounded-full transition-colors ${regStep >= 2 ? "bg-primary" : "bg-muted"}`} />
+              <div className={`h-1 flex-1 rounded-full transition-colors ${regStep >= 3 ? "bg-primary" : "bg-muted"}`} />
             </div>
           </div>
 
@@ -255,7 +304,7 @@ const AuthPage = () => {
                   </div>
                 </div>
               </motion.div>
-            ) : (
+            ) : regStep === 2 ? (
               <motion.div
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
@@ -263,7 +312,7 @@ const AuthPage = () => {
                 exit={{ opacity: 0, x: 20 }}
                 transition={{ duration: 0.2 }}
               >
-                <form onSubmit={handleRegister} className="space-y-3">
+                <form onSubmit={handleStep2} className="space-y-3">
                   <div className="space-y-1.5">
                     <Label className="flex items-center gap-1.5">
                       <Linkedin className="h-3.5 w-3.5 text-blue-600" /> LinkedIn Profile URL *
@@ -339,8 +388,63 @@ const AuthPage = () => {
                     <Button type="button" variant="outline" className="gap-1.5" onClick={() => setRegStep(1)}>
                       <ArrowLeft className="h-4 w-4" /> Back
                     </Button>
-                    <Button type="submit" className="flex-1" disabled={registering}>
-                      {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+                    <Button type="submit" className="flex-1 gap-2" disabled={sendingOtp}>
+                      {sendingOtp ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Next: Verify Email <ArrowRight className="h-4 w-4" /></>}
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+              >
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground flex items-start gap-2">
+                    <MailCheck className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+                    <span>
+                      We sent a 6-digit verification code to{" "}
+                      <span className="font-medium text-foreground">{reg.email.trim()}</span>.
+                      Enter it below to finish creating your account.
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="regOtp">Verification Code *</Label>
+                    <Input
+                      id="regOtp"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="123456"
+                      className="text-center text-lg tracking-[0.5em] font-semibold"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    />
+                    <p className="text-xs text-muted-foreground">The code expires in 10 minutes.</p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Didn't get the code?</span>
+                    <button
+                      type="button"
+                      disabled={sendingOtp || resendCooldown > 0}
+                      onClick={sendOtp}
+                      className="text-accent font-medium hover:underline disabled:opacity-50 disabled:no-underline"
+                    >
+                      {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
+                    </button>
+                  </div>
+
+                  <div className="flex gap-2 mt-2">
+                    <Button type="button" variant="outline" className="gap-1.5" onClick={() => setRegStep(2)}>
+                      <ArrowLeft className="h-4 w-4" /> Back
+                    </Button>
+                    <Button type="submit" className="flex-1" disabled={registering || otp.length !== 6}>
+                      {registering ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Create Account"}
                     </Button>
                   </div>
                 </form>

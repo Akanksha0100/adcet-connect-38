@@ -58,20 +58,24 @@ export const githubProvider: OAuthProvider = {
       avatar_url?: string;
     };
 
-    // GitHub may not include the primary email in /user — fetch /user/emails as a fallback.
+    // /user only exposes the public profile email (and never its verified
+    // flag), so always consult /user/emails for the primary address + status.
     let email = u.email ?? "";
     let emailVerified = false;
-    if (!email) {
-      const emailsRes = await fetch(EMAILS_URL, { headers });
-      if (emailsRes.ok) {
-        const emails = (await emailsRes.json()) as Array<{
-          email: string;
-          primary: boolean;
-          verified: boolean;
-        }>;
-        const primary = emails.find((e) => e.primary) ?? emails[0];
-        email = primary?.email ?? "";
-        emailVerified = Boolean(primary?.verified);
+    const emailsRes = await fetch(EMAILS_URL, { headers });
+    if (emailsRes.ok) {
+      const emails = (await emailsRes.json()) as Array<{
+        email: string;
+        primary: boolean;
+        verified: boolean;
+      }>;
+      const primary = emails.find((e) => e.primary) ?? emails[0];
+      if (primary) {
+        email = primary.email;
+        emailVerified = primary.verified;
+      } else if (email) {
+        const match = emails.find((e) => e.email.toLowerCase() === email.toLowerCase());
+        emailVerified = Boolean(match?.verified);
       }
     }
     if (!email) throw new Error("GitHub account has no accessible email");

@@ -37,6 +37,7 @@ const MODELS = [
   "userPreferences",
   "refreshToken",
   "passwordResetToken",
+  "emailVerificationOtp",
   "oAuthAccount",
   "event",
   "eventRsvp",

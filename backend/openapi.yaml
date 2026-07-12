@@ -30,11 +30,29 @@ security:
 
 paths:
   # ---------- AUTH ----------
+  /auth/register/send-otp:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Email a 6-digit verification code required to register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '202': { description: Verification code sent }
+        '409': { $ref: '#/components/responses/Conflict' }
+
   /auth/register:
     post:
       tags: [Auth]
       security: []
-      summary: Register a new user (PENDING until admin approves)
+      summary: Register a new user (email ownership proven via OTP; PENDING until admin approves)
       requestBody:
         required: true
         content:
@@ -42,6 +60,7 @@ paths:
             schema: { $ref: '#/components/schemas/RegisterInput' }
       responses:
         '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '400': { description: Invalid or expired verification code, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '409': { $ref: '#/components/responses/Conflict' }
 
   /auth/login:
@@ -480,16 +499,21 @@ components:
 
     RegisterInput:
       type: object
-      required: [email, password, firstName, lastName]
+      required: [email, password, otp, firstName, lastName, linkedinUrl]
       properties:
         email: { type: string, format: email }
         password: { type: string, minLength: 8 }
+        otp: { type: string, pattern: '^\d{6}$', description: Code from /auth/register/send-otp }
         firstName: { type: string }
         lastName: { type: string }
         department: { type: string }
         degree: { $ref: '#/components/schemas/DegreeType' }
         admissionYear: { type: integer }
-        graduationYear: { type: integer }
+        graduationYear: { type: integer, description: Must not be in the future }
+        linkedinUrl: { type: string }
+        githubUrl: { type: string }
+        twitterUrl: { type: string }
+        websiteUrl: { type: string }
 
     LoginInput:
       type: object

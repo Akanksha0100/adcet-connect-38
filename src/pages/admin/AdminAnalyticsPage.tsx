@@ -10,6 +10,7 @@ import {
   FileDown, Users, GraduationCap, Calendar, Briefcase, Trophy, IndianRupee, CalendarCheck, UserPlus,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { DEPARTMENTS } from "@/lib/departments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,11 +43,6 @@ interface AlumniRow {
 }
 interface Paginated<T> { items: T[]; pagination: { total: number; page: number; pageSize: number } }
 
-const DEPARTMENTS = [
-  "CSE", "CSE (IoT & Cyber Security)", "CSE (AI & Data Science)", "Robotics & Automation",
-  "Mechanical Engineering", "Electrical Engineering", "Civil Engineering", "Aeronautical Engineering",
-  "Food Technology", "E&TC",
-];
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#e67e22", "#8e44ad", "#16a085", "#c0392b", "#2980b9"];
 
 /* --------------------------- alumni export helpers ------------------------ */

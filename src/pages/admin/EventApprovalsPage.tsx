@@ -19,15 +19,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 
-const DEPARTMENTS = [
-  "All", "CSE", "CSE (IoT & Cyber Security)", "CSE (AI & Data Science)",
-  "Robotics & Automation", "Mechanical Engineering", "Electrical Engineering",
-  "Civil Engineering", "Aeronautical Engineering", "Food Technology", "E&TC",
-];
 
 interface EventItem {
   id: string;

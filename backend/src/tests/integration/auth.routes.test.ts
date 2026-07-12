@@ -34,6 +34,46 @@ const baseUser = (overrides: any = {}) => ({
   ...overrides,
 });
 
+const OTP = "123456";
+const baseOtpRow = (overrides: any = {}) => ({
+  id: "otp-1",
+  email: "alice@example.com",
+  codeHash: hashToken(OTP),
+  expiresAt: new Date(Date.now() + 60_000),
+  consumedAt: null,
+  attempts: 0,
+  createdAt: new Date(),
+  ...overrides,
+});
+
+describe("POST /api/v1/auth/register/send-otp", () => {
+  it("422 with a malformed email", async () => {
+    const res = await request(app).post("/api/v1/auth/register/send-otp").send({ email: "nope" });
+    expect(res.status).toBe(422);
+  });
+
+  it("409 when the email is already registered", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser() as any);
+    const res = await request(app)
+      .post("/api/v1/auth/register/send-otp")
+      .send({ email: "alice@example.com" });
+    expect(res.status).toBe(409);
+  });
+
+  it("202 issues a code and invalidates previous ones", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.deleteMany.mockResolvedValueOnce({ count: 1 } as any);
+    prisma.emailVerificationOtp.create.mockResolvedValueOnce(baseOtpRow() as any);
+    const res = await request(app)
+      .post("/api/v1/auth/register/send-otp")
+      .send({ email: "alice@example.com" });
+    expect(res.status).toBe(202);
+    expect(prisma.emailVerificationOtp.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ email: "alice@example.com" }) }),
+    );
+  });
+});
+
 describe("POST /api/v1/auth/register", () => {
   it("422 when required fields are missing", async () => {
     const res = await request(app).post("/api/v1/auth/register").send({ email: "bad" });
@@ -41,14 +81,17 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.body.error.code).toBe("UNPROCESSABLE");
   });
 
-  it("201 + tokens on first-time registration", async () => {
+  it("201 + tokens on first-time registration with a valid OTP", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
     prisma.user.create.mockResolvedValueOnce(baseUser() as any);
     prisma.refreshToken.create.mockResolvedValueOnce({} as any);
 
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "alice@example.com",
       password: "Strong#Pass1",
+      otp: OTP,
       firstName: "Alice",
       lastName: "A",
       linkedinUrl: "https://linkedin.com/in/alice",
@@ -59,12 +102,101 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.body.refreshToken).toEqual(expect.any(String));
   });
 
-  it("422 when linkedinUrl is missing", async () => {
+  it("422 when the OTP is missing", async () => {
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "alice@example.com",
       password: "Strong#Pass1",
       firstName: "Alice",
       lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("400 when the OTP is wrong (and the attempt is counted)", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: "999999",
+      firstName: "Alice",
+      lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+    });
+    expect(res.status).toBe(400);
+    expect(prisma.emailVerificationOtp.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { attempts: { increment: 1 } } }),
+    );
+    expect(prisma.user.create).not.toHaveBeenCalled();
+  });
+
+  it("400 when the OTP has expired", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(
+      baseOtpRow({ expiresAt: new Date(Date.now() - 1000) }) as any,
+    );
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: OTP,
+      firstName: "Alice",
+      lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("400 after too many incorrect attempts", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow({ attempts: 5 }) as any);
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: OTP,
+      firstName: "Alice",
+      lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toMatch(/Too many/);
+  });
+
+  it("422 when linkedinUrl is missing", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: OTP,
+      firstName: "Alice",
+      lastName: "A",
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("422 when graduationYear is in the future", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: OTP,
+      firstName: "Alice",
+      lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+      graduationYear: new Date().getFullYear() + 1,
+    });
+    expect(res.status).toBe(422);
+  });
+
+  it("422 when graduationYear precedes admissionYear", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send({
+      email: "alice@example.com",
+      password: "Strong#Pass1",
+      otp: OTP,
+      firstName: "Alice",
+      lastName: "A",
+      linkedinUrl: "https://linkedin.com/in/alice",
+      admissionYear: 2015,
+      graduationYear: 2013,
     });
     expect(res.status).toBe(422);
   });
@@ -74,6 +206,7 @@ describe("POST /api/v1/auth/register", () => {
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "alice@example.com",
       password: "Strong#Pass1",
+      otp: OTP,
       firstName: "Alice",
       lastName: "A",
       linkedinUrl: "https://linkedin.com/in/alice",
@@ -84,10 +217,15 @@ describe("POST /api/v1/auth/register", () => {
 
   it("500 when Prisma throws an unexpected DB failure", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(
+      baseOtpRow({ email: "bob@example.com" }) as any,
+    );
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
     prisma.user.create.mockRejectedValueOnce(new Error("DB down"));
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "bob@example.com",
       password: "Strong#Pass1",
+      otp: OTP,
       firstName: "Bob",
       lastName: "B",
       linkedinUrl: "https://linkedin.com/in/bob",
@@ -246,6 +384,10 @@ describe("OAuth endpoints", () => {
 describe("Prisma error mapping", () => {
   it("P2002 unique-constraint surfaces as 409 via the error handler", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(
+      baseOtpRow({ email: "dup@example.com" }) as any,
+    );
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
     prisma.user.create.mockRejectedValueOnce(
       new Prisma.PrismaClientKnownRequestError("dup", {
         code: "P2002",
@@ -256,6 +398,7 @@ describe("Prisma error mapping", () => {
     const res = await request(app).post("/api/v1/auth/register").send({
       email: "dup@example.com",
       password: "Strong#Pass1",
+      otp: OTP,
       firstName: "Dup",
       lastName: "Lic",
       linkedinUrl: "https://linkedin.com/in/dup",

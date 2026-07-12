@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Users, Briefcase, Calendar, Trophy, MapPin, Phone, Mail, Globe, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { DEPARTMENTS as departments } from "@/lib/departments";
 
 const stats = [
   { value: "25+", label: "Years of Excellence" },
@@ -33,12 +34,6 @@ const quotes = [
   { text: "Engineering or technology is all about using the power of science to make life better for people.", author: "N. R. Narayana Murthy", role: "Co-founder, Infosys" },
 ];
 
-const departments = [
-  "Mechanical Engineering", "Computer Science & Engineering", "Electrical Engineering",
-  "Civil Engineering", "Aeronautical Engineering", "Food Technology",
-  "AI & Data Science", "CSE (IoT & Cyber Security)", "Robotics & AI",
-  "Electronics & Telecom", "BBA", "BCA",
-];
 
 const STORAGE_BASE =
   (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??

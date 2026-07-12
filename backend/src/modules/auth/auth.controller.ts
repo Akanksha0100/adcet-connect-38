@@ -14,6 +14,11 @@ const sweepStates = () => {
   for (const [k, v] of stateStore) if (v.expiresAt < now) stateStore.delete(k);
 };
 
+export const sendRegistrationOtp = async (req: Request, res: Response) => {
+  await service.sendRegistrationOtp(req.body.email);
+  res.status(202).json({ message: "A verification code has been sent to your email." });
+};
+
 export const register = async (req: Request, res: Response) => {
   const result = await service.register(req.body);
   res.status(201).json(result);

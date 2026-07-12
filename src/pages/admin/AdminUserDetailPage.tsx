@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Building, GraduationCap, MapPin, Phone, Linkedin, Github, MessageSquare, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, Building, GraduationCap, MapPin, Phone, Linkedin, Github, Twitter, Globe, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -32,6 +32,8 @@ interface AdminUserDetail {
     phone?: string | null;
     linkedinUrl?: string | null;
     githubUrl?: string | null;
+    twitterUrl?: string | null;
+    websiteUrl?: string | null;
     bio?: string | null;
     skills?: string[] | null;
   } | null;
@@ -119,8 +121,8 @@ const AdminUserDetailPage = () => {
             )}
           </div>
 
-          {(data.profile?.linkedinUrl || data.profile?.githubUrl) && (
-            <div className="flex gap-2">
+          {(data.profile?.linkedinUrl || data.profile?.githubUrl || data.profile?.twitterUrl || data.profile?.websiteUrl) && (
+            <div className="flex gap-2 flex-wrap">
               {data.profile.linkedinUrl && (
                 <Button variant="outline" size="sm" asChild>
                   <a href={data.profile.linkedinUrl} target="_blank" rel="noreferrer" className="gap-1.5">
@@ -132,6 +134,20 @@ const AdminUserDetailPage = () => {
                 <Button variant="outline" size="sm" asChild>
                   <a href={data.profile.githubUrl} target="_blank" rel="noreferrer" className="gap-1.5">
                     <Github className="h-3.5 w-3.5" /> GitHub
+                  </a>
+                </Button>
+              )}
+              {data.profile.twitterUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={data.profile.twitterUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                    <Twitter className="h-3.5 w-3.5" /> Twitter / X
+                  </a>
+                </Button>
+              )}
+              {data.profile.websiteUrl && (
+                <Button variant="outline" size="sm" asChild>
+                  <a href={data.profile.websiteUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                    <Globe className="h-3.5 w-3.5" /> Website
                   </a>
                 </Button>
               )}

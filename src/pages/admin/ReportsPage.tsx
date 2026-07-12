@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 
 type Row = Record<string, unknown>;
@@ -50,18 +51,6 @@ const DONATION_STATUSES = [
   { value: "CANCELLED", label: "Cancelled" },
 ];
 
-const DEPARTMENTS = [
-  "CSE",
-  "CSE (IoT & Cyber Security)",
-  "CSE (AI & Data Science)",
-  "Robotics & Automation",
-  "Mechanical Engineering",
-  "Electrical Engineering",
-  "Civil Engineering",
-  "Aeronautical Engineering",
-  "Food Technology",
-  "E&TC",
-];
 
 interface ReportDef {
   value: string;

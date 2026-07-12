@@ -29,14 +29,25 @@ beforeEach(() => {
 });
 
 describe("modules/auth/service — register", () => {
-  it("creates a PENDING user, attaches role+profile, and issues tokens", async () => {
+  it("creates a PENDING, email-verified user, attaches role+profile, and issues tokens", async () => {
+    const { hashToken } = await import("../../../lib/jwt.js");
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.emailVerificationOtp.findFirst.mockResolvedValueOnce({
+      id: "otp-1",
+      email: "alice@example.com",
+      codeHash: hashToken("123456"),
+      expiresAt: new Date(Date.now() + 60_000),
+      consumedAt: null,
+      attempts: 0,
+    });
+    prismaMock.emailVerificationOtp.update.mockResolvedValueOnce({});
     prismaMock.user.create.mockResolvedValueOnce(mkUser());
     prismaMock.refreshToken.create.mockResolvedValueOnce({});
 
     const result = await register({
       email: "alice@example.com",
       password: "Strong#Pass1",
+      otp: "123456",
       firstName: "Alice",
       lastName: "A",
     } as any);
@@ -44,12 +55,32 @@ describe("modules/auth/service — register", () => {
     expect(prismaMock.user.create).toHaveBeenCalledTimes(1);
     const createArg = prismaMock.user.create.mock.calls[0][0] as any;
     expect(createArg.data.status).toBe("PENDING");
+    expect(createArg.data.emailVerifiedAt).toBeInstanceOf(Date);
     expect(createArg.data.roles.create.role).toBe("ALUMNI");
     expect(createArg.data.passwordHash).not.toBe("Strong#Pass1");
+    // The OTP is single-use: it must be consumed on success.
+    expect(prismaMock.emailVerificationOtp.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { consumedAt: expect.any(Date) } }),
+    );
 
     expect(result.accessToken).toBeTruthy();
     expect(result.refreshToken).toBeTruthy();
     expect(result.user).toMatchObject({ email: "alice@example.com", roles: ["ALUMNI"] });
+  });
+
+  it("rejects registration without a valid OTP", async () => {
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.emailVerificationOtp.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      register({
+        email: "alice@example.com",
+        password: "Strong#Pass1",
+        otp: "123456",
+        firstName: "A",
+        lastName: "B",
+      } as any),
+    ).rejects.toMatchObject({ status: 400 });
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
   it("rejects duplicate email with 409 Conflict", async () => {

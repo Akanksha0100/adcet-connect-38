@@ -143,6 +143,20 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+/// One-time codes emailed during sign-up to verify the address BEFORE the
+/// User row is created — hence keyed by email with no user relation.
+model EmailVerificationOtp {
+  id         String    @id @default(uuid())
+  email      String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+
+  @@index([email])
+}
+
 model Profile {
   id              String      @id @default(uuid())
   userId          String      @unique

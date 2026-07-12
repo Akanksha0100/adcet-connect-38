@@ -116,6 +116,31 @@ export const passwordResetEmail = (
   return { subject: "🔒 Reset your ADCET Alumni Portal password", text, html: wrap("Reset your password", body) };
 };
 
+/** Sign-up email verification code (OTP). */
+export const emailVerificationOtpEmail = (
+  code: string,
+  ttlMinutes: number,
+): { subject: string; text: string; html: string } => {
+  const body = `
+    <h2>✉️ Verify your email address</h2>
+    <p>Welcome to the ADCET Alumni Portal! Use the code below to verify your
+       email address and finish creating your account. It expires in
+       <strong>${ttlMinutes} minutes</strong>.</p>
+    <div style="text-align:center; margin: 28px 0;">
+      <span style="display:inline-block; padding: 14px 28px; background:#f8f9fa; border:1px dashed #1e3a5f; border-radius:8px; font-size:28px; letter-spacing:10px; font-weight:700; color:#1e3a5f;">${esc(code)}</span>
+    </div>
+    <p style="font-size:13px; color:#6c757d;">
+      If you didn't try to sign up for the ADCET Alumni Portal, you can safely ignore this email.
+    </p>
+  `;
+  const text =
+    `Verify your email address\n\n` +
+    `Your ADCET Alumni Portal verification code is: ${code}\n` +
+    `It expires in ${ttlMinutes} minutes.\n\n` +
+    `If you didn't try to sign up, ignore this email.\n`;
+  return { subject: "✉️ Your ADCET Alumni Portal verification code", text, html: wrap("Verify your email", body) };
+};
+
 // ── Event notification email ────────────────────────────────────────────
 
 export interface EventEmailData {

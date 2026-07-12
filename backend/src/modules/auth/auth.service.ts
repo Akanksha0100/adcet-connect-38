@@ -13,7 +13,7 @@ import {
 } from "../../lib/jwt.js";
 import { BadRequest, Conflict, Unauthorized } from "../../lib/errors.js";
 import { sendEmail } from "../../lib/mailer.js";
-import { passwordResetEmail } from "../../lib/email-templates.js";
+import { emailVerificationOtpEmail, passwordResetEmail } from "../../lib/email-templates.js";
 import { logger } from "../../lib/logger.js";
 import { env } from "../../config/env.js";
 import type { AppRoleName } from "../../config/constants.js";
@@ -22,6 +22,8 @@ import type { OAuthProfile } from "./providers/index.js";
 
 const REFRESH_TTL_DAYS = 7;
 const RESET_TTL_MINUTES = 60;
+const OTP_TTL_MINUTES = 10;
+const OTP_MAX_ATTEMPTS = 5;
 
 /** Best-effort resolution of the frontend base URL for building links. */
 const frontendBaseUrl = (): string => {
@@ -43,9 +45,68 @@ const issueTokens = async (user: { id: string; email: string }, roles: AppRoleNa
   return { accessToken, refreshToken };
 };
 
+/**
+ * Send a 6-digit verification code to an email address that wants to register.
+ * Any previous unconsumed codes for the address are invalidated first, so only
+ * the latest code works. Throws 409 if the email already has an account.
+ */
+export const sendRegistrationOtp = async (email: string): Promise<void> => {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) throw Conflict("Email already registered");
+
+  const code = crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+  await prisma.$transaction([
+    // Drop this email's older codes (only the latest may be used) and,
+    // opportunistically, everyone's expired ones so the table self-cleans.
+    prisma.emailVerificationOtp.deleteMany({
+      where: { OR: [{ email }, { expiresAt: { lt: new Date() } }] },
+    }),
+    prisma.emailVerificationOtp.create({
+      data: {
+        email,
+        codeHash: hashToken(code),
+        expiresAt: new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000),
+      },
+    }),
+  ]);
+
+  const mail = emailVerificationOtpEmail(code, OTP_TTL_MINUTES);
+  await sendEmail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
+};
+
+/**
+ * Consume the latest OTP for this email or throw. Attempts are counted so the
+ * 6-digit space can't be brute-forced within a code's lifetime.
+ */
+const consumeRegistrationOtp = async (email: string, otp: string): Promise<void> => {
+  const row = await prisma.emailVerificationOtp.findFirst({
+    where: { email, consumedAt: null },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!row || row.expiresAt < new Date()) {
+    throw BadRequest("Verification code is invalid or has expired. Please request a new one.");
+  }
+  if (row.attempts >= OTP_MAX_ATTEMPTS) {
+    throw BadRequest("Too many incorrect attempts. Please request a new code.");
+  }
+  if (hashToken(otp) !== row.codeHash) {
+    await prisma.emailVerificationOtp.update({
+      where: { id: row.id },
+      data: { attempts: { increment: 1 } },
+    });
+    throw BadRequest("Incorrect verification code.");
+  }
+  await prisma.emailVerificationOtp.update({
+    where: { id: row.id },
+    data: { consumedAt: new Date() },
+  });
+};
+
 export const register = async (input: RegisterInput) => {
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw Conflict("Email already registered");
+
+  await consumeRegistrationOtp(input.email, input.otp);
 
   const role: AppRoleName = input.role ?? "ALUMNI";
   const passwordHash = await hashPassword(input.password);
@@ -58,6 +119,8 @@ export const register = async (input: RegisterInput) => {
       lastName: input.lastName,
       // PENDING until an admin approves. Recruiters & alumni need admin moderation.
       status: "PENDING",
+      // Ownership of the address was just proven via OTP.
+      emailVerifiedAt: new Date(),
       roles: { create: { role } },
       profile: {
         create: {

@@ -11,10 +11,12 @@ import {
   refreshSchema,
   registerSchema,
   resetPasswordSchema,
+  sendRegistrationOtpSchema,
 } from "./auth.validators.js";
 
 export const authRouter = Router();
 
+authRouter.post("/register/send-otp", authLimiter, validate(sendRegistrationOtpSchema), asyncHandler(ctrl.sendRegistrationOtp));
 authRouter.post("/register", authLimiter, validate(registerSchema), asyncHandler(ctrl.register));
 authRouter.post("/login", authLimiter, validate(loginSchema), asyncHandler(ctrl.login));
 authRouter.post("/refresh", validate(refreshSchema), asyncHandler(ctrl.refresh));

@@ -38,6 +38,8 @@ interface AuthState {
 export interface RegisterInput {
   email: string;
   password: string;
+  /** 6-digit email verification code from POST /auth/register/send-otp. */
+  otp: string;
   firstName: string;
   lastName: string;
   department?: string;
