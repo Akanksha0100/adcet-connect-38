@@ -20,6 +20,16 @@ export const revokeRole = async (req: Request, res: Response) => {
   res.status(204).end();
 };
 
+export const exportPendingApprovals = async (req: Request, res: Response) =>
+  res.json({
+    items: await service.exportPendingApprovals(
+      req.query as unknown as Parameters<typeof service.exportPendingApprovals>[0],
+    ),
+  });
+
+export const importApprovalDecisions = async (req: Request, res: Response) =>
+  res.json(await service.importApprovalDecisions(req.auth!.sub, req.body.decisions, req.body.reason));
+
 export const auditLog = async (req: Request, res: Response) =>
   res.json(await service.getAuditLog(req.query as unknown as Parameters<typeof service.getAuditLog>[0]));
 

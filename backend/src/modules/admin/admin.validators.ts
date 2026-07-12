@@ -48,3 +48,30 @@ export const bulkStatusSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
   reason: z.string().max(1000).optional(),
 });
+
+/** Filters for the department-verification export of PENDING users. */
+export const approvalExportQuery = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  department: z.string().max(120).optional(),
+});
+
+/**
+ * Decisions imported back from a department-verified sheet. Each row is
+ * matched by userId (preferred) or email, and must carry a YES/NO verdict.
+ */
+export const approvalImportSchema = z.object({
+  decisions: z
+    .array(
+      z
+        .object({
+          userId: z.string().uuid().optional(),
+          email: z.string().email().optional(),
+          decision: z.enum(["YES", "NO"]),
+        })
+        .refine((d) => d.userId || d.email, { message: "Each decision needs a userId or email" }),
+    )
+    .min(1)
+    .max(5000),
+  reason: z.string().max(1000).optional(),
+});

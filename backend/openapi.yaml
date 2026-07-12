@@ -387,6 +387,79 @@ paths:
                   expiresIn: { type: integer }
 
   # ---------- ADMIN ----------
+  /admin/approvals/export:
+    get:
+      tags: [Admin]
+      summary: Export PENDING users for department verification (filter by date/department)
+      parameters:
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+        - { in: query, name: department, schema: { type: string } }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        userId: { type: string }
+                        firstName: { type: string }
+                        lastName: { type: string }
+                        email: { type: string }
+                        department: { type: string }
+                        degree: { type: string }
+                        graduationYear: { type: integer }
+                        linkedinUrl: { type: string }
+                        registeredOn: { type: string, format: date }
+
+  /admin/approvals/import:
+    post:
+      tags: [Admin]
+      summary: Apply department YES/NO verdicts — approves/rejects PENDING users in bulk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decisions]
+              properties:
+                decisions:
+                  type: array
+                  maxItems: 5000
+                  items:
+                    type: object
+                    required: [decision]
+                    properties:
+                      userId: { type: string, format: uuid }
+                      email: { type: string, format: email }
+                      decision: { type: string, enum: [YES, NO] }
+                reason: { type: string, description: Rejection reason applied to NO rows }
+      responses:
+        '200':
+          description: Summary of applied decisions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  approved: { type: integer }
+                  rejected: { type: integer }
+                  skipped:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        identifier: { type: string }
+                        reason: { type: string }
+
   /admin/users/pending:
     get:
       tags: [Admin]

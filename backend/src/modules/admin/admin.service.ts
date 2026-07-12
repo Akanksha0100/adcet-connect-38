@@ -134,6 +134,124 @@ export const getAuditLog = async (q: PaginationQuery) => {
 };
 
 /* -------------------------------------------------------------------------- */
+/*  Department-verification bulk approval: export PENDING users to a sheet,   */
+/*  departments mark each row YES/NO, and the import applies the decisions.   */
+/* -------------------------------------------------------------------------- */
+
+const APPROVAL_EXPORT_CAP = 10_000;
+
+export const exportPendingApprovals = async (f: {
+  from?: Date;
+  to?: Date;
+  department?: string;
+}) => {
+  const users = await prisma.user.findMany({
+    where: {
+      status: "PENDING",
+      roles: { none: { role: "ADMIN" } },
+      ...(f.department && { profile: { department: f.department } }),
+      ...((f.from || f.to) && {
+        createdAt: { ...(f.from && { gte: f.from }), ...(f.to && { lte: f.to }) },
+      }),
+    },
+    orderBy: { createdAt: "asc" },
+    take: APPROVAL_EXPORT_CAP,
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      createdAt: true,
+      profile: {
+        select: { department: true, degree: true, graduationYear: true, linkedinUrl: true },
+      },
+    },
+  });
+  return users.map((u) => ({
+    userId: u.id,
+    firstName: u.firstName,
+    lastName: u.lastName,
+    email: u.email,
+    department: u.profile?.department ?? "",
+    degree: u.profile?.degree ?? "",
+    graduationYear: u.profile?.graduationYear ?? "",
+    linkedinUrl: u.profile?.linkedinUrl ?? "",
+    registeredOn: u.createdAt.toISOString().slice(0, 10),
+  }));
+};
+
+export interface ApprovalDecision {
+  userId?: string;
+  email?: string;
+  decision: "YES" | "NO";
+}
+
+/**
+ * Apply department verdicts. Only PENDING users are touched; everything else
+ * is reported back as skipped so the admin can see exactly what happened.
+ * Reuses setUserStatus so every change is audit-logged and the user notified.
+ */
+export const importApprovalDecisions = async (
+  actorId: string,
+  decisions: ApprovalDecision[],
+  reason?: string,
+) => {
+  const ids = decisions.map((d) => d.userId).filter((v): v is string => !!v);
+  const emails = decisions.map((d) => d.email).filter((v): v is string => !!v);
+  const users = await prisma.user.findMany({
+    where: { OR: [...(ids.length ? [{ id: { in: ids } }] : []), ...(emails.length ? [{ email: { in: emails } }] : [])] },
+    select: { id: true, email: true, status: true },
+  });
+  const byId = new Map(users.map((u) => [u.id, u]));
+  const byEmail = new Map(users.map((u) => [u.email.toLowerCase(), u]));
+
+  let approved = 0;
+  let rejected = 0;
+  const skipped: { identifier: string; reason: string }[] = [];
+  const processed = new Set<string>();
+
+  for (const d of decisions) {
+    const identifier = d.userId ?? d.email ?? "?";
+    const user = (d.userId && byId.get(d.userId)) || (d.email && byEmail.get(d.email.toLowerCase())) || null;
+    if (!user) {
+      skipped.push({ identifier, reason: "User not found" });
+      continue;
+    }
+    if (processed.has(user.id)) {
+      skipped.push({ identifier, reason: "Duplicate row" });
+      continue;
+    }
+    processed.add(user.id);
+    if (user.status !== "PENDING") {
+      skipped.push({ identifier, reason: `Already ${user.status.toLowerCase()}` });
+      continue;
+    }
+    try {
+      if (d.decision === "YES") {
+        await setUserStatus(actorId, user.id, "APPROVED");
+        approved += 1;
+      } else {
+        await setUserStatus(actorId, user.id, "REJECTED", reason ?? "Not verified by the department");
+        rejected += 1;
+      }
+    } catch (e: any) {
+      skipped.push({ identifier, reason: e?.message ?? "Update failed" });
+    }
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      actorId,
+      action: "user.approval_import",
+      entity: "User",
+      metadata: { approved, rejected, skipped: skipped.length, total: decisions.length },
+    },
+  });
+
+  return { total: decisions.length, approved, rejected, skipped };
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Recent activity feed for the admin dashboard.                             */
 /*  Merges the latest records across the platform into one readable stream.   */
 /* -------------------------------------------------------------------------- */
@@ -149,6 +267,7 @@ export interface ActivityItem {
 const AUDIT_LABELS: Record<string, string> = {
   "user.approve": "Approved a user account",
   "user.reject": "Rejected a user account",
+  "user.approval_import": "Imported department verification sheet",
   "alumni.bulk_email": "Sent an email to alumni",
 };
 
@@ -204,6 +323,8 @@ export const recentActivity = async (limit = 12): Promise<ActivityItem[]> => {
     let subtitle = "";
     if (au.action === "alumni.bulk_email") {
       subtitle = `${meta.subject ? `"${meta.subject}" · ` : ""}${(meta.recipientCount as number) ?? 0} recipients`;
+    } else if (au.action === "user.approval_import") {
+      subtitle = `${(meta.approved as number) ?? 0} approved · ${(meta.rejected as number) ?? 0} rejected · ${(meta.skipped as number) ?? 0} skipped`;
     } else if (meta.reason) {
       subtitle = `Reason: ${meta.reason}`;
     }

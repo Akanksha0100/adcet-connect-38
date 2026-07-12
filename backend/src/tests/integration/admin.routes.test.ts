@@ -109,6 +109,104 @@ describe("/admin/users/:id/status", () => {
   });
 });
 
+describe("/admin/approvals/export", () => {
+  it("200 returns pending users shaped for the verification sheet", async () => {
+    prisma.user.findMany.mockResolvedValueOnce([
+      {
+        id: "u1",
+        firstName: "Alice",
+        lastName: "A",
+        email: "alice@x.com",
+        createdAt: new Date("2026-07-01T00:00:00Z"),
+        profile: { department: "CSE", degree: "BE", graduationYear: 2020, linkedinUrl: "https://l.in/a" },
+      } as any,
+    ]);
+    const res = await request(app)
+      .get("/api/v1/admin/approvals/export?department=CSE&from=2026-06-01&to=2026-07-31")
+      .set("Authorization", bearer(adminToken));
+    expect(res.status).toBe(200);
+    expect(res.body.items[0]).toMatchObject({
+      userId: "u1",
+      email: "alice@x.com",
+      department: "CSE",
+      registeredOn: "2026-07-01",
+    });
+    // Only PENDING, non-admin users within the date/department window.
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: "PENDING",
+          profile: { department: "CSE" },
+        }),
+      }),
+    );
+  });
+});
+
+describe("/admin/approvals/import", () => {
+  it("422 when decisions are missing or malformed", async () => {
+    const res = await request(app)
+      .post("/api/v1/admin/approvals/import")
+      .set("Authorization", bearer(adminToken))
+      .send({ decisions: [{ decision: "MAYBE", email: "a@b.com" }] });
+    expect(res.status).toBe(422);
+  });
+
+  it("422 when a decision has neither userId nor email", async () => {
+    const res = await request(app)
+      .post("/api/v1/admin/approvals/import")
+      .set("Authorization", bearer(adminToken))
+      .send({ decisions: [{ decision: "YES" }] });
+    expect(res.status).toBe(422);
+  });
+
+  it("200 applies YES/NO to pending users and reports skips", async () => {
+    // Lookup of all referenced users.
+    prisma.user.findMany.mockResolvedValueOnce([
+      { id: "11111111-1111-4111-8111-111111111111", email: "yes@x.com", status: "PENDING" },
+      { id: "22222222-2222-4222-8222-222222222222", email: "no@x.com", status: "PENDING" },
+      { id: "33333333-3333-4333-8333-333333333333", email: "done@x.com", status: "APPROVED" },
+    ] as any);
+    // setUserStatus internals for the two PENDING users. Each one does two
+    // user.findUnique calls: its own lookup, then another inside notify().
+    prisma.user.findUnique
+      .mockResolvedValueOnce({ id: "11111111-1111-4111-8111-111111111111" } as any)
+      .mockResolvedValueOnce({ id: "11111111-1111-4111-8111-111111111111", email: "yes@x.com" } as any)
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222" } as any)
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", email: "no@x.com" } as any);
+    prisma.user.update
+      .mockResolvedValueOnce({ id: "11111111-1111-4111-8111-111111111111", status: "APPROVED" } as any)
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", status: "REJECTED" } as any);
+
+    const res = await request(app)
+      .post("/api/v1/admin/approvals/import")
+      .set("Authorization", bearer(adminToken))
+      .send({
+        decisions: [
+          { userId: "11111111-1111-4111-8111-111111111111", decision: "YES" },
+          { email: "no@x.com", decision: "NO" },
+          { email: "done@x.com", decision: "YES" },
+          { email: "ghost@x.com", decision: "NO" },
+        ],
+      });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ total: 4, approved: 1, rejected: 1 });
+    expect(res.body.skipped).toHaveLength(2);
+    expect(res.body.skipped.map((s: any) => s.reason)).toEqual(
+      expect.arrayContaining(["Already approved", "User not found"]),
+    );
+    // NO rows get the default department-rejection reason.
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "REJECTED",
+          rejectionReason: "Not verified by the department",
+        }),
+      }),
+    );
+  });
+});
+
 describe("/admin/users/:id/roles", () => {
   it("404 when user is missing", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);

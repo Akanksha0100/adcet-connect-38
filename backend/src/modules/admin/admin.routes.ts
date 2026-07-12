@@ -6,6 +6,8 @@ import { validate } from "../../middlewares/validate.js";
 import { paginationSchema } from "../../lib/pagination.js";
 import * as ctrl from "./admin.controller.js";
 import {
+  approvalExportQuery,
+  approvalImportSchema,
   assignRoleSchema,
   reportSchema,
   userListQuery,
@@ -18,6 +20,19 @@ export const adminRouter = Router();
 adminRouter.use(requireAuth, requireAdmin);
 
 adminRouter.get("/users", validate(userListQuery, "query"), asyncHandler(ctrl.listUsers));
+
+// Department-verification bulk approval: export pending users → departments
+// mark YES/NO → import applies the decisions.
+adminRouter.get(
+  "/approvals/export",
+  validate(approvalExportQuery, "query"),
+  asyncHandler(ctrl.exportPendingApprovals),
+);
+adminRouter.post(
+  "/approvals/import",
+  validate(approvalImportSchema),
+  asyncHandler(ctrl.importApprovalDecisions),
+);
 
 // bulk-status must be before :id routes to avoid matching "bulk-status" as :id
 adminRouter.post(

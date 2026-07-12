@@ -29,6 +29,7 @@ import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 import RejectReasonDialog from "@/components/RejectReasonDialog";
+import DepartmentVerificationCard from "@/components/DepartmentVerificationCard";
 
 interface AdminUser {
   id: string;
@@ -162,6 +163,8 @@ const UserApprovalsPage = () => {
           Manage all users — approve, reject, message, or change status.
         </p>
       </div>
+
+      <DepartmentVerificationCard />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
