@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, apiUrl } from "@/lib/api";
 import { DEPARTMENTS as departments } from "@/lib/departments";
+import { landingRouteFor } from "@/lib/landing";
 import { toast } from "@/hooks/use-toast";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
@@ -75,7 +76,7 @@ const AuthPage = () => {
 
   useEffect(() => {
     if (loading || !user) return;
-    navigate(user.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
+    navigate(landingRouteFor(user), { replace: true });
   }, [loading, user, navigate]);
 
   const validateStep1 = (): boolean => {
@@ -105,7 +106,7 @@ const AuthPage = () => {
     try {
       const me = await login(loginEmail.trim(), loginPassword);
       toast({ title: "Welcome back", description: `Signed in as ${me.firstName} ${me.lastName}` });
-      navigate(me.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
+      navigate(landingRouteFor(me), { replace: true });
     } catch (err: any) {
       toast({ title: "Sign-in failed", description: err?.message ?? "Check your credentials", variant: "destructive" });
     } finally {
@@ -173,7 +174,7 @@ const AuthPage = () => {
           ? "Your account is pending admin approval. Some features may be limited."
           : "You're all set!",
       });
-      navigate("/dashboard", { replace: true });
+      navigate(landingRouteFor(me), { replace: true });
     } catch (err: any) {
       toast({ title: "Registration failed", description: err?.message ?? "Please try again", variant: "destructive" });
     } finally {

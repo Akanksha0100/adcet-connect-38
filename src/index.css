@@ -486,6 +486,14 @@
     background: var(--hero-gradient);
   }
 
+  /* Theme-aware gradient text — tracks whichever hero gradient is active. */
+  .text-gradient {
+    background: var(--hero-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .stat-card {
     @apply card-elevated p-6;
   }

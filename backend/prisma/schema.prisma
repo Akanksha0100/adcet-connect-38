@@ -54,6 +54,17 @@ enum EmailRsvpStatus {
   MAYBE
 }
 
+enum PostMediaType {
+  IMAGE
+  VIDEO
+}
+
+enum PostReportStatus {
+  OPEN
+  ACTIONED
+  DISMISSED
+}
+
 enum DonationStatus {
   PLEDGED
   RECEIVED
@@ -92,6 +103,12 @@ model User {
   donationLedgerEntries DonationLedgerEntry[]
   rsvps           EventRsvp[]
   jobApplications JobApplication[]
+
+  // Feed
+  posts           Post[]
+  postLikes       PostLike[]
+  postComments    PostComment[]
+  postReports     PostReport[]
 
   @@index([status])
 }
@@ -517,4 +534,93 @@ model SiteSection {
   title     String
   body      String
   updatedAt DateTime @updatedAt
+}
+
+// =====================================================================
+// FEED: alumni-to-alumni social posts
+// =====================================================================
+
+/// A social post. Unlike Achievement/Event/Job there is no approval flow —
+/// approved members publish straight to the feed; admins can remove anything.
+model Post {
+  id        String    @id @default(uuid())
+  authorId  String
+  /// Post body. Optional because a post may be media-only.
+  content   String?
+  /// Set the first time the author edits, so the UI can show "edited".
+  editedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  media     PostMedia[]
+  likes     PostLike[]
+  comments  PostComment[]
+  reports   PostReport[]
+
+  @@index([createdAt])
+  @@index([authorId, createdAt])
+}
+
+/// Attached image/video. Max 2 images OR 1 video per post (enforced in the
+/// validator, not the DB, since the rule is cross-row).
+model PostMedia {
+  id        String        @id @default(uuid())
+  postId    String
+  /// Storage object key under the "post" upload scope.
+  key       String
+  type      PostMediaType
+  mimeType  String?
+  /// Display order within the post (0-based).
+  position  Int           @default(0)
+  createdAt DateTime      @default(now())
+
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, position])
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+}
+
+/// Member-submitted flag on a post, reviewed from the admin feed moderation page.
+model PostReport {
+  id         String           @id @default(uuid())
+  postId     String
+  reporterId String
+  reason     String
+  status     PostReportStatus @default(OPEN)
+  reviewedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  post       Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter   User             @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  /// One open report per member per post — re-reporting updates the existing row.
+  @@unique([postId, reporterId])
+  @@index([status, createdAt])
 }

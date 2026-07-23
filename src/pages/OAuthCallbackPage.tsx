@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { landingRouteFor } from "@/lib/landing";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -33,7 +34,7 @@ const OAuthCallbackPage = () => {
       .then((me) => {
         // Wipe tokens from URL bar.
         window.history.replaceState(null, "", window.location.pathname);
-        navigate(me.roles.includes("ADMIN") ? "/admin" : "/dashboard", { replace: true });
+        navigate(landingRouteFor(me), { replace: true });
       })
       .catch((e) => setError(e?.message ?? "Sign-in failed"));
   }, [navigate, setSession]);

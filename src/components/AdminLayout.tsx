@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut, X,
-  Search, User, Globe, FileText, MessageSquare
+  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -53,6 +53,8 @@ const AdminLayout = () => {
     { label: "Events Approval", path: "/admin/events", icon: Calendar, badge: fmt(overview?.pendingEvents) },
     { label: "Jobs Approval", path: "/admin/jobs", icon: Briefcase, badge: fmt(overview?.pendingJobs) },
     { label: "Achievements", path: "/admin/achievements", icon: Trophy, badge: fmt(overview?.pendingAchievements) },
+    { label: "View Feed", path: "/dashboard/feed", icon: Newspaper, badge: undefined },
+    { label: "Feed Moderation", path: "/admin/feed", icon: Flag, badge: undefined },
     { label: "Donations", path: "/admin/donations", icon: Heart, badge: undefined },
     { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
     { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },

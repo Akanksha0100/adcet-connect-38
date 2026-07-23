@@ -33,9 +33,18 @@ export const RATE_LIMITS = {
 
 export const UPLOAD_SCOPES = [
   "avatar", "banner", "event", "achievement", "receipt", "resume",
-  "event-attachment", "job-attachment", "email-attachment",
+  "event-attachment", "job-attachment", "email-attachment", "post",
 ] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
+
+/** Feed post media limits. Mirrored by the composer UI in the frontend. */
+export const FEED_MEDIA = {
+  MAX_IMAGES: 2,
+  MAX_VIDEOS: 1,
+  MAX_BYTES: 10 * 1024 * 1024,
+  IMAGE_MIME_PREFIX: "image/",
+  VIDEO_MIME_PREFIX: "video/",
+} as const;
 
 export const DEPARTMENTS = [
   "CSE",

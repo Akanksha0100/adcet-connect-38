@@ -200,7 +200,7 @@ export const apiUrl = (path: string) => `${BASE_URL}${path}`;
 
 export async function uploadFile(
   file: File,
-  scope: "avatar" | "banner" | "event" | "achievement" | "receipt" | "resume",
+  scope: "avatar" | "banner" | "event" | "achievement" | "receipt" | "resume" | "post",
 ): Promise<{ key: string; publicUrl: string }> {
   const tokens = tokenStore.get();
   const url = buildUrl("/uploads/direct", {
