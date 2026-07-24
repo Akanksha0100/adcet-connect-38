@@ -11,6 +11,8 @@ import NewsPage from "./pages/NewsPage";
 import SupportPage from "./pages/SupportPage";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
+import FeedPage from "./pages/FeedPage";
+import PostDetailPage from "./pages/PostDetailPage";
 import EventsPage from "./pages/EventsPage";
 import JobsPage from "./pages/JobsPage";
 import JobDetailPage from "./pages/JobDetailPage";
@@ -48,6 +50,7 @@ import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
 import AccountStatusGate from "./components/AccountStatusGate";
 import SupportInboxPage from "./pages/admin/SupportInboxPage";
+import FeedModerationPage from "./pages/admin/FeedModerationPage";
 import AdminUserDetailPage from "./pages/admin/AdminUserDetailPage";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
@@ -77,6 +80,8 @@ const App = () => (
                 <Route path="/dashboard" element={<DashboardLayout />}>
                   <Route element={<AccountStatusGate />}>
                     <Route index element={<DashboardHome />} />
+                    <Route path="feed" element={<FeedPage />} />
+                    <Route path="feed/:id" element={<PostDetailPage />} />
                     <Route path="events" element={<EventsPage />} />
                     <Route path="events/:id" element={<EventDetailPage />} />
                     <Route path="jobs" element={<JobsPage />} />
@@ -110,6 +115,7 @@ const App = () => (
                   <Route path="events" element={<EventApprovalsPage />} />
                   <Route path="jobs" element={<JobApprovalsPage />} />
                   <Route path="achievements" element={<AchievementsAdminPage />} />
+                  <Route path="feed" element={<FeedModerationPage />} />
                   <Route path="donations" element={<DonationsAdminPage />} />
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
                   <Route path="geomap" element={<AdminGeoMapPage />} />

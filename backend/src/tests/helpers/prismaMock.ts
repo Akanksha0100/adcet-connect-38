@@ -57,6 +57,11 @@ const MODELS = [
   "education",
   "skill",
   "profileSkill",
+  "post",
+  "postMedia",
+  "postLike",
+  "postComment",
+  "postReport",
 ] as const;
 
 export type MockedPrisma = {

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
   Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, ChevronLeft, ShieldCheck, Send, Loader2,
-  Home, Info, MoreHorizontal
+  Home, Info, MoreHorizontal, Newspaper
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,6 +19,7 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 
 const mainNav = [
   { label: "Home", path: "/dashboard" },
+  { label: "Feed", path: "/dashboard/feed" },
   { label: "About Us", path: "/dashboard/about" },
   { label: "Events", path: "/dashboard/events" },
   { label: "Jobs", path: "/dashboard/jobs" },
@@ -35,6 +36,7 @@ const moreItems = [
 ];
 
 const sidebarItems = [
+  { label: "Feed", path: "/dashboard/feed", icon: Newspaper },
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Profile", path: "/dashboard/profile", icon: User },
   { label: "Alumni", path: "/dashboard/alumni", icon: Users },
@@ -155,7 +157,7 @@ const DashboardLayout = () => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Top Nav */}
       <header className="h-14 border-b border-border bg-card flex items-center px-3 md:px-4 gap-2 md:gap-4 sticky top-0 z-50">
         {/* Mobile hamburger */}
@@ -237,7 +239,9 @@ const DashboardLayout = () => {
         </div>
       </header>
 
-      <div className="flex flex-1">
+      {/* min-h-0 lets the children own the vertical scroll instead of growing
+          the page — so the sidebar stays put and only <main> scrolls. */}
+      <div className="flex flex-1 min-h-0">
         {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
           {mobileSidebarOpen && (
@@ -300,9 +304,11 @@ const DashboardLayout = () => {
               animate={{ width: 240, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:block"
+              className="border-r border-border bg-card overflow-hidden flex-shrink-0 hidden md:flex md:flex-col"
             >
-              <SidebarContent />
+              <div className="flex-1 overflow-y-auto">
+                <SidebarContent />
+              </div>
             </motion.aside>
           )}
         </AnimatePresence>
