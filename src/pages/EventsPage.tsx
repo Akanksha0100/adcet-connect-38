@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/upload";
 import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -242,14 +243,7 @@ const CreateEventDialog = ({
   const uploadAttachment = async (file: File): Promise<string> => {
     setAttachUploading(true);
     try {
-      const { uploadUrl, key } = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-        scope: "event-attachment",
-        fileName: file.name,
-        contentType: file.type || "application/octet-stream",
-      });
-      const put = await fetch(uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type || "application/octet-stream" } });
-      if (!put.ok) throw new Error(`Attachment upload failed (${put.status})`);
-      return key;
+      return await uploadFile(file, "event-attachment");
     } finally {
       setAttachUploading(false);
     }

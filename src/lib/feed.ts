@@ -2,7 +2,7 @@
  * Feed domain types + upload helper shared by the feed pages and components.
  * Mirrors `backend/src/modules/feed/`.
  */
-import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/upload";
 
 /** Keep in sync with FEED_MEDIA in backend/src/config/constants.ts. */
 export const FEED_MEDIA = {
@@ -88,23 +88,10 @@ export const mediaTypeOf = (file: File): PostMediaType | null => {
 };
 
 /**
- * Presign + PUT straight to object storage. Going direct (rather than through
+ * Upload straight to object storage. Going direct (rather than through
  * `POST /uploads/direct`) keeps 10 MB videos off the API process.
  */
-export const uploadPostMedia = async (file: File): Promise<string> => {
-  const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-    fileName: file.name,
-    contentType: file.type || "application/octet-stream",
-    scope: "post",
-  });
-  const put = await fetch(presign.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
-  if (!put.ok) throw new Error(`Upload failed (${put.status})`);
-  return presign.key;
-};
+export const uploadPostMedia = (file: File): Promise<string> => uploadFile(file, "post");
 
 /**
  * Validate a batch of newly picked files against the current selection.

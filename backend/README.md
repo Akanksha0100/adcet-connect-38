@@ -41,8 +41,29 @@ Ownership checks via `isOwnerOrAdmin(req, ownerId)` inside services.
 | Audit log, reports, role assignment | ADMIN |
 
 ## Storage abstraction
-`getStorage()` returns the active driver (`minio | s3 | local`) by env.
+`getStorage()` returns the active driver (`minio | s3 | cloudinary | local`) by env.
 Swap providers by changing `STORAGE_DRIVER` — no code changes.
+
+Uploads always go browser → storage; the API only signs them. S3-family drivers
+hand back a URL to `PUT`, Cloudinary hands back `method: "POST"` plus signed
+`fields` for a multipart submit. `src/lib/upload.ts` in the frontend handles both.
+
+### Cloudinary
+Set `STORAGE_DRIVER=cloudinary` plus either `CLOUDINARY_URL` (the
+`cloudinary://key:secret@cloud` string from the dashboard) or
+`CLOUDINARY_CLOUD_NAME` + `CLOUDINARY_API_KEY` + `CLOUDINARY_API_SECRET`. Boot
+fails fast if neither is complete. The frontend needs
+`VITE_CLOUDINARY_CLOUD_NAME` so it can build delivery URLs for the same objects.
+
+Object keys stay the app's own `<scope>/<owner>/<uuid>-<file>`. The adapter maps
+a key to a Cloudinary `resource_type` (`image`/`video`/`raw`) and `public_id`
+purely from its **extension**, so `publicUrl()` and `delete()` work from a bare
+key. `src/lib/storage.ts` in the frontend mirrors that mapping — change one, change both.
+
+Scopes listed in `CLOUDINARY_PRIVATE_SCOPES` (default `resume,receipt`) upload as
+Cloudinary `private` assets with no public URL; they are reachable only through
+`POST /uploads/presign-download`, which returns a signed link expiring after
+`CLOUDINARY_PRESIGN_TTL` seconds (Cloudinary caps signatures at 3600).
 
 ## Error handling
 Throw typed errors from `lib/errors.ts`. Global `errorHandler` maps `ApiError`,

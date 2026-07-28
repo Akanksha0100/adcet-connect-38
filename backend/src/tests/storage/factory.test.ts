@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, jest } from "@jest/globals";
 afterEach(() => {
   jest.resetModules();
   delete process.env.STORAGE_DRIVER;
+  delete process.env.CLOUDINARY_URL;
 });
 
 describe("storage factory", () => {
@@ -17,5 +18,12 @@ describe("storage factory", () => {
     const b = getStorage();
     expect(a).toBe(b);
     expect(a.constructor.name).toBe("LocalStorage");
+  });
+
+  it("returns CloudinaryStorage for STORAGE_DRIVER=cloudinary", async () => {
+    process.env.STORAGE_DRIVER = "cloudinary";
+    process.env.CLOUDINARY_URL = "cloudinary://key:secret@demo-cloud";
+    const { getStorage } = await import("../../storage/index.js");
+    expect(getStorage().constructor.name).toBe("CloudinaryStorage");
   });
 });

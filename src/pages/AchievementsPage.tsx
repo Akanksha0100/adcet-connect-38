@@ -10,13 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { storageUrl } from "@/lib/storage";
+import { uploadFile } from "@/lib/upload";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
-
-const STORAGE_BASE =
-  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-  "http://localhost:9000/adcet-alumni";
 
 interface Achievement {
   id: string;
@@ -58,7 +56,7 @@ const AchievementsPage = () => {
           <div key={a.id} className="card-elevated overflow-hidden space-y-0 hover:-translate-y-0.5 transition-transform">
             {a.imageKey && (
               <Link to={`/achievements/${a.id}`} className="block h-32 bg-muted">
-                <img src={`${STORAGE_BASE}/${a.imageKey}`} alt={a.title} className="w-full h-full object-cover" />
+                <img src={storageUrl(a.imageKey)} alt={a.title} className="w-full h-full object-cover" />
               </Link>
             )}
             <div className="p-5 space-y-3">
@@ -85,7 +83,7 @@ const AchievementsPage = () => {
                   </a>
                 )}
                 {a.attachmentKey && (
-                  <a href={`${STORAGE_BASE}/${a.attachmentKey}`} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                  <a href={storageUrl(a.attachmentKey)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
                     <FileText className="h-3 w-3" /> Document
                   </a>
                 )}
@@ -100,22 +98,6 @@ const AchievementsPage = () => {
 
 const EMPTY_FORM = { title: "", description: "", category: "", occurredOn: "", link: "" };
 const ATTACHMENT_ACCEPT = "application/pdf,image/*,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-/** Presign + PUT a file to storage, returning its object key. */
-const uploadFile = async (file: File): Promise<string> => {
-  const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-    fileName: file.name,
-    contentType: file.type || "application/octet-stream",
-    scope: "achievement",
-  });
-  const put = await fetch(presign.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
-  if (!put.ok) throw new Error(`Upload failed (${put.status})`);
-  return presign.key;
-};
 
 const CreateAchievementDialog = ({ onCreated }: { onCreated: () => void }) => {
   const [open, setOpen] = useState(false);
@@ -158,14 +140,14 @@ const CreateAchievementDialog = ({ onCreated }: { onCreated: () => void }) => {
       return;
     }
     setImgUploading(true);
-    try { setImageKey(await uploadFile(file)); }
+    try { setImageKey(await uploadFile(file, "achievement")); }
     catch (e: any) { toast({ title: "Image upload failed", description: e?.message, variant: "destructive" }); }
     finally { setImgUploading(false); }
   };
 
   const handleDoc = async (file: File) => {
     setDocUploading(true);
-    try { setAttachmentKey(await uploadFile(file)); setAttachmentName(file.name); }
+    try { setAttachmentKey(await uploadFile(file, "achievement")); setAttachmentName(file.name); }
     catch (e: any) { toast({ title: "Upload failed", description: e?.message, variant: "destructive" }); }
     finally { setDocUploading(false); }
   };
@@ -194,7 +176,7 @@ const CreateAchievementDialog = ({ onCreated }: { onCreated: () => void }) => {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImage(f); e.target.value = ""; }} />
             {imageKey ? (
               <div className="flex items-center gap-2">
-                <img src={`${STORAGE_BASE}/${imageKey}`} alt="cover" className="h-14 w-20 object-cover rounded-md border border-border" />
+                <img src={storageUrl(imageKey)} alt="cover" className="h-14 w-20 object-cover rounded-md border border-border" />
                 <Button type="button" variant="ghost" size="sm" className="gap-1.5 text-destructive" onClick={() => setImageKey(null)}>
                   <X className="h-3.5 w-3.5" /> Remove
                 </Button>

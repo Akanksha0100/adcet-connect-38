@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/upload";
 import { toast } from "@/hooks/use-toast";
 import RichTextEditor from "@/components/RichTextEditor";
 
@@ -53,18 +54,8 @@ const mapFilters = (f: AlumniMailFilters) => ({
 });
 
 const uploadAttachment = async (file: File): Promise<Attachment> => {
-  const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-    fileName: file.name,
-    contentType: file.type || "application/octet-stream",
-    scope: "email-attachment",
-  });
-  const put = await fetch(presign.uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type || "application/octet-stream" },
-    body: file,
-  });
-  if (!put.ok) throw new Error(`Upload failed (${put.status})`);
-  return { key: presign.key, filename: file.name, size: file.size };
+  const key = await uploadFile(file, "email-attachment");
+  return { key, filename: file.name, size: file.size };
 };
 
 const BulkEmailDialog = ({ open, onOpenChange, filters, recipientCount }: BulkEmailDialogProps) => {

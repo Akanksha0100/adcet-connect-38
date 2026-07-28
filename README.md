@@ -71,7 +71,7 @@
   achievements, donations), default sort by latest first.
 - **Email Notifications** — branded HTML emails for events, jobs, applications,
   RSVP confirmations, and moderation actions. SMTP configurable via env vars.
-- **Pluggable Storage** — MinIO (dev) → S3 (prod) via a single env switch.
+- **Pluggable Storage** — MinIO (dev) → S3 or Cloudinary (prod) via a single env switch.
 
 ## Tech Stack
 
@@ -196,11 +196,17 @@ Two env files at the project root for the frontend, two in `backend/`.
 | `JWT_REFRESH_SECRET` | _dev value_ | Refresh-token signing key |
 | `CORS_ORIGIN` | `http://localhost:8080` | Allowed frontend origin |
 | `API_BASE_URL` | `http://localhost:4000/api/v1` | Public API URL (used in email RSVP links) |
-| `STORAGE_DRIVER` | `minio` | `minio` \| `s3` \| `local` |
+| `STORAGE_DRIVER` | `minio` | `minio` \| `s3` \| `cloudinary` \| `local` |
 | `S3_ENDPOINT` | `http://localhost:9000` | MinIO endpoint |
 | `S3_BUCKET` | `adcet` | Default bucket |
 | `S3_ACCESS_KEY` | `minioadmin` | MinIO access key |
 | `S3_SECRET_KEY` | `minioadmin` | MinIO secret key |
+| `CLOUDINARY_URL` | _(empty)_ | `cloudinary://key:secret@cloud` — required when `STORAGE_DRIVER=cloudinary` (or set the three vars below) |
+| `CLOUDINARY_CLOUD_NAME` | _(empty)_ | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | _(empty)_ | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | _(empty)_ | Cloudinary API secret |
+| `CLOUDINARY_FOLDER` | _(empty)_ | Optional prefix for every object, e.g. `adcet/prod` |
+| `CLOUDINARY_PRIVATE_SCOPES` | `resume,receipt` | Scopes stored privately (signed, expiring links only) |
 | `SMTP_HOST` | _(empty)_ | SMTP host for sending emails (e.g. `smtp.gmail.com`) |
 | `SMTP_PORT` | `587` | SMTP port |
 | `SMTP_SECURE` | `false` | Use TLS for SMTP |
@@ -253,7 +259,9 @@ requires only:
 2. **Provision Postgres + S3** (managed services recommended).
 3. **Set production env vars** (see `backend/.env.production`):
    - `DATABASE_URL` → managed Postgres
-   - `STORAGE_DRIVER=s3`, `S3_*` → AWS S3
+   - `STORAGE_DRIVER=s3`, `S3_*` → AWS S3, or `STORAGE_DRIVER=cloudinary` + `CLOUDINARY_URL`
+     (then set `VITE_CLOUDINARY_CLOUD_NAME` for the frontend and leave
+     `VITE_STORAGE_PUBLIC_BASE_URL` empty)
    - `JWT_*_SECRET` → long random strings (≥ 64 chars)
    - `CORS_ORIGIN` → your real frontend domain
    - `VITE_API_BASE_URL` → your real API domain (rebuild frontend)

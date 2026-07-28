@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { uploadFile } from "@/lib/upload";
 import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -365,13 +366,7 @@ const AdminCreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
   const uploadAttachment = async (file: File): Promise<string> => {
     setAttachUploading(true);
     try {
-      const { url, key } = await api.post<{ url: string; key: string }>("/uploads/presign", {
-        scope: "job-attachment",
-        filename: file.name,
-        contentType: file.type,
-      });
-      await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
-      return key;
+      return await uploadFile(file, "job-attachment");
     } finally {
       setAttachUploading(false);
     }

@@ -5,6 +5,35 @@
 import "dotenv/config";
 import { z } from "zod";
 
+export interface CloudinaryConfig {
+  cloudName: string;
+  apiKey: string;
+  apiSecret: string;
+}
+
+/** Parse Cloudinary's own `cloudinary://<api_key>:<api_secret>@<cloud_name>` env format. */
+const parseCloudinaryUrl = (url?: string): Partial<CloudinaryConfig> => {
+  if (!url) return {};
+  const m = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(url.trim());
+  if (!m) return {};
+  return { apiKey: m[1], apiSecret: m[2], cloudName: m[3].replace(/\/.*$/, "") };
+};
+
+/** Explicit vars win over CLOUDINARY_URL so a single value can be overridden. */
+const resolveCloudinary = (source: {
+  CLOUDINARY_URL?: string;
+  CLOUDINARY_CLOUD_NAME?: string;
+  CLOUDINARY_API_KEY?: string;
+  CLOUDINARY_API_SECRET?: string;
+}): CloudinaryConfig | null => {
+  const fromUrl = parseCloudinaryUrl(source.CLOUDINARY_URL);
+  const cloudName = source.CLOUDINARY_CLOUD_NAME || fromUrl.cloudName;
+  const apiKey = source.CLOUDINARY_API_KEY || fromUrl.apiKey;
+  const apiSecret = source.CLOUDINARY_API_SECRET || fromUrl.apiSecret;
+  if (!cloudName || !apiKey || !apiSecret) return null;
+  return { cloudName, apiKey, apiSecret };
+};
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().default(4000),
@@ -18,7 +47,7 @@ const schema = z.object({
   JWT_ACCESS_TTL: z.string().default("15m"),
   JWT_REFRESH_TTL: z.string().default("7d"),
 
-  STORAGE_DRIVER: z.enum(["minio", "s3", "local"]).default("minio"),
+  STORAGE_DRIVER: z.enum(["minio", "s3", "local", "cloudinary"]).default("minio"),
   STORAGE_BUCKET: z.string().default("adcet-alumni"),
   STORAGE_PUBLIC_BASE_URL: z.string().optional(),
 
@@ -30,6 +59,19 @@ const schema = z.object({
   S3_PRESIGN_TTL: z.coerce.number().default(900),
 
   LOCAL_STORAGE_DIR: z.string().default("./uploads"),
+
+  // === Cloudinary (STORAGE_DRIVER=cloudinary) ===
+  // Either set CLOUDINARY_URL (the `cloudinary://key:secret@cloud` form copied
+  // straight from the dashboard) or the three explicit vars below.
+  CLOUDINARY_URL: z.string().optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  /** Optional prefix applied to every object, e.g. `adcet/prod`. */
+  CLOUDINARY_FOLDER: z.string().optional(),
+  /** Upload scopes stored as Cloudinary `private` assets, reachable only via signed, expiring URLs. */
+  CLOUDINARY_PRIVATE_SCOPES: z.string().default("resume,receipt"),
+  CLOUDINARY_PRESIGN_TTL: z.coerce.number().default(900),
 
   LOG_LEVEL: z.string().default("info"),
 
@@ -53,6 +95,17 @@ const schema = z.object({
   // Public org details printed on receipts.
   ORG_NAME: z.string().default("Annasaheb Dange College of Engineering & Technology, Ashta"),
   ORG_ADDRESS: z.string().default("Ashta, Dist. Sangli, Maharashtra 416301"),
+}).superRefine((v, ctx) => {
+  // Fail fast at boot rather than on the first upload attempt.
+  if (v.STORAGE_DRIVER === "cloudinary" && !resolveCloudinary(v)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["CLOUDINARY_URL"],
+      message:
+        "STORAGE_DRIVER=cloudinary requires CLOUDINARY_URL, or all of " +
+        "CLOUDINARY_CLOUD_NAME + CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET",
+    });
+  }
 });
 
 const parsed = schema.safeParse(process.env);
@@ -63,3 +116,6 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export type Env = typeof env;
+
+/** Resolved Cloudinary credentials, or `null` when Cloudinary isn't configured. */
+export const cloudinaryConfig = resolveCloudinary(env);

@@ -5,10 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-
-const STORAGE_BASE =
-  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-  "http://localhost:9000/adcet-alumni";
+import { storageUrl } from "@/lib/storage";
 
 interface PublicAchievement {
   id: string;
@@ -34,8 +31,8 @@ export default function AchievementDetailPage() {
   const authorName = data?.user
     ? `${data.user.firstName ?? ""} ${data.user.lastName ?? ""}`.trim() || "Alumnus"
     : "Alumnus";
-  const imageUrl = data?.imageKey ? `${STORAGE_BASE}/${data.imageKey}` : undefined;
-  const attachmentUrl = data?.attachmentKey ? `${STORAGE_BASE}/${data.attachmentKey}` : undefined;
+  const imageUrl = storageUrl(data?.imageKey);
+  const attachmentUrl = storageUrl(data?.attachmentKey);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
