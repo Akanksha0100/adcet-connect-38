@@ -362,6 +362,12 @@ paths:
     post:
       tags: [Uploads]
       summary: Get a pre-signed URL for direct upload to object storage
+      description: >
+        The client uploads straight to storage. How depends on the active
+        STORAGE_DRIVER: S3/MinIO/local return a URL to PUT the raw file to,
+        Cloudinary returns `method: POST` plus `fields` that must be submitted
+        as multipart/form-data alongside a `file` part. Persist `key` — it is the
+        identifier every other endpoint accepts.
       requestBody:
         required: true
         content:
@@ -372,7 +378,9 @@ paths:
               properties:
                 fileName: { type: string }
                 contentType: { type: string }
-                scope: { type: string, enum: [avatar, event, achievement, receipt, resume] }
+                scope:
+                  type: string
+                  enum: [avatar, banner, event, achievement, receipt, resume, event-attachment, job-attachment, email-attachment, post]
       responses:
         '200':
           description: OK
@@ -385,6 +393,14 @@ paths:
                   key: { type: string }
                   publicUrl: { type: string }
                   expiresIn: { type: integer }
+                  method:
+                    type: string
+                    enum: [PUT, POST]
+                    description: Absent means PUT with the raw file as the body.
+                  fields:
+                    type: object
+                    additionalProperties: { type: string }
+                    description: Multipart form fields required when method is POST.
 
   # ---------- ADMIN ----------
   /admin/approvals/export:

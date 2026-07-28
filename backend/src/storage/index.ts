@@ -6,6 +6,7 @@ import { env } from "../config/env.js";
 import type { StorageService } from "./StorageService.js";
 import { S3Storage } from "./S3Storage.js";
 import { LocalStorage } from "./LocalStorage.js";
+import { CloudinaryStorage } from "./CloudinaryStorage.js";
 
 let instance: StorageService | null = null;
 
@@ -18,6 +19,9 @@ export const getStorage = (): StorageService => {
     case "minio":
       // Dev MinIO: self-provision the bucket so a fresh instance never 404s.
       instance = new S3Storage({ ensureBucket: true });
+      break;
+    case "cloudinary":
+      instance = new CloudinaryStorage();
       break;
     case "local":
       instance = new LocalStorage();

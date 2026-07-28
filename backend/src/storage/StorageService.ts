@@ -19,6 +19,15 @@ export interface PresignUploadResult {
   key: string;
   publicUrl: string;
   expiresIn: number;
+  /**
+   * How the client must send the bytes to `uploadUrl`. Omitted means `PUT`
+   * with the raw file as the body (S3/MinIO/local). `POST` means a
+   * `multipart/form-data` submission of `fields` plus a `file` part —
+   * Cloudinary's upload API only speaks that dialect.
+   */
+  method?: "PUT" | "POST";
+  /** Form fields that must accompany a `method: "POST"` upload. */
+  fields?: Record<string, string>;
 }
 
 export interface StorageService {

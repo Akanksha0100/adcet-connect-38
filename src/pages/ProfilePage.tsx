@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { storageUrl } from "@/lib/storage";
+import { uploadFile } from "@/lib/upload";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,12 +64,7 @@ const ProfilePage = () => {
     onError: (e: any) => toast({ title: "Update failed", description: e?.message, variant: "destructive" }),
   });
 
-  // Local MinIO bucket is exposed at http://localhost:9000/adcet-alumni/<key>.
-  // Override via VITE_STORAGE_PUBLIC_BASE_URL when deploying.
-  const STORAGE_BASE =
-    (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-    "http://localhost:9000/adcet-alumni";
-  const avatarUrl = profile.data?.avatarKey ? `${STORAGE_BASE}/${profile.data.avatarKey}` : undefined;
+  const avatarUrl = storageUrl(profile.data?.avatarKey);
 
   const handleAvatarPick = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -76,18 +73,8 @@ const ProfilePage = () => {
     }
     setUploading(true);
     try {
-      const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-        fileName: file.name,
-        contentType: file.type,
-        scope: "avatar",
-      });
-      const put = await fetch(presign.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
-      await api.patch("/profiles/me", { avatarKey: presign.key });
+      const key = await uploadFile(file, "avatar");
+      await api.patch("/profiles/me", { avatarKey: key });
       toast({ title: "Photo updated" });
       qc.invalidateQueries({ queryKey: ["profile"] });
     } catch (e: any) {

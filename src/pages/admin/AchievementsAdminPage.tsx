@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
+import { storageUrl } from "@/lib/storage";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
@@ -27,10 +28,6 @@ interface Paginated<T> {
   items: T[];
   pagination: { total: number; page: number; pageSize: number };
 }
-
-const STORAGE_BASE =
-  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-  "http://localhost:9000/adcet-alumni";
 
 const tabs = ["Pending", "Approved"] as const;
 
@@ -95,7 +92,7 @@ const AchievementsAdminPage = () => {
             <motion.div key={a.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
               className="card-elevated overflow-hidden hover:-translate-y-0.5">
               {a.imageKey ? (
-                <img src={`${STORAGE_BASE}/${a.imageKey}`} alt={a.title} className="h-24 w-full object-cover" />
+                <img src={storageUrl(a.imageKey)} alt={a.title} className="h-24 w-full object-cover" />
               ) : (
                 <div className="h-24 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-3xl">
                   🏆
@@ -131,7 +128,7 @@ const AchievementsAdminPage = () => {
                       </a>
                     )}
                     {a.attachmentKey && (
-                      <a href={`${STORAGE_BASE}/${a.attachmentKey}`} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+                      <a href={storageUrl(a.attachmentKey)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
                         <FileText className="h-3 w-3" /> Document
                       </a>
                     )}

@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Users, Briefcase, Calendar, Trophy, MapPin, Phone, Mail, Globe, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { storageUrl } from "@/lib/storage";
 import { DEPARTMENTS as departments } from "@/lib/departments";
 
 const stats = [
@@ -34,10 +35,6 @@ const quotes = [
   { text: "Engineering or technology is all about using the power of science to make life better for people.", author: "N. R. Narayana Murthy", role: "Co-founder, Infosys" },
 ];
 
-
-const STORAGE_BASE =
-  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-  "http://localhost:9000/adcet-alumni";
 
 interface FeaturedAchievement {
   id: string;
@@ -71,7 +68,7 @@ function AchievementsSlider() {
   const authorName = a.user
     ? `${a.user.firstName ?? ""} ${a.user.lastName ?? ""}`.trim() || "Alumnus"
     : "Alumnus";
-  const imageUrl = a.imageKey ? `${STORAGE_BASE}/${a.imageKey}` : undefined;
+  const imageUrl = storageUrl(a.imageKey);
   const go = (dir: number) => setIndex((i) => (i + dir + items.length) % items.length);
 
   return (

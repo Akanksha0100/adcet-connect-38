@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { storageUrl } from "@/lib/storage";
+import { uploadFile } from "@/lib/upload";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requestPushPermission, usePreferences, type PreferenceKey } from "@/lib/preferences";
@@ -35,10 +37,6 @@ const pick = (p: AdminProfile): AdminProfile =>
     if (v !== undefined) (acc as any)[k] = v;
     return acc;
   }, {} as AdminProfile);
-
-const STORAGE_BASE =
-  (import.meta.env.VITE_STORAGE_PUBLIC_BASE_URL as string | undefined) ??
-  "http://localhost:9000/adcet-alumni";
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -103,18 +101,8 @@ const SettingsPage = () => {
     }
     setUploading(true);
     try {
-      const presign = await api.post<{ uploadUrl: string; key: string }>("/uploads/presign", {
-        fileName: file.name,
-        contentType: file.type,
-        scope: "avatar",
-      });
-      const put = await fetch(presign.uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-      if (!put.ok) throw new Error(`Upload failed (${put.status})`);
-      await api.patch("/profiles/me", { avatarKey: presign.key });
+      const key = await uploadFile(file, "avatar");
+      await api.patch("/profiles/me", { avatarKey: key });
       toast({ title: "Photo updated" });
       qc.invalidateQueries({ queryKey: ["profile"] });
     } catch (e: any) {
@@ -125,7 +113,7 @@ const SettingsPage = () => {
   };
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "AD";
-  const avatarUrl = profile.data?.avatarKey ? `${STORAGE_BASE}/${profile.data.avatarKey}` : undefined;
+  const avatarUrl = storageUrl(profile.data?.avatarKey);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-2xl">
