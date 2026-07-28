@@ -256,23 +256,46 @@ requires only:
    npm run build              # frontend → dist/
    cd backend && npm run build # backend → dist/
    ```
-2. **Provision Postgres + S3** (managed services recommended).
+2. **Provision a database and object storage.**
+   - Postgres — any managed Postgres works (Neon, Supabase, RDS, Render Postgres).
+     It must be **actual PostgreSQL**: `schema.prisma` declares
+     `provider = "postgresql"`, and Prisma refuses to connect to a wire-compatible
+     substitute such as CockroachDB. A single schema can only declare one provider,
+     so switching would mean regenerating every migration and moving local dev too.
+   - Storage — S3 needs a bucket; **Cloudinary needs nothing provisioned** (no
+     buckets, folders are created on first upload).
 3. **Set production env vars** (see `backend/.env.production`):
    - `DATABASE_URL` → managed Postgres
    - `STORAGE_DRIVER=s3`, `S3_*` → AWS S3, or `STORAGE_DRIVER=cloudinary` + `CLOUDINARY_URL`
-     (then set `VITE_CLOUDINARY_CLOUD_NAME` for the frontend and leave
-     `VITE_STORAGE_PUBLIC_BASE_URL` empty)
+     (then set `VITE_CLOUDINARY_CLOUD_NAME` for the frontend and leave both
+     `STORAGE_PUBLIC_BASE_URL` and `VITE_STORAGE_PUBLIC_BASE_URL` empty)
    - `JWT_*_SECRET` → long random strings (≥ 64 chars)
    - `CORS_ORIGIN` → your real frontend domain
    - `VITE_API_BASE_URL` → your real API domain (rebuild frontend)
-4. **Apply migrations**
+   - `ADMIN_EMAIL` / `ADMIN_PASSWORD` → bootstraps the first admin (see below)
+4. **Apply migrations, bootstrap the admin, then start**
    ```bash
-   npm run prisma:deploy
+   npx prisma migrate deploy && npm run seed:admin && npm run start
    ```
-5. **Start** the API (`npm run start`) behind a reverse proxy / process
-   manager. Serve the frontend `dist/` from any static host or CDN.
+   Serve the frontend `dist/` from any static host or CDN.
 
 No code changes are required to switch environments.
+
+### Bootstrapping the first admin
+
+`/auth/register` always creates a `PENDING` user with no `ADMIN` role, so a fresh
+database has no way into the admin area. `npm run seed:admin` fills that gap: it
+reads `ADMIN_EMAIL` / `ADMIN_PASSWORD` from the environment and creates exactly
+one approved `ADMIN` user — no demo data, unlike `npm run seed`.
+
+It is safe on every boot, which is what makes it usable on hosts without shell
+access (Render's free tier, for one) — just chain it into the start command as
+above. Re-runs are idempotent: it repairs a missing `ADMIN` role or a non-`APPROVED`
+status, but **leaves the password alone** so a redeploy can't revert a password
+changed from inside the app. To rotate it, set `ADMIN_PASSWORD_FORCE=true` for one
+deploy. It always exits 0 — a bootstrap failure is logged but never blocks the API.
+
+Locally, use `npm run seed:admin:dev` (loads `.env.development`).
 
 ## License
 
