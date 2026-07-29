@@ -15,8 +15,13 @@ const sweepStates = () => {
 };
 
 export const sendRegistrationOtp = async (req: Request, res: Response) => {
-  await service.sendRegistrationOtp(req.body.email);
-  res.status(202).json({ message: "A verification code has been sent to your email." });
+  const { devCode } = await service.sendRegistrationOtp(req.body.email);
+  res.status(202).json({
+    message: devCode
+      ? "Email delivery is unavailable — use the code below."
+      : "A verification code has been sent to your email.",
+    ...(devCode ? { devCode } : {}),
+  });
 };
 
 export const register = async (req: Request, res: Response) => {

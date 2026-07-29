@@ -67,6 +67,13 @@ class SmtpTransport implements MailTransport {
       auth: process.env.SMTP_USER
         ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
         : undefined,
+      // Hosts that firewall outbound SMTP (Render's free tier blocks 25/465/587)
+      // black-hole the SYN rather than refusing it, so without these the connect
+      // hangs for Nodemailer's 2-minute default and the caller's request times
+      // out. Fail in ~15s instead so the user gets a real error message.
+      connectionTimeout: Number(process.env.SMTP_TIMEOUT_MS) || 15_000,
+      greetingTimeout: Number(process.env.SMTP_TIMEOUT_MS) || 15_000,
+      socketTimeout: (Number(process.env.SMTP_TIMEOUT_MS) || 15_000) * 2,
     });
   }
 

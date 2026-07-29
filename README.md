@@ -262,6 +262,13 @@ requires only:
      `provider = "postgresql"`, and Prisma refuses to connect to a wire-compatible
      substitute such as CockroachDB. A single schema can only declare one provider,
      so switching would mean regenerating every migration and moving local dev too.
+
+     On **Supabase**, use the **Session pooler** connection string
+     (`…@aws-N-<region>.pooler.supabase.com:5432`, username `postgres.<project-ref>`),
+     not the direct `db.<project-ref>.supabase.co` host — the direct host resolves
+     to IPv6 only, and IPv4-only platforms such as Render fail with Prisma `P1001`.
+     Avoid the *Transaction* pooler on `:6543`: it can't run migrations without
+     `?pgbouncer=true` plus a `directUrl` in `schema.prisma`.
    - Storage — S3 needs a bucket; **Cloudinary needs nothing provisioned** (no
      buckets, folders are created on first upload).
 3. **Set production env vars** (see `backend/.env.production`):

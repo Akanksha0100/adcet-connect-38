@@ -29,3 +29,5 @@ export const TooMany = (message = "Too many requests") =>
   new ApiError(429, "TOO_MANY_REQUESTS", message);
 export const NotImplemented = (message = "Not implemented") =>
   new ApiError(501, "NOT_IMPLEMENTED", message);
+export const ServiceUnavailable = (message = "Service unavailable", details?: unknown) =>
+  new ApiError(503, "SERVICE_UNAVAILABLE", message, details);

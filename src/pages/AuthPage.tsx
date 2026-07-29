@@ -119,8 +119,23 @@ const AuthPage = () => {
     if (sendingOtp) return;
     setSendingOtp(true);
     try {
-      await api.post("/auth/register/send-otp", { email: reg.email.trim() }, { anonymous: true });
-      toast({ title: "Verification code sent", description: `Check ${reg.email.trim()} for a 6-digit code.` });
+      // `devCode` only comes back from test deployments where the backend can't
+      // reach an SMTP server (EXPOSE_OTP_ON_MAIL_FAILURE) — prefill it so
+      // sign-up still works without a delivered email.
+      const res = await api.post<{ message: string; devCode?: string }>(
+        "/auth/register/send-otp",
+        { email: reg.email.trim() },
+        { anonymous: true },
+      );
+      if (res?.devCode) {
+        setOtp(res.devCode);
+        toast({
+          title: "Email delivery unavailable",
+          description: `Test mode: your verification code is ${res.devCode}`,
+        });
+      } else {
+        toast({ title: "Verification code sent", description: `Check ${reg.email.trim()} for a 6-digit code.` });
+      }
       setResendCooldown(30);
       setRegStep(3);
     } catch (err: any) {

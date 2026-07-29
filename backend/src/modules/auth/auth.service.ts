@@ -11,7 +11,7 @@ import {
   signRefreshToken,
   verifyRefreshToken,
 } from "../../lib/jwt.js";
-import { BadRequest, Conflict, Unauthorized } from "../../lib/errors.js";
+import { BadRequest, Conflict, ServiceUnavailable, Unauthorized } from "../../lib/errors.js";
 import { sendEmail } from "../../lib/mailer.js";
 import { emailVerificationOtpEmail, passwordResetEmail } from "../../lib/email-templates.js";
 import { logger } from "../../lib/logger.js";
@@ -46,11 +46,23 @@ const issueTokens = async (user: { id: string; email: string }, roles: AppRoleNa
 };
 
 /**
+ * TEMPORARY testing escape hatch. When mail delivery is impossible (e.g. the
+ * host firewalls outbound SMTP), returning the code in the API response lets
+ * sign-up be exercised end-to-end. It also lets anyone register an address they
+ * do not own, so it must stay off outside throwaway test deployments.
+ */
+const exposeOtpOnMailFailure = (): boolean =>
+  process.env.EXPOSE_OTP_ON_MAIL_FAILURE === "true";
+
+/**
  * Send a 6-digit verification code to an email address that wants to register.
  * Any previous unconsumed codes for the address are invalidated first, so only
  * the latest code works. Throws 409 if the email already has an account.
+ *
+ * Resolves with `devCode` only under the escape hatch above — otherwise a
+ * delivery failure surfaces as 503 so the UI can tell the user to retry.
  */
-export const sendRegistrationOtp = async (email: string): Promise<void> => {
+export const sendRegistrationOtp = async (email: string): Promise<{ devCode?: string }> => {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw Conflict("Email already registered");
 
@@ -71,7 +83,22 @@ export const sendRegistrationOtp = async (email: string): Promise<void> => {
   ]);
 
   const mail = emailVerificationOtpEmail(code, OTP_TTL_MINUTES);
-  await sendEmail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
+  try {
+    await sendEmail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
+  } catch (err) {
+    logger.error({ err, email }, "[auth] failed to send registration OTP email");
+    if (!exposeOtpOnMailFailure()) {
+      throw ServiceUnavailable(
+        "We couldn't send the verification email right now. Please try again in a moment.",
+      );
+    }
+    logger.warn(
+      { email },
+      "[auth] EXPOSE_OTP_ON_MAIL_FAILURE is on — returning the OTP in the API response",
+    );
+    return { devCode: code };
+  }
+  return {};
 };
 
 /**
