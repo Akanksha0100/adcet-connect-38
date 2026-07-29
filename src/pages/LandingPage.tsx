@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import HeroSlideshow from "@/components/public/HeroSlideshow";
 import SocialLinks from "@/components/public/SocialLinks";
+import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 import { DEPARTMENTS as departments } from "@/lib/departments";
@@ -198,15 +199,69 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Founder Quote */}
-      <section className="py-14 px-6 bg-muted/40">
-        <div className="max-w-2xl mx-auto text-center">
-          <Quote className="h-8 w-8 text-primary/30 mx-auto mb-4" />
-          <p className="text-lg text-foreground italic leading-relaxed mb-4">
-            "Dream boldly, work sincerely, and carry forward the legacy of service and excellence."
-          </p>
-          <p className="text-sm font-medium text-foreground">Shri. Annasaheb Dange</p>
-          <p className="text-xs text-muted-foreground">Founder, ADCET — Sant Dnyaneshwar Shikshan Sanstha</p>
+      {/* Founder */}
+      <section className="py-16 px-6 bg-muted/40">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.2fr] gap-8 md:gap-12 items-center">
+          <motion.div initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+            <img
+              src={FOUNDER.photo}
+              alt={FOUNDER.name}
+              className="w-full max-w-sm mx-auto rounded-2xl object-cover aspect-[3/2] shadow-lg ring-1 ring-border"
+            />
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="text-center md:text-left">
+            <Quote className="h-8 w-8 text-primary/30 mx-auto md:mx-0 mb-4" />
+            <p className="text-lg sm:text-xl text-foreground italic leading-relaxed mb-5">
+              "{FOUNDER.quote}"
+            </p>
+            <p className="text-sm font-semibold text-foreground">{FOUNDER.name}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{FOUNDER.role}</p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Welcome message from the alumni office */}
+      <section className="py-16 px-6 bg-background border-y border-border">
+        <div className="max-w-3xl mx-auto">
+          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">{ALUMNI_NETWORK_MESSAGE.title}</h2>
+            <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-8" />
+            <div className="space-y-4 text-sm sm:text-[15px] text-muted-foreground leading-relaxed text-justify">
+              {ALUMNI_NETWORK_MESSAGE.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+            </div>
+            <p className="text-center text-base font-medium text-foreground mt-8">
+              {ALUMNI_NETWORK_MESSAGE.closing}
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Director's message */}
+      <section className="py-16 px-6 bg-card">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">From the Director's Desk</h2>
+          <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-10" />
+          <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] gap-8 md:gap-12 items-start">
+            <motion.div initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+              className="text-center">
+              <img
+                src={DIRECTOR.photo}
+                alt={DIRECTOR.name}
+                className="w-40 md:w-full max-w-[220px] mx-auto rounded-2xl object-cover aspect-[6/7] shadow-lg ring-1 ring-border"
+              />
+              <p className="text-sm font-semibold text-foreground mt-4">{DIRECTOR.name}</p>
+              <p className="text-xs text-muted-foreground">{DIRECTOR.role}</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              className="relative">
+              <Quote className="h-7 w-7 text-primary/25 mb-3" />
+              <p className="text-sm font-medium text-foreground mb-3">{DIRECTOR.greeting}</p>
+              <div className="space-y-4 text-sm sm:text-[15px] text-muted-foreground leading-relaxed text-justify">
+                {DIRECTOR.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
