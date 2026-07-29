@@ -8,6 +8,7 @@ import PublicLayout from "@/components/public/PublicLayout";
 import HeroSlideshow from "@/components/public/HeroSlideshow";
 import SocialLinks from "@/components/public/SocialLinks";
 import BoardStrip from "@/components/public/BoardStrip";
+import ChaptersSection from "@/components/public/ChaptersSection";
 import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
@@ -268,6 +269,9 @@ export default function LandingPage() {
 
       {/* Alumni Association Board */}
       <BoardStrip />
+
+      {/* Regional chapters */}
+      <ChaptersSection />
 
       {/* Alumni Achievements slider (auto-latest approved) */}
       <AchievementsSlider />
