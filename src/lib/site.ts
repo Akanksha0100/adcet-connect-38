@@ -33,6 +33,7 @@ export const CONTACT = {
 export const PUBLIC_NAV = [
   { label: "Home", to: "/" },
   { label: "About", to: "/about" },
+  { label: "Alumni Map", to: "/alumni-map" },
   { label: "Gallery", to: "/gallery" },
   { label: "News", to: "/news" },
   { label: "Contact", to: "/contact" },
