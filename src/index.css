@@ -519,3 +519,60 @@
     transform: translateX(-100%);
   }
 }
+
+/* --- Public alumni map (Leaflet) ------------------------------------------
+   Markers are div icons so they follow the active theme instead of shipping
+   raster pins. Kept outside @layer components: Leaflet injects its own styles
+   at runtime and these must win. */
+.adcet-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary) / 0.9);
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 2px 8px hsl(0 0% 0% / 0.25);
+  transition: transform 0.15s ease;
+}
+
+.adcet-pin:hover {
+  transform: scale(1.08);
+}
+
+.adcet-pin--cluster {
+  background: hsl(var(--accent) / 0.92);
+  color: hsl(var(--accent-foreground));
+  font-size: 0.8125rem;
+}
+
+.adcet-pin--campus {
+  background: hsl(var(--background));
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  font-size: 1rem;
+}
+
+/* Neutralise the library's default cluster chrome — we supply our own icon. */
+.leaflet-container .marker-cluster,
+.leaflet-container .marker-cluster div {
+  background: transparent;
+}
+
+.leaflet-container {
+  background: hsl(var(--muted));
+  font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.leaflet-popup-content {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}

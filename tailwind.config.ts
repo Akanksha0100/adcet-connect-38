@@ -93,6 +93,12 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
+        // Continuous right-to-left ticker; the track renders its content twice
+        // so shifting by one copy loops seamlessly.
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -100,6 +106,7 @@ export default {
         "fade-in": "fade-in 0.4s ease-out",
         "slide-in-left": "slide-in-left 0.3s ease-out",
         "scale-in": "scale-in 0.3s ease-out",
+        marquee: "marquee 40s linear infinite",
       },
     },
   },

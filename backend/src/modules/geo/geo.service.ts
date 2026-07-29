@@ -15,6 +15,13 @@ export const cities = async () => {
     .sort((a, b) => b.count - a.count);
 };
 
+/**
+ * City counts for the public alumni map. Same aggregation as `cities()` but
+ * exposed without a session, so it deliberately returns nothing beyond a city
+ * name and a headcount — no names, employers or profile identifiers.
+ */
+export const publicCities = async () => cities();
+
 export const companies = async () => {
   const grouped = await prisma.profile.groupBy({
     by: ["currentCompany"],

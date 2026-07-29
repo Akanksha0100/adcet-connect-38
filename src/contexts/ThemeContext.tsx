@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api } from "@/lib/api";
+import { api, tokenStore } from "@/lib/api";
 
 export const THEMES = [
   { id: "default", label: "Default", colors: ["#1e3a5f", "#2d8a6e"] },
@@ -64,21 +64,30 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  /**
+   * Fire-and-forget backend sync. Anonymous visitors on the public pages have no
+   * session, so skip the call rather than let a 401 clear tokens and raise
+   * `adcet:auth-expired` — their choice still persists in localStorage.
+   */
+  const syncPreference = (patch: Record<string, unknown>) => {
+    if (!tokenStore.get()?.accessToken) return;
+    api.patch("/profiles/me/preferences", patch).catch(() => {});
+  };
+
   const setTheme = useCallback((theme: ThemeId) => {
     setState((prev) => ({ ...prev, theme }));
-    // Fire-and-forget backend sync
-    api.patch("/profiles/me/preferences", { theme }).catch(() => {});
+    syncPreference({ theme });
   }, []);
 
   const setDarkMode = useCallback((darkMode: boolean) => {
     setState((prev) => ({ ...prev, darkMode }));
-    api.patch("/profiles/me/preferences", { darkMode }).catch(() => {});
+    syncPreference({ darkMode });
   }, []);
 
   const toggleDarkMode = useCallback(() => {
     setState((prev) => {
       const darkMode = !prev.darkMode;
-      api.patch("/profiles/me/preferences", { darkMode }).catch(() => {});
+      syncPreference({ darkMode });
       return { ...prev, darkMode };
     });
   }, []);

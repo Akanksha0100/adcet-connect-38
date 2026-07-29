@@ -1,5 +1,31 @@
 import "@testing-library/jest-dom";
 
+// jsdom ships no IntersectionObserver; framer-motion's `whileInView` needs one.
+// The stub reports elements as immediately visible so scroll-reveal sections render.
+class MockIntersectionObserver implements IntersectionObserver {
+  readonly root = null;
+  readonly rootMargin = "";
+  readonly thresholds: ReadonlyArray<number> = [];
+  constructor(private callback: IntersectionObserverCallback) {}
+  observe(target: Element) {
+    this.callback(
+      [{ isIntersecting: true, target } as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver,
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] {
+    return [];
+  }
+}
+window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
+globalThis.IntersectionObserver = window.IntersectionObserver;
+
+// jsdom has no layout engine, so scrolling is a no-op rather than an error.
+window.scrollTo = () => {};
+Element.prototype.scrollIntoView = () => {};
+
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: (query: string) => ({
