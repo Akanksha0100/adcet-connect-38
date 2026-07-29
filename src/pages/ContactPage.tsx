@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Globe, Clock, ArrowLeft } from "lucide-react";
+import { MapPin, Phone, Mail, Globe, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PublicLayout from "@/components/public/PublicLayout";
 
 const contacts = [
   { icon: MapPin, label: "Address", value: "Ashta, Taluka Walwa, Dist. Sangli, Maharashtra 416 301", link: "https://maps.google.com/?q=Annasaheb+Dange+College+Ashta" },
@@ -14,16 +15,7 @@ const contacts = [
 
 export default function ContactPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 h-14 border-b border-border bg-card/95 backdrop-blur flex items-center px-6 gap-3">
-        <img src="/logo.jpeg" alt="ADCET" className="w-8 h-8 rounded-lg object-cover" />
-        <span className="font-bold text-sm hidden sm:inline">ADCET Alumni Portal</span>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild><Link to="/"><ArrowLeft className="h-3.5 w-3.5 mr-1" />Home</Link></Button>
-          <Button size="sm" asChild><Link to="/login">Sign In</Link></Button>
-        </div>
-      </header>
-
+    <PublicLayout>
       <section className="hero-gradient py-14 px-6 text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-xl mx-auto">
           <h1 className="text-3xl font-bold text-primary-foreground mb-2">Contact Us</h1>
@@ -70,9 +62,6 @@ export default function ContactPage() {
         </motion.section>
       </div>
 
-      <footer className="border-t border-border bg-card py-6 px-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Annasaheb Dange College of Engineering and Technology (ADCET), Ashta. All Rights Reserved.
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }

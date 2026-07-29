@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { MapPin, Phone, Mail, Globe, ArrowLeft, Quote, Award } from "lucide-react";
+import { MapPin, Phone, Mail, Globe, Quote, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PublicLayout from "@/components/public/PublicLayout";
 
 const accreditations = [
   { label: "NAAC Grade", value: "A++" },
@@ -51,16 +52,7 @@ const placementStats = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="sticky top-0 z-50 h-14 border-b border-border bg-card/95 backdrop-blur flex items-center px-6 gap-3">
-        <img src="/logo.jpeg" alt="ADCET" className="w-8 h-8 rounded-lg object-cover" />
-        <span className="font-bold text-sm hidden sm:inline">ADCET Alumni Portal</span>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild><Link to="/"><ArrowLeft className="h-3.5 w-3.5 mr-1" />Home</Link></Button>
-          <Button size="sm" asChild><Link to="/login">Sign In</Link></Button>
-        </div>
-      </header>
-
+    <PublicLayout>
       {/* Hero */}
       <section className="hero-gradient py-16 px-6 text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="max-w-2xl mx-auto">
@@ -237,9 +229,6 @@ export default function AboutPage() {
         </motion.section>
       </div>
 
-      <footer className="border-t border-border bg-card py-6 px-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Annasaheb Dange College of Engineering and Technology (ADCET), Ashta. All Rights Reserved.
-      </footer>
-    </div>
+    </PublicLayout>
   );
 }
