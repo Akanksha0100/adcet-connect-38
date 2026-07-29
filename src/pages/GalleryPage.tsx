@@ -42,10 +42,10 @@ export default function GalleryPage() {
   const album = selected ? GALLERY_ALBUMS[selected.album] : null;
 
   return (
-    <PublicLayout>
+    <PublicLayout title="Gallery">
       <PageHero
         title="Gallery"
-        subtitle={`Moments from alumni meets, chapter events and campus reunions — ${totalPhotos} photographs`}
+        subtitle={`Moments from alumni meets, chapter events and campus reunions`}
       />
 
       <div className="max-w-5xl mx-auto px-6 py-14 space-y-16">
@@ -77,10 +77,10 @@ export default function GalleryPage() {
                   {a.location}
                 </span>
               )}
-              <span className="flex items-center gap-1.5">
+              {/* <span className="flex items-center gap-1.5">
                 <ImageIcon className="h-3.5 w-3.5" />
                 {a.files.length} photos
-              </span>
+              </span> */}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">

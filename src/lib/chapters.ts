@@ -8,8 +8,9 @@
 export interface Chapter {
   slug: string;
   name: string;
-  city: string;
   blurb: string;
+  /** Tailwind gradient classes evoking the city, used for the card header. */
+  accent: string;
   joinHref: string | null;
 }
 
@@ -17,25 +18,25 @@ export const CHAPTERS: Chapter[] = [
   {
     slug: "pune",
     name: "Pune Chapter",
-    city: "Pune, Maharashtra",
     blurb:
       "Our largest regional community — IT, automotive and manufacturing professionals who meet through reunions, tech talks and referral drives.",
+    accent: "from-orange-500 to-amber-400",
     joinHref: null,
   },
   {
     slug: "mumbai",
     name: "Mumbai Chapter",
-    city: "Mumbai, Maharashtra",
     blurb:
       "Alumni across finance, infrastructure, consulting and media in the MMR, connecting juniors to opportunities in the country's commercial capital.",
+    accent: "from-cyan-500 to-sky-400",
     joinHref: null,
   },
   {
     slug: "bangalore",
     name: "Bangalore Chapter",
-    city: "Bengaluru, Karnataka",
     blurb:
       "Engineers, founders and researchers in India's technology hub, driving mentorship, internships and startup collaboration for ADCET students.",
+    accent: "from-emerald-500 to-lime-400",
     joinHref: null,
   },
 ];

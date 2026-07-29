@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Globe2, Info, MapPin, Users } from "lucide-react";
+import { Info, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import PublicLayout from "@/components/public/PublicLayout";
@@ -25,7 +25,7 @@ export default function AlumniMapPage() {
     queryFn: () => api.get<CityAgg[]>("/geo/public/cities", undefined, { anonymous: true }),
   });
 
-  const { mapped, unmapped, totals } = useMemo(() => {
+  const { mapped, unmapped } = useMemo(() => {
     const rows = data ?? [];
     const mapped: MappedCity[] = [];
     const unmapped: CityAgg[] = [];
@@ -37,50 +37,17 @@ export default function AlumniMapPage() {
     }
     mapped.sort((a, b) => b.count - a.count);
 
-    return {
-      mapped,
-      unmapped,
-      totals: {
-        alumni: rows.reduce((s, r) => s + r.count, 0),
-        cities: rows.length,
-        regions: new Set(mapped.map((m) => m.region)).size,
-      },
-    };
+    return { mapped, unmapped };
   }, [data]);
 
-  const stats = [
-    { icon: Users, value: totals.alumni.toLocaleString(), label: "Alumni on the map" },
-    { icon: MapPin, value: totals.cities.toLocaleString(), label: "Cities" },
-    { icon: Globe2, value: totals.regions.toLocaleString(), label: "States & countries" },
-  ];
-
   return (
-    <PublicLayout>
+    <PublicLayout title="Alumni Map">
       <PageHero
         title="Alumni Around the World"
         subtitle="Zoom out to see alumni grouped by region; zoom in to spread them back to their cities."
       />
 
       <div className="max-w-6xl mx-auto px-6 py-14 space-y-10">
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {stats.map((s) => (
-            <div key={s.label} className="flex items-center gap-3 border border-border rounded-xl p-5 bg-card">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <s.icon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                {isLoading ? (
-                  <Skeleton className="h-6 w-16" />
-                ) : (
-                  <p className="text-xl font-bold text-foreground">{s.value}</p>
-                )}
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* Map */}
         <motion.section initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           {isLoading ? (
@@ -105,7 +72,7 @@ export default function AlumniMapPage() {
           )}
         </motion.section>
 
-        {/* Cities */}
+        {/* Cities
         {!isLoading && !isError && mapped.length > 0 && (
           <section>
             <h2 className="text-xl sm:text-2xl font-bold mb-2">Where Our Alumni Are</h2>
@@ -135,7 +102,7 @@ export default function AlumniMapPage() {
               </p>
             )}
           </section>
-        )}
+        )} */}
 
         {!isLoading && !isError && mapped.length === 0 && (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">

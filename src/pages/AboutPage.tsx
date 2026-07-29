@@ -9,17 +9,6 @@ import { BOARD_MEMBERS, initialsOf } from "@/lib/board";
 import { ALUMNI_COUNT, ALUMNI_COUNT_YEARS, TOTAL_ALUMNI } from "@/lib/alumni-count";
 import { NEWSLETTERS, CONTACT } from "@/lib/site";
 
-const accreditations = [
-  { label: "NAAC Grade", value: "A++" },
-  { label: "Established", value: "1999" },
-  { label: "Campus", value: "32 Acres" },
-  { label: "Affiliation", value: "Shivaji University" },
-  { label: "Approval", value: "AICTE, New Delhi" },
-  { label: "Quality", value: "ISO 9001:2015" },
-  { label: "Programmes", value: "NBA Accredited" },
-  { label: "DTE Code", value: "06283" },
-];
-
 const fade = {
   initial: { opacity: 0, y: 12 },
   whileInView: { opacity: 1, y: 0 },
@@ -31,7 +20,7 @@ const cell = (v: number | null) => (v === null ? "–" : v.toLocaleString());
 
 export default function AboutPage() {
   return (
-    <PublicLayout>
+    <PublicLayout title="About the Alumni Cell">
       <PageHero
         title="About the Alumni Cell"
         subtitle="Annasaheb Dange College of Engineering and Technology, Ashta"
@@ -52,14 +41,14 @@ export default function AboutPage() {
 
         {/* Vision & Mission */}
         <motion.section {...fade} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="border border-border rounded-xl p-6 bg-card">
+          <div className="border border-border rounded-xl p-6 bg-muted/20">
             <div className="flex items-center gap-2 mb-3">
               <Compass className="h-5 w-5 text-primary" />
               <h3 className="font-bold text-lg">Vision</h3>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">{ALUMNI_CELL.vision}</p>
           </div>
-          <div className="border border-border rounded-xl p-6 bg-card">
+          <div className="border border-border rounded-xl p-6 bg-muted/20">
             <div className="flex items-center gap-2 mb-3">
               <Target className="h-5 w-5 text-primary" />
               <h3 className="font-bold text-lg">Mission</h3>
@@ -211,35 +200,6 @@ export default function AboutPage() {
                 </div>
                 <Download className="h-4 w-4 text-muted-foreground shrink-0" />
               </a>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* About the institute */}
-        <motion.section {...fade}>
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">About ADCET</h2>
-          <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <div className="space-y-3 text-sm text-muted-foreground leading-relaxed text-justify">
-            <p>
-              Annasaheb Dange College of Engineering and Technology (ADCET), Ashta is one of the iconic institutions
-              of higher technical education in Western Maharashtra. Founded in 1999 by Hon. Shri. Annasaheb Dange
-              under the aegis of Sant Dnyaneshwar Shikshan Sanstha (SDSS), the college was established with a
-              singular vision — to bring quality technical education to the rural heartland of Maharashtra and
-              transform the aspirations of its youth into reality.
-            </p>
-            <p>
-              Spread across a 32-acre campus about 20 km from Sangli city, ADCET is an Empowered Autonomous institute
-              affiliated to Shivaji University, Kolhapur, approved by AICTE, New Delhi and the Government of
-              Maharashtra. It is NAAC accredited with the "A++" grade, ISO 9001:2015 certified, and runs programmes
-              accredited by NBA, New Delhi.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-            {accreditations.map((a) => (
-              <div key={a.label} className="border border-border rounded-xl p-4 text-center hover:border-primary/30 transition-colors">
-                <p className="font-semibold text-sm text-foreground">{a.value}</p>
-                <p className="text-xs text-muted-foreground mt-1">{a.label}</p>
-              </div>
             ))}
           </div>
         </motion.section>

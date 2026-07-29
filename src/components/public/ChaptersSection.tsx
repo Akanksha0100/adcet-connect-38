@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, MapPin } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { CHAPTERS } from "@/lib/chapters";
@@ -28,12 +28,10 @@ export default function ChaptersSection() {
               transition={{ delay: i * 0.08 }}
               className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
             >
-              <div className="h-24 hero-gradient relative flex items-end p-5">
-                <MapPin className="h-5 w-5 text-white/80 absolute top-5 right-5" />
-                <h3 className="text-lg font-semibold text-white">{c.name}</h3>
+              <div className={`h-24 bg-gradient-to-br ${c.accent} flex items-end p-5`}>
+                <h3 className="text-lg font-semibold text-white drop-shadow-sm">{c.name}</h3>
               </div>
               <div className="p-5 flex flex-col flex-1">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide mb-2">{c.city}</p>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">{c.blurb}</p>
                 {c.joinHref ? (
                   <Button size="sm" className="mt-5 w-full gap-1.5" asChild>

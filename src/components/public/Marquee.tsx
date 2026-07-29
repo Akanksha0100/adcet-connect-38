@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Single-row ticker that glides its content left-to-right without stopping.
+ * Single-row ticker that glides its content right-to-left without stopping.
  * The row is rendered twice so the loop is seamless, masked at both edges, and
  * paused while the pointer is over it so a visitor can read or click a card.
  */

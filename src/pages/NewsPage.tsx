@@ -67,7 +67,7 @@ const news: NewsItem[] = [
 
 export default function NewsPage() {
   return (
-    <PublicLayout>
+    <PublicLayout title="News & Announcements">
       <PageHero
         title="News & Announcements"
         subtitle="Updates from the ADCET campus and the alumni community"
@@ -78,12 +78,12 @@ export default function NewsPage() {
         <motion.section {...fade}>
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Latest Updates</h2>
           <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {news.map((n) => (
               <motion.article
                 key={n.title}
                 {...fade}
-                className="flex flex-col border border-border rounded-xl p-6 bg-card hover:border-primary/40 hover:shadow-md transition-all"
+                className="border border-border rounded-xl p-6 hover:border-primary/40 transition-colors"
               >
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
@@ -92,7 +92,7 @@ export default function NewsPage() {
                   <span className="text-xs text-muted-foreground">{n.date}</span>
                 </div>
                 <h3 className="font-semibold text-foreground leading-snug mb-2">{n.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed flex-1">{n.body}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{n.body}</p>
                 {n.link && (
                   <a
                     href={n.link}

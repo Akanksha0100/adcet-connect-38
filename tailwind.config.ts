@@ -93,11 +93,11 @@ export default {
           from: { opacity: "0", transform: "scale(0.95)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
-        // Continuous left-to-right ticker; the track renders its content twice
+        // Continuous right-to-left ticker; the track renders its content twice
         // so shifting by one copy loops seamlessly.
         marquee: {
-          from: { transform: "translateX(-50%)" },
-          to: { transform: "translateX(0)" },
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
         },
       },
       animation: {

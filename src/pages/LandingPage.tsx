@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Users, Briefcase, Calendar, Trophy, Quote, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Trophy, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import HeroSlideshow from "@/components/public/HeroSlideshow";
@@ -16,17 +16,10 @@ import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 
 const stats = [
-  { value: "28", label: "Years of Excellence" },
-  { value: "11,256", label: "Total Alumni" },
-  { value: "12", label: "Departments" },
-  { value: "3", label: "Alumni Chapters" },
-];
-
-const features = [
-  { icon: Users, title: "Alumni Directory", desc: "Search and connect with graduates across industries, cities and batches." },
-  { icon: Briefcase, title: "Jobs Board", desc: "Explore opportunities posted by ADCET alumni and top recruiters." },
-  { icon: Calendar, title: "Events", desc: "Reunions, tech talks, placement drives and college cultural events." },
-  { icon: Trophy, title: "Achievements", desc: "Celebrate milestones — promotions, patents, publications and more." },
+  { value: "28+", label: "Years of Excellence" },
+  { value: "11,256+", label: "Total Alumni" },
+  { value: "12+", label: "Departments" },
+  { value: "3+", label: "Alumni Chapters" },
 ];
 
 
@@ -66,12 +59,13 @@ function AchievementsSlider() {
   const go = (dir: number) => setIndex((i) => (i + dir + items.length) % items.length);
 
   return (
-    <section className="py-16 px-6 bg-card border-b border-border">
+    <section className="py-16 px-6 bg-background border-b border-border">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold mb-2 flex items-center justify-center gap-2">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3 flex items-center justify-center gap-2">
             <Trophy className="h-6 w-6 text-primary" /> Alumni Achievements
           </h2>
+          <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-4" />
           <p className="text-muted-foreground text-sm">Celebrating the milestones of our community</p>
         </div>
 
@@ -156,10 +150,10 @@ export default function LandingPage() {
           <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-2xl ring-4 ring-white/25">
             <img src="/logo.jpeg" alt="ADCET" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3 leading-tight drop-shadow">ADCET Alumni Portal</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 leading-tight drop-shadow">ADCET Alumni Portal</h1>
           <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology</p>
-          <p className="text-white/70 text-sm mb-2">Ashta, Dist. Sangli, Maharashtra — Established 1999</p>
-          <p className="text-white/80 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p>
+          <p className="text-white/70 text-sm mb-2">Established 1999</p>
+          {/* <p className="text-white/80 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p> */}
           <div className="flex flex-wrap justify-center gap-2 text-xs text-white/80 mb-9">
             {["NAAC A++", "NBA Accredited", "ISO 9001:2015", "AICTE Approved", "Autonomous · Shivaji University"].map(b => (
               <span key={b} className="bg-white/10 border border-white/25 px-3 py-1 rounded-full backdrop-blur-sm">{b}</span>
@@ -266,26 +260,6 @@ export default function LandingPage() {
 
       {/* Alumni Achievements slider (auto-latest approved) */}
       <AchievementsSlider />
-
-      {/* Features */}
-      <section className="py-16 px-6 bg-card">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-2">Everything for Our Alumni Community</h2>
-          <p className="text-center text-muted-foreground text-sm mb-10">One platform to reconnect, grow, and give back</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {features.map((f) => (
-              <motion.div key={f.title} initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                className="border border-border rounded-xl p-6 space-y-2 hover:border-primary/30 transition-colors">
-                <div className="w-10 h-10 rounded-lg hero-gradient flex items-center justify-center mb-3">
-                  <f.icon className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h3 className="font-semibold">{f.title}</h3>
-                <p className="text-sm text-muted-foreground">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Testimonials */}
       <TestimonialsSection />

@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import ThemeSwitcher from "@/components/ThemeSwitcher";
+import { useTheme } from "@/contexts/ThemeContext";
 import { PUBLIC_NAV, CONTACT } from "@/lib/site";
 
 export default function PublicHeader() {
   const [open, setOpen] = useState(false);
+  const { darkMode, toggleDarkMode } = useTheme();
   const { pathname } = useLocation();
   const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
 
@@ -14,11 +17,11 @@ export default function PublicHeader() {
     <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
       <div className="mx-auto max-w-6xl h-16 px-4 sm:px-6 flex items-center gap-3">
         {/* Brand — always returns to the landing page. */}
-        <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
-          <img src="/logo.jpeg" alt="ADCET" className="w-9 h-9 rounded-lg object-cover ring-1 ring-border" />
-          <span className="flex flex-col leading-tight">
-            <span className="font-semibold text-sm group-hover:text-primary transition-colors">ADCET Alumni Portal</span>
-            <span className="hidden sm:block text-[11px] text-muted-foreground">Ashta, Dist. Sangli</span>
+        <Link to="/" className="flex items-center gap-2.5 min-w-0 group">
+          <img src="/logo.jpeg" alt="ADCET" className="w-9 h-9 rounded-lg object-cover ring-1 ring-border shrink-0" />
+          <span className="flex flex-col leading-tight min-w-0">
+            <span className="font-semibold text-[13px] sm:text-sm truncate group-hover:text-primary transition-colors">ADCET Alumni Portal</span>
+            <span className="hidden sm:block text-[11px] text-muted-foreground">Ashta, Sangli</span>
           </span>
         </Link>
 
@@ -44,7 +47,17 @@ export default function PublicHeader() {
           </a>
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            onClick={toggleDarkMode}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </Button>
+          <ThemeSwitcher />
           <Button variant="ghost" size="sm" className="hidden sm:inline-flex" asChild>
             <Link to="/login">Sign In</Link>
           </Button>

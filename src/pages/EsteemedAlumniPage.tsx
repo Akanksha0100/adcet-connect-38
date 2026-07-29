@@ -34,14 +34,14 @@ function AlumnusCard({ a }: { a: EsteemedAlumnus }) {
 
 export default function EsteemedAlumniPage() {
   return (
-    <PublicLayout>
+    <PublicLayout title="Esteemed Alumni">
       <PageHero
         title="Esteemed Alumni"
         subtitle="Graduates whose achievements in industry, enterprise and public service carry the ADCET name forward."
       />
 
       {/* Composite board — full width so the individual portraits inside stay legible. */}
-      <section className="bg-muted/30 border-b border-border">
+      <section className="bg-background border-b border-border">
         <img
           src={ESTEEMED_GENERAL_IMAGE}
           alt="ADCET esteemed alumni"

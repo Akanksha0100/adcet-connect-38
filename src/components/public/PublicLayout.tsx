@@ -24,9 +24,19 @@ function useScrollTarget() {
   }, [pathname, hash]);
 }
 
+interface Props {
+  children: ReactNode;
+  /** Page name; becomes "<title> · ADCET Alumni Portal" in the browser tab. */
+  title?: string;
+}
+
 /** Shared chrome for every non-authenticated page. */
-export default function PublicLayout({ children }: { children: ReactNode }) {
+export default function PublicLayout({ children, title }: Props) {
   useScrollTarget();
+
+  useEffect(() => {
+    document.title = title ? `${title} · ADCET Alumni Portal` : "ADCET Alumni Portal";
+  }, [title]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">

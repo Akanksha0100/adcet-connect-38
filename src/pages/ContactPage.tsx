@@ -1,7 +1,5 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { Clock, Globe, Mail, MapPin, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
 import SocialLinks from "@/components/public/SocialLinks";
@@ -13,95 +11,94 @@ const fade = {
   viewport: { once: true },
 };
 
-const details = [
-  {
-    icon: MapPin,
-    label: "Address",
-    lines: [CONTACT.society, "Annasaheb Dange College of Engineering and Technology", CONTACT.address],
-    href: CONTACT.mapsUrl,
-  },
-  {
-    icon: Phone,
-    label: "Contact No.",
-    lines: [CONTACT.phones.join(" / ")],
-    href: `tel:+91${CONTACT.phones[0]}`,
-  },
-  {
-    icon: Mail,
-    label: "Email",
-    lines: [CONTACT.email],
-    href: `mailto:${CONTACT.email}`,
-  },
-  {
-    icon: Clock,
-    label: "Office Hours",
-    lines: [CONTACT.officeHours],
-    href: null,
-  },
-  {
-    icon: Globe,
-    label: "Website",
-    lines: [CONTACT.websiteLabel],
-    href: CONTACT.website,
-  },
-];
-
 export default function ContactPage() {
   return (
-    <PublicLayout>
-      <PageHero
-        title="Contact Us"
-        subtitle="Reach the ADCET Alumni Cell for membership, chapters, events and portal support"
-      />
+    <PublicLayout title="Contact Us">
+      <PageHero title="Contact Us" subtitle="ADCET Alumni Cell, Ashta" />
 
       <div className="max-w-5xl mx-auto px-6 py-14 space-y-16">
-        {/* Details */}
         <motion.section {...fade}>
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Alumni Cell</h2>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Get in Touch</h2>
           <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {details.map((d) => (
-              <div
-                key={d.label}
-                className="border border-border rounded-xl p-5 bg-card hover:border-primary/40 transition-colors"
-              >
-                <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide mb-2.5">
-                  <d.icon className="h-3.5 w-3.5" />
-                  {d.label}
-                </div>
-                {d.href ? (
-                  <a
-                    href={d.href}
-                    target={d.href.startsWith("http") ? "_blank" : undefined}
-                    rel="noopener noreferrer"
-                    className="text-sm text-foreground hover:text-primary transition-colors leading-relaxed block"
-                  >
-                    {d.lines.map((l) => (
-                      <span key={l} className="block">
-                        {l}
-                      </span>
-                    ))}
-                  </a>
-                ) : (
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {d.lines.map((l) => (
-                      <span key={l} className="block">
-                        {l}
-                      </span>
-                    ))}
-                  </p>
-                )}
-              </div>
-            ))}
 
-            <div className="border border-border rounded-xl p-5 bg-card">
-              <p className="text-muted-foreground text-xs font-medium uppercase tracking-wide mb-3">Follow Us</p>
-              <SocialLinks />
+          <dl className="divide-y divide-border border-y border-border">
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-4 py-4">
+              <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="h-4 w-4 shrink-0" />
+                Address
+              </dt>
+              <dd className="text-sm text-foreground leading-relaxed">
+                {CONTACT.society}
+                <br />
+                Annasaheb Dange College of Engineering and Technology,
+                <br />
+                {CONTACT.address}
+              </dd>
             </div>
-          </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-4 py-4">
+              <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Phone className="h-4 w-4 shrink-0" />
+                Contact No.
+              </dt>
+              <dd className="text-sm text-foreground">
+                {CONTACT.phones.map((p, i) => (
+                  <span key={p}>
+                    <a href={`tel:+91${p}`} className="hover:text-primary transition-colors">
+                      {p}
+                    </a>
+                    {i < CONTACT.phones.length - 1 && " / "}
+                  </span>
+                ))}
+              </dd>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-4 py-4">
+              <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail className="h-4 w-4 shrink-0" />
+                Email
+              </dt>
+              <dd className="text-sm text-foreground">
+                <a href={`mailto:${CONTACT.email}`} className="hover:text-primary transition-colors">
+                  {CONTACT.email}
+                </a>
+              </dd>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-4 py-4">
+              <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 shrink-0" />
+                Office Hours
+              </dt>
+              <dd className="text-sm text-foreground">{CONTACT.officeHours}</dd>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-4 py-4">
+              <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Globe className="h-4 w-4 shrink-0" />
+                Website
+              </dt>
+              <dd className="text-sm text-foreground">
+                <a
+                  href={CONTACT.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  {CONTACT.websiteLabel}
+                </a>
+              </dd>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-2 sm:gap-4 py-4 items-center">
+              <dt className="text-sm text-muted-foreground">Follow Us</dt>
+              <dd>
+                <SocialLinks />
+              </dd>
+            </div>
+          </dl>
         </motion.section>
 
-        {/* Map */}
         <motion.section {...fade}>
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Find Us</h2>
           <div className="w-14 h-0.5 bg-primary/50 mb-6" />
@@ -122,53 +119,6 @@ export default function ContactPage() {
           >
             Open in Google Maps ↗
           </a>
-        </motion.section>
-
-        {/* Support */}
-        <motion.section {...fade}>
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Portal Support</h2>
-          <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <div className="bg-muted/30 border border-border rounded-xl p-6 text-sm text-muted-foreground space-y-3">
-            <p>Trouble with your account, registration or portal access? Here's the quickest way to get help:</p>
-            <ul className="list-disc ml-5 space-y-1.5">
-              <li>
-                Email{" "}
-                <a href={`mailto:${CONTACT.email}`} className="text-foreground hover:underline">
-                  {CONTACT.email}
-                </a>{" "}
-                with the subject "Portal Support"
-              </li>
-              <li>
-                Call{" "}
-                {CONTACT.phones.map((p, i) => (
-                  <span key={p}>
-                    <a href={`tel:+91${p}`} className="text-foreground hover:underline">
-                      {p}
-                    </a>
-                    {i < CONTACT.phones.length - 1 ? " / " : ""}
-                  </span>
-                ))}{" "}
-                during office hours
-              </li>
-              <li>Once signed in, raise a support request from your dashboard for the fastest response</li>
-            </ul>
-          </div>
-        </motion.section>
-
-        {/* CTA */}
-        <motion.section {...fade} className="border border-border rounded-2xl p-8 text-center bg-muted/20">
-          <h2 className="text-xl font-bold mb-2">Already Registered?</h2>
-          <p className="text-muted-foreground text-sm mb-6 max-w-lg mx-auto">
-            Sign in to access the full alumni portal — events, jobs board, alumni directory, achievements and more.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button asChild>
-              <Link to="/login">Sign In to Your Account</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link to="/about">About the Alumni Cell</Link>
-            </Button>
-          </div>
         </motion.section>
       </div>
     </PublicLayout>
