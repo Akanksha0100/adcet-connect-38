@@ -54,6 +54,11 @@ export default function PublicFooter() {
               </li>
             ))}
             <li>
+              <Link to="/esteemed-alumni" className="hover:text-foreground transition-colors">
+                Esteemed Alumni
+              </Link>
+            </li>
+            <li>
               <Link to="/login" className="hover:text-foreground transition-colors">
                 Alumni Login
               </Link>

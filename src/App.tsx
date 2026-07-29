@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import NewsPage from "./pages/NewsPage";
+import EsteemedAlumniPage from "./pages/EsteemedAlumniPage";
 import SupportPage from "./pages/SupportPage";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/news" element={<NewsPage />} />
+              <Route path="/esteemed-alumni" element={<EsteemedAlumniPage />} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />

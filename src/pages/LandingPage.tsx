@@ -9,6 +9,7 @@ import HeroSlideshow from "@/components/public/HeroSlideshow";
 import SocialLinks from "@/components/public/SocialLinks";
 import BoardStrip from "@/components/public/BoardStrip";
 import ChaptersSection from "@/components/public/ChaptersSection";
+import EsteemedStrip from "@/components/public/EsteemedStrip";
 import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
@@ -272,6 +273,9 @@ export default function LandingPage() {
 
       {/* Regional chapters */}
       <ChaptersSection />
+
+      {/* Esteemed alumni */}
+      <EsteemedStrip />
 
       {/* Alumni Achievements slider (auto-latest approved) */}
       <AchievementsSlider />
