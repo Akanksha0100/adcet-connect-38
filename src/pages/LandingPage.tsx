@@ -5,15 +5,17 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Users, Briefcase, Calendar, Trophy, Quote, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
+import HeroSlideshow from "@/components/public/HeroSlideshow";
+import SocialLinks from "@/components/public/SocialLinks";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 import { DEPARTMENTS as departments } from "@/lib/departments";
 
 const stats = [
-  { value: "25+", label: "Years of Excellence" },
-  { value: "90+", label: "Recruiting Companies" },
-  { value: "512+", label: "Placed (2024–25)" },
-  { value: "40 LPA", label: "Highest Package" },
+  { value: "28", label: "Years of Excellence" },
+  { value: "11,256", label: "Total Alumni" },
+  { value: "12", label: "Departments" },
+  { value: "3", label: "Alumni Chapters" },
 ];
 
 const features = [
@@ -157,31 +159,32 @@ function AchievementsSlider() {
 export default function LandingPage() {
   return (
     <PublicLayout>
-      {/* Hero */}
-      <section className="hero-gradient py-20 px-6 text-center">
+      {/* Hero — campus photos slide behind the portal identity */}
+      <HeroSlideshow className="flex items-center min-h-[560px] md:min-h-[calc(100svh-4rem)] px-6 py-20 text-center">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="max-w-3xl mx-auto">
-          <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-xl ring-4 ring-white/20">
+          <div className="w-24 h-24 rounded-2xl overflow-hidden mx-auto mb-6 shadow-2xl ring-4 ring-white/25">
             <img src="/logo.jpeg" alt="ADCET" className="w-full h-full object-cover" />
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold text-primary-foreground mb-3 leading-tight">ADCET Alumni Portal</h1>
-          <p className="text-primary-foreground/80 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology</p>
-          <p className="text-primary-foreground/60 text-sm mb-2">Ashta, Dist. Sangli, Maharashtra — Established 1999</p>
-          <p className="text-primary-foreground/70 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p>
-          <div className="flex flex-wrap justify-center gap-2 text-xs text-primary-foreground/70 mb-10">
+          <h1 className="text-4xl sm:text-5xl font-bold text-white mb-3 leading-tight drop-shadow">ADCET Alumni Portal</h1>
+          <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology</p>
+          <p className="text-white/70 text-sm mb-2">Ashta, Dist. Sangli, Maharashtra — Established 1999</p>
+          <p className="text-white/80 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p>
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-white/80 mb-9">
             {["NAAC A++", "NBA Accredited", "ISO 9001:2015", "AICTE Approved", "Autonomous · Shivaji University"].map(b => (
-              <span key={b} className="bg-white/10 border border-white/20 px-3 py-1 rounded-full">{b}</span>
+              <span key={b} className="bg-white/10 border border-white/25 px-3 py-1 rounded-full backdrop-blur-sm">{b}</span>
             ))}
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="bg-white text-primary hover:bg-white/90 gap-2 shadow-lg" asChild>
               <Link to="/login">Join the Alumni Network <ArrowRight className="h-4 w-4" /></Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white/30 text-primary-foreground hover:bg-white/10" asChild>
+            <Button size="lg" variant="outline" className="border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white backdrop-blur-sm" asChild>
               <Link to="/about">Explore ADCET</Link>
             </Button>
           </div>
+          <SocialLinks tone="light" className="justify-center mt-9" />
         </motion.div>
-      </section>
+      </HeroSlideshow>
 
       {/* Stats */}
       <section className="py-12 px-6 bg-card border-b border-border">
