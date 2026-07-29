@@ -10,10 +10,10 @@ import SocialLinks from "@/components/public/SocialLinks";
 import BoardStrip from "@/components/public/BoardStrip";
 import ChaptersSection from "@/components/public/ChaptersSection";
 import EsteemedStrip from "@/components/public/EsteemedStrip";
+import TestimonialsSection from "@/components/public/TestimonialsSection";
 import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
-import { DEPARTMENTS as departments } from "@/lib/departments";
 
 const stats = [
   { value: "28", label: "Years of Excellence" },
@@ -27,19 +27,6 @@ const features = [
   { icon: Briefcase, title: "Jobs Board", desc: "Explore opportunities posted by ADCET alumni and top recruiters." },
   { icon: Calendar, title: "Events", desc: "Reunions, tech talks, placement drives and college cultural events." },
   { icon: Trophy, title: "Achievements", desc: "Celebrate milestones — promotions, patents, publications and more." },
-];
-
-const recruiters = [
-  "TCS", "Infosys", "Accenture", "Capgemini", "Tech Mahindra",
-  "Goldman Sachs", "Bosch", "Siemens", "Bharat Forge", "L&T",
-  "Wipro", "KPIT", "Persistant", "Schneider Electric", "HCL Tech",
-  "Mahindra & Mahindra", "ZF India", "Adani Group", "Amazon", "Tata Technologies",
-];
-
-const quotes = [
-  { text: "No youth, especially from a rural background, should be deprived of opportunities for growth.", author: "Shri. Annasaheb Dange", role: "Founder, ADCET" },
-  { text: "Scientists study the world as it is; engineers create the world that has never been.", author: "Theodore von Karman", role: "Aerospace Engineer" },
-  { text: "Engineering or technology is all about using the power of science to make life better for people.", author: "N. R. Narayana Murthy", role: "Co-founder, Infosys" },
 ];
 
 
@@ -300,58 +287,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Quotes carousel */}
-      <section className="py-16 px-6 bg-muted/30">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-10">Words That Inspire</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {quotes.map((q) => (
-              <motion.div key={q.author} initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
-                className="bg-card border border-border rounded-xl p-6 space-y-3">
-                <Quote className="h-5 w-5 text-primary/40" />
-                <p className="text-sm text-foreground leading-relaxed italic">"{q.text}"</p>
-                <div>
-                  <p className="text-xs font-semibold text-foreground">{q.author}</p>
-                  <p className="text-xs text-muted-foreground">{q.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Testimonials */}
+      <TestimonialsSection />
 
-      {/* Recruiters */}
-      <section className="py-16 px-6 bg-card">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-2">Our Recruiters</h2>
-          <p className="text-muted-foreground text-sm mb-8">90+ companies visited campus — from global MNCs to core engineering leaders</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {recruiters.map((r) => (
-              <span key={r} className="bg-muted text-muted-foreground text-sm px-4 py-1.5 rounded-full border border-border">{r}</span>
-            ))}
-          </div>
+      {/* CTA — campus photo backdrop, distinct from the hero gradient */}
+      <section className="relative isolate overflow-hidden py-20 px-6 text-center">
+        <div className="absolute inset-0 -z-10">
+          <img src="/adcet-back-2.png" alt="" aria-hidden="true" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-primary/85" />
         </div>
-      </section>
-
-      {/* Departments */}
-      <section className="py-16 px-6 bg-muted/30">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-2">12 Disciplines, One Campus</h2>
-          <p className="text-muted-foreground text-sm mb-8">Engineering, technology, management and science — all under one roof</p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {departments.map((d) => (
-              <span key={d} className="bg-card text-muted-foreground text-sm px-4 py-1.5 rounded-full border border-border">{d}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-16 px-6 hero-gradient text-center">
         <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="max-w-xl mx-auto">
-          <img src="/logo.jpeg" alt="ADCET" className="w-16 h-16 rounded-xl object-cover mx-auto mb-5 shadow-lg" />
-          <h2 className="text-2xl font-bold text-primary-foreground mb-2">Are You an ADCET Alumnus?</h2>
-          <p className="text-primary-foreground/70 text-sm mb-6">
+          <img src="/logo.jpeg" alt="ADCET" className="w-16 h-16 rounded-xl object-cover mx-auto mb-5 shadow-lg ring-2 ring-white/25" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Are You an ADCET Alumnus?</h2>
+          <p className="text-white/80 text-sm mb-7 leading-relaxed">
             Join thousands of ADCET graduates. Reconnect with batchmates, find career opportunities, attend events, and give back to the institution that shaped your career.
           </p>
           <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
