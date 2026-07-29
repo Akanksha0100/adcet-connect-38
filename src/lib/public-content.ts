@@ -23,6 +23,25 @@ export const DIRECTOR = {
   ],
 };
 
+/** Alumni Cell vision, mission and activities — as published by the institute. */
+export const ALUMNI_CELL = {
+  vision:
+    "To maintain a lifelong relationship with alumni through opportunities and benefits that promotes interaction and engagement with wits and facilitates their contribution to the advancement and success of the institute.",
+  mission: [
+    "To strengthen the relationship between institute and alumni.",
+    "To inspire alumni to contribute to the development of the institute and the promotion of its good name and reputation, locally and internationally.",
+    "To strengthen ties between the institute and alumni, and encourage them to participate in the various cultural, social and scientific activities.",
+    "To celebrate achievements of alumni motivating the current students.",
+  ],
+  activities: [
+    "Staying connected with alumni through e-mail, SMS and social networking.",
+    "Publishing and circulating the alumni newsletter.",
+    "Celebrating the achievements of alumni on campus.",
+    "Organising curricular, co-curricular and extracurricular activities with alumni.",
+    "Organising alumni reunion meetings and chapter events.",
+  ],
+};
+
 export const ALUMNI_NETWORK_MESSAGE = {
   title: "Welcome to the ADCET Alumni Network",
   paragraphs: [
