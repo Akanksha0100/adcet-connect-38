@@ -14,6 +14,9 @@ const eventBase = z.object({
   coverKey: z.string().optional(),
   attachmentKey: z.string().optional(),
   department: z.string().max(100).optional(),
+  /** Target chapter for notifications. Null/omitted = every chapter. */
+  chapterId: z.union([z.string().uuid(), z.null(), z.literal("")]).optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
 });
 
 const requireMeetingUrlWhenOnline = (d: {
@@ -39,6 +42,7 @@ export const eventListQuery = paginationSchema.extend({
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   upcoming: booleanQueryParam,
   department: z.string().optional(),
+  chapterId: z.string().uuid().optional(),
 });
 
 export const rsvpSchema = z.object({

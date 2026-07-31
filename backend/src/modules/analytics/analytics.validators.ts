@@ -8,11 +8,15 @@ export const insightsQuery = z.object({
   department: z.string().max(120).optional(),
 });
 
+/** A chapter id, or "none" to target alumni who haven't joined a chapter. */
+const chapterFilter = z.union([z.string().uuid(), z.literal("none")]).optional();
+
 /** Alumni filter criteria (shared by the analytics table and bulk email). */
 const alumniFilterFields = {
   q: z.string().optional(),
   branch: z.string().optional(),
   department: z.string().optional(),
+  chapterId: chapterFilter,
   graduationYear: z.coerce.number().int().min(1900).max(2100).optional(),
   degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
   city: z.string().optional(),
@@ -44,6 +48,7 @@ export const alumniAnalyticsQuery = paginationSchema.extend({
   q: z.string().optional(),
   branch: z.string().optional(),
   department: z.string().optional(),
+  chapterId: chapterFilter,
   graduationYear: z.coerce.number().int().min(1900).max(2100).optional(),
   degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
   city: z.string().optional(),

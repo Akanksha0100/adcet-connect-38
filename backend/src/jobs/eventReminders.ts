@@ -73,15 +73,21 @@ export const runEventReminders = async (): Promise<EventReminderResult> => {
     // 2. Send reminder to non-responders (alumni who haven't RSVP'd at all)
     const respondedUserIds = new Set(event.rsvps.map((r) => r.userId));
 
-    // Find alumni who should have been notified but haven't responded
+    // Find alumni who should have been notified but haven't responded.
+    // Mirrors the department AND chapter targeting used when the event was
+    // created, so reminders never reach anyone the original mail skipped.
+    const targetedProfile = {
+      ...(event.department && event.department !== "All" && { department: event.department }),
+      ...(event.chapterId && { chapterId: event.chapterId }),
+    };
+    const hasTargeting = Object.keys(targetedProfile).length > 0;
+
     const whereClause: any = {
       status: "APPROVED",
       roles: { some: { role: "ALUMNI" } },
       id: { notIn: Array.from(respondedUserIds) },
+      ...(hasTargeting && { profile: targetedProfile }),
     };
-    if (event.department && event.department !== "All") {
-      whereClause.profile = { department: event.department };
-    }
 
     const nonResponders = await prisma.user.findMany({
       where: whereClause,
@@ -117,9 +123,7 @@ export const runEventReminders = async (): Promise<EventReminderResult> => {
       where: {
         status: "APPROVED",
         roles: { some: { role: "ALUMNI" } },
-        ...(event.department && event.department !== "All"
-          ? { profile: { department: event.department } }
-          : {}),
+        ...(hasTargeting && { profile: targetedProfile }),
       },
       select: {
         email: true,

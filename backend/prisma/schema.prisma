@@ -110,6 +110,10 @@ model User {
   postComments    PostComment[]
   postReports     PostReport[]
 
+  // Chapter membership invitations (received / sent as an admin)
+  chapterInvitations     ChapterInvitation[] @relation("ChapterInvitee")
+  chapterInvitationsSent ChapterInvitation[] @relation("ChapterInviter")
+
   @@index([status])
 }
 
@@ -199,7 +203,12 @@ model Profile {
   currentCompany  String?
   currentRole     String?
 
+  /// Regional chapter the alumnus belongs to. A profile is in at most one
+  /// chapter at a time; switching simply repoints this column.
+  chapterId       String?
+
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter         Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   experiences     WorkExperience[]
   educations      Education[]
   skills          ProfileSkill[]
@@ -207,6 +216,67 @@ model Profile {
   @@index([city])
   @@index([currentCompany])
   @@index([graduationYear])
+  @@index([chapterId])
+}
+
+/// Regional alumni chapter (Pune, Mumbai, Bangalore, …).
+///
+/// A chapter can only be deleted while it is **empty** — no members and no
+/// events. Once either exists, deleting would orphan them, so the API refuses
+/// and the chapter must be archived (`isActive: false`) instead, which hides
+/// it from the public page and from new invitations while keeping history.
+///
+/// Membership is invite-only: an admin invites an alumnus (see
+/// `ChapterInvitation`) and they join once they accept.
+model Chapter {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  blurb       String?
+  /// Tailwind gradient classes for the public chapter card header.
+  accent      String?
+  city        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     Profile[]
+  events      Event[]
+  invitations ChapterInvitation[]
+
+  @@index([isActive])
+}
+
+enum ChapterInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  /// Withdrawn by an admin before the alumnus responded.
+  CANCELLED
+}
+
+/// An admin's invitation for an alumnus to join a chapter. Membership is only
+/// granted when the invitee accepts — either in the portal or via the signed
+/// one-click links in the invitation email.
+///
+/// One row per (chapter, user): re-inviting somebody who declined resets the
+/// same row to PENDING rather than piling up duplicates.
+model ChapterInvitation {
+  id          String                  @id @default(uuid())
+  chapterId   String
+  userId      String
+  status      ChapterInvitationStatus @default(PENDING)
+  invitedById String
+  message     String?
+  createdAt   DateTime                @default(now())
+  respondedAt DateTime?
+
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user      User    @relation("ChapterInvitee", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation("ChapterInviter", fields: [invitedById], references: [id])
+
+  @@unique([chapterId, userId])
+  @@index([userId, status])
 }
 
 model WorkExperience {
@@ -277,6 +347,7 @@ model Event {
   coverKey        String?
   attachmentKey   String?        // PDF/image/doc attachment storage key
   department      String?        // Target department for notifications (null = all)
+  chapterId       String?        // Target chapter for notifications (null = all chapters)
   status          ApprovalStatus @default(PENDING)
   rejectionReason String?
   createdById     String
@@ -284,9 +355,11 @@ model Event {
   updatedAt       DateTime       @updatedAt
 
   createdBy   User           @relation("EventCreator", fields: [createdById], references: [id])
+  chapter     Chapter?       @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   rsvps       EventRsvp[]
 
   @@index([status, startsAt])
+  @@index([chapterId])
 }
 
 model EventRsvp {

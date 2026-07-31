@@ -1,10 +1,14 @@
 import { z } from "zod";
 import { paginationSchema } from "../../lib/pagination.js";
 
+/** A chapter id, or "none" to match users who haven't joined a chapter. */
+const chapterFilter = z.union([z.string().uuid(), z.literal("none")]).optional();
+
 export const userListQuery = paginationSchema.extend({
   q: z.string().optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   role: z.enum(["ALUMNI", "STUDENT", "ADMIN", "RECRUITER"]).optional(),
+  chapterId: chapterFilter,
 });
 
 export const userStatusSchema = z.object({
@@ -36,6 +40,7 @@ export const reportSchema = z.object({
   to: z.coerce.date().optional(),
   status: z.string().max(40).optional(),
   department: z.string().max(120).optional(),
+  chapterId: chapterFilter,
 });
 
 export const adminMessageSchema = z.object({

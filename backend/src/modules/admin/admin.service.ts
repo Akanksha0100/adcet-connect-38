@@ -8,11 +8,14 @@ import { notify } from "../notifications/notifications.service.js";
 type UserStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export const listUsers = async (
-  q: PaginationQuery & { q?: string; status?: UserStatus; role?: AppRoleName },
+  q: PaginationQuery & { q?: string; status?: UserStatus; role?: AppRoleName; chapterId?: string },
 ) => {
   const where: Prisma.UserWhereInput = {
     ...(q.status && { status: q.status }),
     ...(q.role && { roles: { some: { role: q.role } } }),
+    ...(q.chapterId && {
+      profile: { chapterId: q.chapterId === "none" ? null : q.chapterId },
+    }),
     ...(q.q && {
       OR: [
         { firstName: { contains: q.q, mode: "insensitive" } },
@@ -25,7 +28,18 @@ export const listUsers = async (
     prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { roles: true, profile: { select: { department: true, graduationYear: true, currentCompany: true, city: true } } },
+      include: {
+        roles: true,
+        profile: {
+          select: {
+            department: true,
+            graduationYear: true,
+            currentCompany: true,
+            city: true,
+            chapter: { select: { id: true, name: true, slug: true } },
+          },
+        },
+      },
       ...paginate(q),
     }),
     prisma.user.count({ where }),
@@ -353,7 +367,13 @@ interface ReportFilters {
   to?: Date;
   status?: string;
   department?: string;
+  /** Chapter id, or "none" for members of no chapter. */
+  chapterId?: string;
 }
+
+/** Shared `Profile` where-fragment for the chapter report filter. */
+const chapterWhere = (chapterId?: string) =>
+  chapterId ? { chapterId: chapterId === "none" ? null : chapterId } : {};
 
 type Row = Record<string, unknown>;
 
@@ -400,7 +420,9 @@ const buildReport = async (
         where: {
           ...(created && { createdAt: created }),
           ...(forcedStatus && { status: forcedStatus as never }),
-          ...(f.department && { profile: { department: f.department } }),
+          ...((f.department || f.chapterId) && {
+            profile: { ...(f.department && { department: f.department }), ...chapterWhere(f.chapterId) },
+          }),
           ...NOT_ADMIN,
         },
         select: {
@@ -410,7 +432,15 @@ const buildReport = async (
           status: true,
           createdAt: true,
           roles: { select: { role: true } },
-          profile: { select: { department: true, graduationYear: true, city: true, phone: true } },
+          profile: {
+            select: {
+              department: true,
+              graduationYear: true,
+              city: true,
+              phone: true,
+              chapter: { select: { name: true } },
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: MAX_ROWS,
@@ -421,6 +451,7 @@ const buildReport = async (
         Role: u.roles.map((r) => r.role).join(", "),
         Status: u.status,
         Department: u.profile?.department ?? "",
+        Chapter: u.profile?.chapter?.name ?? "",
         "Graduation Year": u.profile?.graduationYear ?? "",
         City: u.profile?.city ?? "",
         Phone: u.profile?.phone ?? "",
@@ -440,6 +471,7 @@ const buildReport = async (
         where: {
           user: { status: "APPROVED", ...NOT_ADMIN },
           ...(f.department && { department: f.department }),
+          ...chapterWhere(f.chapterId),
         },
         select: {
           department: true,
@@ -449,6 +481,7 @@ const buildReport = async (
           city: true,
           linkedinUrl: true,
           user: { select: { firstName: true, lastName: true, email: true, createdAt: true } },
+          chapter: { select: { name: true } },
         },
         orderBy: { graduationYear: "desc" },
         take: MAX_ROWS,
@@ -457,6 +490,7 @@ const buildReport = async (
         Name: fullName(p.user),
         Email: p.user?.email ?? "",
         Department: p.department ?? "",
+        Chapter: p.chapter?.name ?? "",
         "Graduation Year": p.graduationYear ?? "",
         Company: p.currentCompany ?? "",
         Role: p.currentRole ?? "",
@@ -476,6 +510,7 @@ const buildReport = async (
           ...(created && { createdAt: created }),
           ...(f.status && { status: f.status as never }),
           ...(f.department && { department: f.department }),
+          ...(f.chapterId && { chapterId: f.chapterId === "none" ? null : f.chapterId }),
         },
         select: {
           title: true,
@@ -487,6 +522,7 @@ const buildReport = async (
           capacity: true,
           createdAt: true,
           createdBy: { select: { firstName: true, lastName: true } },
+          chapter: { select: { name: true } },
           _count: { select: { rsvps: true } },
         },
         orderBy: { startsAt: "desc" },
@@ -496,6 +532,7 @@ const buildReport = async (
         Title: e.title,
         Status: e.status,
         Department: e.department ?? "All",
+        Chapter: e.chapter?.name ?? "All",
         Mode: e.isOnline ? "Online" : "In-person",
         Location: e.location ?? "",
         "Starts On": dt(e.startsAt),

@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
   Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, ChevronLeft, ShieldCheck, Send, Loader2,
-  Home, Info, MoreHorizontal, Newspaper
+  Home, Info, MoreHorizontal, Newspaper, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,6 +28,7 @@ const mainNav = [
 ];
 
 const moreItems = [
+  { label: "Chapters", path: "/dashboard/chapters" },
   { label: "Support", path: "/dashboard/support" },
   { label: "Contact", path: "/dashboard/contact" },
   { label: "News", path: "/dashboard/news" },
@@ -40,6 +41,7 @@ const sidebarItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Profile", path: "/dashboard/profile", icon: User },
   { label: "Alumni", path: "/dashboard/alumni", icon: Users },
+  { label: "Chapters", path: "/dashboard/chapters", icon: Building2 },
   { label: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
   { label: "My Job Posts", path: "/dashboard/jobs/mine", icon: Briefcase },
   { label: "Events", path: "/dashboard/events", icon: Calendar },

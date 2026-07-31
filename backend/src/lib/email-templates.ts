@@ -151,6 +151,8 @@ export interface EventEmailData {
   location?: string | null;
   isOnline?: boolean;
   department?: string | null;
+  /** Name of the regional chapter this event was targeted at, if any. */
+  chapter?: string | null;
   eventId: string;
   attachmentKey?: string | null;
 }
@@ -210,6 +212,13 @@ export const eventNotificationEmail = (
             <span class="badge badge-dept">${esc(event.department)}</span>
           </td>
         </tr>` : ""}
+        ${event.chapter ? `
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Chapter</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">
+            <span class="badge badge-dept">${esc(event.chapter)}</span>
+          </td>
+        </tr>` : ""}
       </table>
     </div>
 
@@ -236,6 +245,7 @@ export const eventNotificationEmail = (
     `${event.location ? `Location: ${event.location}\n` : ""}` +
     `Mode: ${event.isOnline ? "Online" : "Offline"}\n` +
     `${event.department ? `Department: ${event.department}\n` : ""}` +
+    `${event.chapter ? `Chapter: ${event.chapter}\n` : ""}` +
     `\n${event.description.slice(0, 500)}\n\n` +
     `View event: ${eventUrl}\n`;
 
@@ -750,6 +760,113 @@ export const donationReceiptEmail = (
     html: wrap("Donation Receipt", body),
   };
 };
+
+export interface ChapterInvitationEmailData {
+  chapterName: string;
+  chapterCity?: string | null;
+  chapterBlurb?: string | null;
+  /** The chapter they are currently in, when accepting would move them. */
+  currentChapterName?: string | null;
+  invitedByName: string;
+  /** Optional note the admin added to the invitation. */
+  message?: string | null;
+  acceptUrl: string;
+  declineUrl: string;
+}
+
+/**
+ * Invitation for an alumnus to join a regional chapter. The Accept/Decline
+ * buttons are signed one-click links (no login needed), mirroring how event
+ * RSVP emails work. When the invitee already belongs to a chapter, the email
+ * says plainly that accepting moves them.
+ */
+export const chapterInvitationEmail = (
+  d: ChapterInvitationEmailData,
+  recipientName: string,
+): { subject: string; text: string; html: string } => {
+  const body = `
+    <h2>🏙 You're invited to the ${esc(d.chapterName)}</h2>
+    <p>Hi ${esc(recipientName)},</p>
+    <p>
+      <strong>${esc(d.invitedByName)}</strong> has invited you to join the
+      <strong>${esc(d.chapterName)}</strong>${d.chapterCity ? ` in ${esc(d.chapterCity)}` : ""} on the
+      ADCET Alumni Portal.
+    </p>
+
+    ${d.chapterBlurb ? `<p style="color:#6c757d;">${esc(d.chapterBlurb)}</p>` : ""}
+
+    ${d.message ? `
+    <div style="margin:20px 0;padding:12px 16px;border-left:3px solid #e67e22;background:#fdf6f0;">
+      <p style="margin:0;color:#2c3e50;"><em>${esc(d.message)}</em></p>
+      <p style="margin:6px 0 0;font-size:12px;color:#6c757d;">— ${esc(d.invitedByName)}</p>
+    </div>` : ""}
+
+    <p>Chapter members get invited to local meetups and receive mail and events for their region.</p>
+
+    ${d.currentChapterName ? `
+    <div style="margin:20px 0;padding:12px 16px;border-left:3px solid #f0ad4e;background:#fff8ec;">
+      <p style="margin:0;color:#2c3e50;">
+        <strong>Note:</strong> you are currently a member of the <strong>${esc(d.currentChapterName)}</strong>.
+        You can belong to one chapter at a time, so accepting this invitation will move you out of the
+        ${esc(d.currentChapterName)} and into the ${esc(d.chapterName)}.
+      </p>
+    </div>` : ""}
+
+    <div class="rsvp-section">
+      <p>Would you like to join?</p>
+      <a href="${d.acceptUrl}" class="btn btn-success">Yes, join ✅</a>
+      <a href="${d.declineUrl}" class="btn btn-secondary">No, thanks</a>
+    </div>
+
+    <p style="font-size:12px;color:#6c757d;">
+      You can also respond from the portal under Chapters. Joining is entirely optional — if you decline,
+      nothing changes${d.currentChapterName ? ` and you stay in the ${esc(d.currentChapterName)}` : ""}.
+    </p>
+
+    <div style="text-align:center;margin-top:24px;">
+      <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">View Chapters on Portal →</a>
+    </div>
+  `;
+
+  const text =
+    `You're invited to the ${d.chapterName}\n\n` +
+    `Hi ${recipientName},\n\n` +
+    `${d.invitedByName} has invited you to join the ${d.chapterName}` +
+    `${d.chapterCity ? ` in ${d.chapterCity}` : ""} on the ADCET Alumni Portal.\n\n` +
+    `${d.message ? `Message from ${d.invitedByName}: ${d.message}\n\n` : ""}` +
+    `${d.currentChapterName
+      ? `Note: you are currently in the ${d.currentChapterName}. You can belong to one chapter at a time, ` +
+        `so accepting will move you into the ${d.chapterName}.\n\n`
+      : ""}` +
+    `Accept: ${d.acceptUrl}\n` +
+    `Decline: ${d.declineUrl}\n\n` +
+    `You can also respond in the portal: ${PORTAL_URL}/dashboard/chapters\n`;
+
+  return {
+    subject: `🏙 Invitation to join the ${d.chapterName} — ADCET Alumni`,
+    text,
+    html: wrap("Chapter Invitation", body),
+  };
+};
+
+/** Confirmation page shown after a one-click accept/decline from the email. */
+export const chapterInvitationResponseHtml = (
+  headline: string,
+  detail: string,
+  ok = true,
+): string => wrap(
+  "Chapter Invitation",
+  `
+    <div style="text-align: center; padding: 20px 0;">
+      <div style="font-size: 48px; margin-bottom: 16px;">${ok ? "✅" : "⚠️"}</div>
+      <h2>${esc(headline)}</h2>
+      <p>${esc(detail)}</p>
+      <div style="margin-top: 24px;">
+        <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">Go to Alumni Portal →</a>
+      </div>
+    </div>
+  `,
+);
 
 export const rsvpConfirmationHtml = (
   eventTitle: string,

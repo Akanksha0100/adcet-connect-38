@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera, Linkedin, Github, Twitter, Globe, ExternalLink } from "lucide-react";
+import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera, Linkedin, Github, Twitter, Globe, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,8 @@ interface Profile {
   admissionYear?: number | null; graduationYear?: number | null;
   currentCompany?: string | null; currentRole?: string | null;
   avatarKey?: string | null;
+  /** Read-only here — chapter membership is changed on /dashboard/chapters. */
+  chapter?: { id: string; slug: string; name: string } | null;
 }
 
 /** Whitelist of writable fields so we never send `id`, relations, etc back. */
@@ -126,6 +129,7 @@ const ProfilePage = () => {
               <div className="flex flex-wrap gap-3 mt-1 text-xs text-muted-foreground">
                 {profile.data?.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{profile.data.city}</span>}
                 {profile.data?.department && <span className="flex items-center gap-1"><GraduationCap className="h-3 w-3" />{profile.data.department}</span>}
+                {profile.data?.chapter && <span className="flex items-center gap-1"><Building2 className="h-3 w-3" />{profile.data.chapter.name}</span>}
                 {user && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{user.email}</span>}
               </div>
             </div>
@@ -174,6 +178,23 @@ const ProfilePage = () => {
                 </div>
               </div>
             ))}
+            {/* Chapter — not an editable field: membership is invite-only and
+                granted by the alumni office, so this is read-only here. */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Building2 className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">Chapter</p>
+                <p className="text-sm font-medium text-foreground">{profile.data?.chapter?.name || "—"}</p>
+              </div>
+              <Link
+                to="/dashboard/chapters"
+                className="text-xs font-medium text-primary hover:underline flex-shrink-0"
+              >
+                View
+              </Link>
+            </div>
             {/* Social links */}
             {[
               { label: "LinkedIn", url: profile.data?.linkedinUrl, icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10" },

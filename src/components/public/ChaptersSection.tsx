@@ -1,11 +1,30 @@
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { CHAPTERS } from "@/lib/chapters";
+import { MapPin, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  DEFAULT_CHAPTER_ACCENT,
+  FALLBACK_CHAPTERS,
+  fetchChapters,
+  type Chapter,
+} from "@/lib/chapters";
 
+/**
+ * Public chapter showcase — informational only. Chapter membership is managed
+ * by the alumni office (an admin invites you), so there is deliberately no
+ * "Join" call to action here.
+ */
 export default function ChaptersSection() {
+  // Public visitors have no session, so a failed request just falls back to the
+  // seeded chapter list rather than leaving a hole in the landing page.
+  const { data } = useQuery({
+    queryKey: ["chapters", "public"],
+    queryFn: () => fetchChapters(),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+
+  const chapters: Chapter[] = data?.length ? data : FALLBACK_CHAPTERS;
+
   return (
     <section className="py-16 px-6 bg-background">
       <div className="max-w-5xl mx-auto">
@@ -13,13 +32,13 @@ export default function ChaptersSection() {
           <h2 className="text-2xl sm:text-3xl font-bold mb-3">Alumni Chapters</h2>
           <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-4" />
           <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-            Wherever your career has taken you, an ADCET community is close by. Join your city chapter to meet
-            batchmates, mentor students and host local events.
+            Wherever your career has taken you, an ADCET community is close by. Our regional chapters bring
+            alumni together for reunions, mentorship and local events.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CHAPTERS.map((c, i) => (
+          {chapters.map((c, i) => (
             <motion.div
               key={c.slug}
               initial={{ opacity: 0, y: 12 }}
@@ -28,34 +47,35 @@ export default function ChaptersSection() {
               transition={{ delay: i * 0.08 }}
               className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
             >
-              <div className={`h-24 bg-gradient-to-br ${c.accent} flex items-end p-5`}>
+              <div
+                className={`h-24 bg-gradient-to-br ${c.accent || DEFAULT_CHAPTER_ACCENT} flex items-end p-5`}
+              >
                 <h3 className="text-lg font-semibold text-white drop-shadow-sm">{c.name}</h3>
               </div>
-              <div className="p-5 flex flex-col flex-1">
+              <div className="p-5 flex flex-col flex-1 gap-3">
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                  {c.city && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" /> {c.city}
+                    </span>
+                  )}
+                  {c.memberCount > 0 && (
+                    <span className="flex items-center gap-1">
+                      <Users className="h-3 w-3" />
+                      {c.memberCount.toLocaleString("en-IN")} member{c.memberCount === 1 ? "" : "s"}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">{c.blurb}</p>
-                {c.joinHref ? (
-                  <Button size="sm" className="mt-5 w-full gap-1.5" asChild>
-                    <Link to={c.joinHref}>
-                      Join Now <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    className="mt-5 w-full gap-1.5"
-                    onClick={() =>
-                      toast.info(`${c.name} registration opens soon.`, {
-                        description: "Sign in to the portal and we'll notify you when it goes live.",
-                      })
-                    }
-                  >
-                    Join Now <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                )}
               </div>
             </motion.div>
           ))}
         </div>
+
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          Chapter membership is coordinated by the alumni office. If you'd like to be part of your regional
+          chapter, get in touch and we'll send you an invitation.
+        </p>
       </div>
     </section>
   );

@@ -30,6 +30,7 @@ import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 import RejectReasonDialog from "@/components/RejectReasonDialog";
 import DepartmentVerificationCard from "@/components/DepartmentVerificationCard";
+import { fetchChapters } from "@/lib/chapters";
 
 interface AdminUser {
   id: string;
@@ -43,6 +44,7 @@ interface AdminUser {
     graduationYear?: number | null;
     currentCompany?: string | null;
     city?: string | null;
+    chapter?: { id: string; name: string; slug: string } | null;
   } | null;
 }
 
@@ -75,13 +77,17 @@ const UserApprovalsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [messageTarget, setMessageTarget] = useState<{ id: string; name: string } | null>(null);
   const [messageForm, setMessageForm] = useState({ subject: "", body: "" });
+  const [chapterId, setChapterId] = useState("all");
+
+  const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "users", filter, search, page],
+    queryKey: ["admin", "users", filter, search, page, chapterId],
     queryFn: () =>
       api.get<Paginated<AdminUser>>("/admin/users", {
         status: filter === "all" ? undefined : filter,
         q: search || undefined,
+        chapterId: chapterId === "all" ? undefined : chapterId,
         page,
         pageSize: PAGE_SIZE,
       }),
@@ -186,6 +192,19 @@ const UserApprovalsPage = () => {
             <SelectItem value="PENDING">Pending</SelectItem>
             <SelectItem value="APPROVED">Approved</SelectItem>
             <SelectItem value="REJECTED">Rejected</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={chapterId} onValueChange={(v) => { setChapterId(v); setPage(1); setSelectedIds(new Set()); }}>
+          <SelectTrigger className="w-full sm:w-[200px]">
+            <SelectValue placeholder="Chapter" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Chapters</SelectItem>
+            {(chapters.data ?? []).map((c) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+            <SelectItem value="none">No chapter</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -318,9 +337,11 @@ const UserApprovalsPage = () => {
                     </p>
                   </div>
                   <div className="bg-muted rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground">Role</p>
-                    <p className="text-xs font-semibold text-foreground">
-                      {u.roles[0]?.role ?? "—"}
+                    <p className="text-[10px] text-muted-foreground">
+                      {u.profile?.chapter ? "Chapter" : "Role"}
+                    </p>
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      {u.profile?.chapter?.name ?? u.roles[0]?.role ?? "—"}
                     </p>
                   </div>
                 </div>

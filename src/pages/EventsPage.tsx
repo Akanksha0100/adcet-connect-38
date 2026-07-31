@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
 import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
+import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
@@ -31,6 +32,7 @@ interface EventItem {
   location?: string | null;
   isOnline?: boolean;
   department?: string | null;
+  chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
   startsAt: string;
   endsAt?: string;
@@ -145,14 +147,24 @@ const EventsPage = () => {
                     {event.isOnline ? "Online" : "Offline"}
                   </span>
                   {event.attachmentKey && (
-                    <Paperclip className="h-3 w-3 text-muted-foreground" title="Has attachment" />
+                    <Paperclip className="h-3 w-3 text-muted-foreground" aria-label="Has attachment" />
                   )}
                 </div>
               </div>
-              {event.department && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Building2 className="h-3 w-3" />
-                  <span>{event.department}</span>
+              {(event.department || event.chapter) && (
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {event.department && (
+                    <span className="flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {event.department}
+                    </span>
+                  )}
+                  {event.chapter && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {event.chapter.name}
+                    </span>
+                  )}
                 </div>
               )}
               <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-muted-foreground">
@@ -235,9 +247,12 @@ const CreateEventDialog = ({
     endsAt: "",
     capacity: "",
     department: "All",
+    chapterId: "all",
     attachmentKey: "",
   });
   const [attachFile, setAttachFile] = useState<File | null>(null);
+
+  const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
   const [attachUploading, setAttachUploading] = useState(false);
 
   const uploadAttachment = async (file: File): Promise<string> => {
@@ -259,6 +274,7 @@ const CreateEventDialog = ({
         ...form,
         attachmentKey: attachmentKey || undefined,
         department: form.department === "All" ? undefined : form.department,
+        chapterId: form.chapterId === "all" ? undefined : form.chapterId,
         meetingUrl: form.isOnline ? form.meetingUrl : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         startsAt: new Date(form.startsAt).toISOString(),
@@ -269,7 +285,7 @@ const CreateEventDialog = ({
       toast({ title: "Event created", description: "Notifications will be sent to alumni." });
       onOpenChange(false);
       onCreated();
-      setForm({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "", department: "All", attachmentKey: "" });
+      setForm({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "", department: "All", chapterId: "all", attachmentKey: "" });
       setAttachFile(null);
     },
     onError: (err: any) => toast({ title: "Could not create event", description: err?.message, variant: "destructive" }),
@@ -305,6 +321,23 @@ const CreateEventDialog = ({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">Email notifications will be sent to alumni in this department.</p>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Chapter (target audience)</Label>
+            <Select value={form.chapterId} onValueChange={(v) => setForm({ ...form, chapterId: v })}>
+              <SelectTrigger><SelectValue placeholder="All chapters" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Chapters</SelectItem>
+                {(chapters.data ?? []).map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {form.department === "All"
+                ? "Only members of this chapter will be emailed."
+                : "Only alumni in both the selected department and chapter will be emailed."}
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">

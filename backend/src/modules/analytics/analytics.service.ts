@@ -64,6 +64,8 @@ export type AlumniFilter = {
   q?: string;
   branch?: string;
   department?: string;
+  /** Chapter id, or the literal "none" for alumni who haven't joined one. */
+  chapterId?: string;
   graduationYear?: number;
   degree?: DegreeType;
   city?: string;
@@ -119,6 +121,7 @@ export const buildAlumniWhere = (q: AlumniFilter): Prisma.ProfileWhereInput => {
     user: { status: "APPROVED", roles: { some: { role: "ALUMNI" } } },
     ...(and.length && { AND: and }),
     ...(branch && { department: { contains: branch, mode: "insensitive" } }),
+    ...(q.chapterId && { chapterId: q.chapterId === "none" ? null : q.chapterId }),
     ...(q.graduationYear && { graduationYear: q.graduationYear }),
     ...(q.degree && { degree: q.degree }),
     ...(q.city && { city: { contains: q.city, mode: "insensitive" } }),
@@ -153,6 +156,7 @@ export const alumniList = async (q: AlumniFilter & { page?: number; pageSize?: n
         linkedinUrl: true,
         skills: { select: { skill: { select: { name: true } } } },
         user: { select: { firstName: true, lastName: true, email: true } },
+        chapter: { select: { id: true, name: true, slug: true } },
       },
       orderBy: [{ graduationYear: "desc" }, { user: { lastName: "asc" } }],
     }),
@@ -206,12 +210,27 @@ export const alumniFacets = async () => {
       _count: { _all: true },
     }),
   ]);
+
+  // Chapters are listed in full (not just the ones with members) so the admin
+  // filter offers every chapter, including brand-new empty ones.
+  const chapterRows = await prisma.chapter.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, slug: true, _count: { select: { members: { where: baseWhere } } } },
+  });
+
   return {
     departments: departments.map((d) => ({ value: d.department, count: d._count._all })),
     companies: companies.map((c) => ({ value: c.currentCompany, count: c._count._all })),
     cities: cities.map((c) => ({ value: c.city, count: c._count._all })),
     years: years.map((y) => ({ value: y.graduationYear, count: y._count._all })),
     degrees: degrees.map((d) => ({ value: d.degree, count: d._count._all })),
+    chapters: chapterRows.map((c) => ({
+      value: c.id,
+      label: c.name,
+      slug: c.slug,
+      count: c._count.members,
+    })),
   };
 };
 

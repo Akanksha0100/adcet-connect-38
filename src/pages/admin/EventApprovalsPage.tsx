@@ -21,6 +21,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
 import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
+import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
@@ -37,6 +38,8 @@ interface EventItem {
   endsAt?: string | null;
   capacity?: number | null;
   department?: string | null;
+  chapterId?: string | null;
+  chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
   status: string;
   _count?: { rsvps: number };
@@ -52,7 +55,7 @@ interface Rsvp {
 const toLocal = (iso?: string | null) => iso ? new Date(iso).toISOString().slice(0, 16) : "";
 const emptyForm = () => ({
   title: "", description: "", location: "", isOnline: false, meetingUrl: "",
-  startsAt: "", endsAt: "", capacity: "", department: "All", attachmentKey: "",
+  startsAt: "", endsAt: "", capacity: "", department: "All", chapterId: "all", attachmentKey: "",
 });
 
 const EventApprovalsPage = () => {
@@ -70,6 +73,8 @@ const EventApprovalsPage = () => {
   });
   const events = data?.items ?? [];
 
+  const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
+
   const openCreate = () => { setEditing(null); setForm(emptyForm()); setAttachFile(null); setFormOpen(true); };
   const openEdit = (e: EventItem) => {
     setEditing(e);
@@ -79,6 +84,7 @@ const EventApprovalsPage = () => {
       startsAt: toLocal(e.startsAt), endsAt: toLocal(e.endsAt),
       capacity: e.capacity != null ? String(e.capacity) : "",
       department: e.department ?? "All",
+      chapterId: e.chapterId ?? e.chapter?.id ?? "all",
       attachmentKey: e.attachmentKey ?? "",
     });
     setAttachFile(null);
@@ -104,6 +110,8 @@ const EventApprovalsPage = () => {
         ...form,
         attachmentKey: attachmentKey || undefined,
         department: form.department === "All" ? undefined : form.department,
+        // null (not undefined) so an edit can clear an existing chapter target.
+        chapterId: form.chapterId === "all" ? null : form.chapterId,
         meetingUrl: form.isOnline ? form.meetingUrl : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
         startsAt: new Date(form.startsAt).toISOString(),
@@ -158,6 +166,7 @@ const EventApprovalsPage = () => {
                   <h3 className="font-semibold text-foreground">{e.title}</h3>
                   <div className="flex items-center gap-1">
                     {e.department && <Badge variant="outline" className="text-[10px]">{e.department}</Badge>}
+                    {e.chapter && <Badge variant="outline" className="text-[10px]">{e.chapter.name}</Badge>}
                     <Badge variant="secondary" className="text-[10px] capitalize">{e.isOnline ? "Online" : "Offline"}</Badge>
                   </div>
                 </div>
@@ -203,6 +212,23 @@ const EventApprovalsPage = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">Email notifications will be sent to alumni in this department.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Chapter (target audience)</Label>
+              <Select value={form.chapterId} onValueChange={(v) => setForm({ ...form, chapterId: v })}>
+                <SelectTrigger><SelectValue placeholder="All chapters" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Chapters</SelectItem>
+                  {(chapters.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {form.department === "All"
+                  ? "Only members of this chapter will be emailed."
+                  : "Only alumni in both the selected department and chapter will be emailed."}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Starts</Label>

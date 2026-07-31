@@ -7,6 +7,7 @@
  */
 import { PrismaClient, type AppRole, type ApprovalStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_CHAPTERS } from "../src/config/constants.js";
 
 const prisma = new PrismaClient();
 
@@ -18,6 +19,8 @@ interface SeedUser {
   role: AppRole;
   status?: ApprovalStatus;
   profile?: Record<string, unknown>;
+  /** Regional chapter to enrol this alumnus into (slug from DEFAULT_CHAPTERS). */
+  chapterSlug?: string;
 }
 
 const USERS: SeedUser[] = [
@@ -48,6 +51,7 @@ const USERS: SeedUser[] = [
       currentRole: "SDE-2",
       linkedinUrl: "https://linkedin.com/in/alice-patil",
     },
+    chapterSlug: "pune",
   },
   {
     email: "bob@adcet.in",
@@ -67,6 +71,7 @@ const USERS: SeedUser[] = [
       currentCompany: "Tata Motors",
       currentRole: "Design Engineer",
     },
+    chapterSlug: "bangalore",
   },
   {
     email: "priya@adcet.in",
@@ -87,6 +92,7 @@ const USERS: SeedUser[] = [
       currentRole: "Senior Developer",
       githubUrl: "https://github.com/priya-sharma",
     },
+    chapterSlug: "mumbai",
   },
   {
     email: "rahul@adcet.in",
@@ -106,6 +112,7 @@ const USERS: SeedUser[] = [
       currentCompany: "EduSpark (Founder)",
       currentRole: "CEO",
     },
+    chapterSlug: "pune",
   },
   {
     email: "sneha@adcet.in",
@@ -161,6 +168,24 @@ const upsertUser = async (u: SeedUser) => {
   return user;
 };
 
+/**
+ * Ensure the default chapters exist. Only the slug is a stable key — an
+ * existing chapter's name/blurb/isActive are left alone so admin edits are
+ * never clobbered by a re-seed.
+ */
+const upsertChapters = async () => {
+  const bySlug = new Map<string, string>();
+  for (const c of DEFAULT_CHAPTERS) {
+    const row = await prisma.chapter.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: { slug: c.slug, name: c.name, city: c.city, accent: c.accent, blurb: c.blurb },
+    });
+    bySlug.set(row.slug, row.id);
+  }
+  return bySlug;
+};
+
 const upsertJob = async (
   externalKey: string,
   data: {
@@ -194,6 +219,8 @@ const upsertEvent = async (data: {
   startsAt: Date;
   endsAt?: Date;
   capacity?: number;
+  department?: string;
+  chapterId?: string;
   status: ApprovalStatus;
   createdById: string;
 }) => {
@@ -233,10 +260,20 @@ const upsertCampaign = async (data: {
 };
 
 async function main() {
+  console.log("🏙  Seeding chapters…");
+  const chapterIds = await upsertChapters();
+
   console.log("🌱 Seeding users…");
   const created: Record<string, Awaited<ReturnType<typeof upsertUser>>> = {};
   for (const u of USERS) {
     created[u.email] = await upsertUser(u);
+    const chapterId = u.chapterSlug ? chapterIds.get(u.chapterSlug) : undefined;
+    if (chapterId) {
+      await prisma.profile.updateMany({
+        where: { userId: created[u.email].id, chapterId: null },
+        data: { chapterId },
+      });
+    }
   }
 
   const admin = created["admin@adcet.in"];
@@ -329,6 +366,17 @@ async function main() {
     capacity: 150,
     status: "PENDING",
     createdById: rahul.id,
+  });
+  // Chapter-targeted: only Pune Chapter members are emailed about this one.
+  await upsertEvent({
+    title: "Pune Chapter Meetup — Q3 Networking Evening",
+    description: "Drinks, lightning talks and referrals with the Pune alumni crowd.",
+    location: "Koregaon Park, Pune",
+    startsAt: inDays(21),
+    capacity: 80,
+    chapterId: chapterIds.get("pune"),
+    status: "APPROVED",
+    createdById: admin.id,
   });
 
   console.log("🏆 Seeding achievements…");

@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { exportElementPng, exportElementsPdf } from "@/lib/exportChart";
 import BulkEmailDialog from "@/components/BulkEmailDialog";
+import { fetchChapters } from "@/lib/chapters";
 
 /* --------------------------------- types --------------------------------- */
 interface LabelValue { label: string; value: number }
@@ -40,6 +41,7 @@ interface AlumniRow {
   userId: string; department?: string | null; degree?: string | null; graduationYear?: number | null;
   city?: string | null; country?: string | null; currentCompany?: string | null; currentRole?: string | null;
   user: { firstName: string; lastName: string; email: string }; skills?: string[];
+  chapter?: { id: string; name: string; slug: string } | null;
 }
 interface Paginated<T> { items: T[]; pagination: { total: number; page: number; pageSize: number } }
 
@@ -49,7 +51,7 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#e67e22", "#8e44ad
 const alumniExportRows = (rows: AlumniRow[]) =>
   rows.map((r) => ({
     Name: `${r.user.firstName} ${r.user.lastName}`, Email: r.user.email, Branch: r.department ?? "",
-    Degree: r.degree ?? "", Year: r.graduationYear ?? "", Company: r.currentCompany ?? "",
+    Degree: r.degree ?? "", Year: r.graduationYear ?? "", Chapter: r.chapter?.name ?? "", Company: r.currentCompany ?? "",
     Role: r.currentRole ?? "", Location: [r.city, r.country].filter(Boolean).join(", "), Skills: r.skills?.join("; ") ?? "",
   }));
 const downloadText = (filename: string, mime: string, content: string) => {
@@ -112,7 +114,7 @@ const EmptyChart = () => <p className="text-sm text-muted-foreground text-center
 /* ---------------------------------- page ---------------------------------- */
 const AdminAnalyticsPage = () => {
   const [range, setRange] = useState({ from: "", to: "", department: "all" });
-  const EMPTY_FILTERS = { q: "", company: "", location: "", branch: "", graduationYear: "", degree: "all", skill: "" };
+  const EMPTY_FILTERS = { q: "", company: "", location: "", branch: "", graduationYear: "", degree: "all", skill: "", chapterId: "all" };
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const hasActiveFilters = Object.entries(filters).some(([k, v]) => v !== EMPTY_FILTERS[k as keyof typeof EMPTY_FILTERS]);
   const [mailOpen, setMailOpen] = useState(false);
@@ -134,9 +136,12 @@ const AdminAnalyticsPage = () => {
     queryFn: () => api.get<Paginated<AlumniRow>>("/analytics/admin/alumni", {
       q: filters.q || undefined, company: filters.company || undefined, location: filters.location || undefined,
       branch: filters.branch || undefined, graduationYear: filters.graduationYear || undefined,
-      degree: filters.degree === "all" ? undefined : filters.degree, skill: filters.skill || undefined, pageSize: 100,
+      degree: filters.degree === "all" ? undefined : filters.degree, skill: filters.skill || undefined,
+      chapterId: filters.chapterId === "all" ? undefined : filters.chapterId, pageSize: 100,
     }),
   });
+
+  const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
 
   const k = insights.data?.kpis;
   const t = insights.data?.trends;
@@ -413,7 +418,7 @@ const AdminAnalyticsPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-7 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-3">
           <div className="relative xl:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search alumni" className="pl-9" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
@@ -433,6 +438,16 @@ const AdminAnalyticsPage = () => {
             </SelectContent>
           </Select>
           <Input placeholder="Skill" value={filters.skill} onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))} />
+          <Select value={filters.chapterId} onValueChange={(chapterId) => setFilters((f) => ({ ...f, chapterId }))}>
+            <SelectTrigger><SelectValue placeholder="Chapter" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Chapters</SelectItem>
+              {(chapters.data ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+              <SelectItem value="none">No chapter</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {hasActiveFilters && (
@@ -448,13 +463,13 @@ const AdminAnalyticsPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead><TableHead>Branch</TableHead><TableHead>Year</TableHead>
-                <TableHead>Company</TableHead><TableHead>Location</TableHead><TableHead>Skills</TableHead>
+                <TableHead>Chapter</TableHead><TableHead>Company</TableHead><TableHead>Location</TableHead><TableHead>Skills</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {alumni.isLoading && <TableRow><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>}
+              {alumni.isLoading && <TableRow><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>}
               {!alumni.isLoading && alumniRows.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">No alumni match these filters.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No alumni match these filters.</TableCell></TableRow>
               )}
               {alumniRows.map((row) => (
                 <TableRow key={row.userId}>
@@ -463,6 +478,7 @@ const AdminAnalyticsPage = () => {
                   </TableCell>
                   <TableCell>{row.department ?? "-"}</TableCell>
                   <TableCell>{row.graduationYear ?? "-"}</TableCell>
+                  <TableCell>{row.chapter?.name ?? "-"}</TableCell>
                   <TableCell><div><p>{row.currentCompany ?? "-"}</p>{row.currentRole && <p className="text-xs text-muted-foreground">{row.currentRole}</p>}</div></TableCell>
                   <TableCell>{[row.city, row.country].filter(Boolean).join(", ") || "-"}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{row.skills?.slice(0, 4).join(", ") || "-"}</TableCell>

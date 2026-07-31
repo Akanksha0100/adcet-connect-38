@@ -24,6 +24,8 @@ export interface AlumniMailFilters {
   graduationYear?: string;
   degree?: string;
   skill?: string;
+  /** Chapter id, "none" for alumni in no chapter, or "all"/empty for every chapter. */
+  chapterId?: string;
 }
 
 interface BulkEmailDialogProps {
@@ -51,6 +53,7 @@ const mapFilters = (f: AlumniMailFilters) => ({
   graduationYear: f.graduationYear || undefined,
   degree: f.degree && f.degree !== "all" ? f.degree : undefined,
   skill: f.skill || undefined,
+  chapterId: f.chapterId && f.chapterId !== "all" ? f.chapterId : undefined,
 });
 
 const uploadAttachment = async (file: File): Promise<Attachment> => {

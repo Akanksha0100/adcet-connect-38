@@ -16,16 +16,25 @@ const JWT_SECRET = process.env.JWT_ACCESS_SECRET || "dev-access-secret-change-me
 const API_BASE_URL = () => process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 4000}/api/v1`;
 
 export const list = async (
-  q: PaginationQuery & { q?: string; status?: "PENDING" | "APPROVED" | "REJECTED"; upcoming?: boolean; department?: string },
+  q: PaginationQuery & {
+    q?: string;
+    status?: "PENDING" | "APPROVED" | "REJECTED";
+    upcoming?: boolean;
+    department?: string;
+    chapterId?: string;
+  },
   caller?: Caller,
 ) => {
   // Non-admins always see only APPROVED events; admins can filter by status or see all.
+  // Chapter only narrows notifications, never visibility — a chapter-targeted
+  // event still shows up for everyone unless explicitly filtered on.
   const where: Prisma.EventWhereInput = {
     ...(isAdmin(caller)
       ? q.status ? { status: q.status } : {}
       : { status: "APPROVED" }),
     ...(q.upcoming && { startsAt: { gte: new Date() } }),
     ...(q.department && { department: q.department }),
+    ...(q.chapterId && { chapterId: q.chapterId }),
     ...(q.q && {
       OR: [
         { title: { contains: q.q, mode: "insensitive" } },
@@ -40,6 +49,7 @@ export const list = async (
       include: {
         _count: { select: { rsvps: true } },
         createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+        chapter: { select: { id: true, slug: true, name: true } },
       },
       ...paginate(q),
     }),
@@ -54,6 +64,7 @@ export const getById = async (id: string) => {
     include: {
       _count: { select: { rsvps: true } },
       createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      chapter: { select: { id: true, slug: true, name: true } },
     },
   });
   if (!event) throw NotFound("Event not found");
@@ -172,8 +183,10 @@ export const handleEmailRsvp = async (
 // ── Internal helpers ────────────────────────────────────────────────────
 
 /**
- * Send email notifications to all alumni in the targeted department (or all
- * alumni if department is null). Each email includes personalised RSVP links.
+ * Send email notifications to the alumni an event targets. Department and
+ * chapter are both optional narrowing filters and are **AND-ed**: setting both
+ * mails only the alumni who match each one (e.g. "CSE alumni in Pune"). With
+ * neither set, every approved alumnus is notified.
  */
 async function sendEventNotifications(event: {
   id: string;
@@ -184,6 +197,7 @@ async function sendEventNotifications(event: {
   location: string | null;
   isOnline: boolean;
   department: string | null;
+  chapterId: string | null;
   attachmentKey: string | null;
 }) {
   // Find alumni to notify
@@ -192,10 +206,16 @@ async function sendEventNotifications(event: {
     roles: { some: { role: "ALUMNI" } },
   };
 
-  // If department is specified and not empty, filter by it
-  if (event.department && event.department !== "All") {
-    whereClause.profile = { department: event.department };
-  }
+  const profileFilter: Prisma.ProfileWhereInput = {
+    // "All" is what the event form submits for the no-department option.
+    ...(event.department && event.department !== "All" && { department: event.department }),
+    ...(event.chapterId && { chapterId: event.chapterId }),
+  };
+  if (Object.keys(profileFilter).length > 0) whereClause.profile = profileFilter;
+
+  const chapter = event.chapterId
+    ? await prisma.chapter.findUnique({ where: { id: event.chapterId }, select: { name: true } })
+    : null;
 
   const alumni = await prisma.user.findMany({
     where: whereClause,
@@ -243,6 +263,7 @@ async function sendEventNotifications(event: {
         location: event.location,
         isOnline: event.isOnline,
         department: event.department,
+        chapter: chapter?.name ?? null,
         eventId: event.id,
         attachmentKey: event.attachmentKey,
       },
@@ -257,7 +278,12 @@ async function sendEventNotifications(event: {
   });
 
   logger.info(
-    { eventId: event.id, recipientCount: emails.length },
+    {
+      eventId: event.id,
+      recipientCount: emails.length,
+      department: event.department ?? null,
+      chapter: chapter?.name ?? null,
+    },
     `Sending event notification emails for "${event.title}"`,
   );
 
