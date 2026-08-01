@@ -225,7 +225,12 @@ export const invite = async (
       action: "chapter.invite",
       entity: "Chapter",
       entityId: chapterId,
-      metadata: { chapter: chapter.name, userId, email: user.email },
+      metadata: {
+        chapter: chapter.name,
+        userId,
+        email: user.email,
+        person: `${user.firstName} ${user.lastName}`.trim(),
+      },
     },
   });
 
@@ -239,7 +244,10 @@ export const invite = async (
 
 /** Withdraw a pending invitation. */
 export const cancelInvitation = async (actorId: string, invitationId: string) => {
-  const invitation = await prisma.chapterInvitation.findUnique({ where: { id: invitationId } });
+  const invitation = await prisma.chapterInvitation.findUnique({
+    where: { id: invitationId },
+    include: { chapter: { select: { name: true } }, user: { select: { firstName: true, lastName: true } } },
+  });
   if (!invitation) throw NotFound("Invitation not found");
   if (invitation.status !== "PENDING") throw BadRequest("Only a pending invitation can be cancelled");
 
@@ -253,7 +261,11 @@ export const cancelInvitation = async (actorId: string, invitationId: string) =>
       action: "chapter.invite_cancel",
       entity: "Chapter",
       entityId: invitation.chapterId,
-      metadata: { userId: invitation.userId },
+      metadata: {
+        chapter: invitation.chapter.name,
+        userId: invitation.userId,
+        person: `${invitation.user.firstName} ${invitation.user.lastName}`.trim(),
+      },
     },
   });
   return { id: invitationId, status: "CANCELLED" as const };
@@ -428,6 +440,11 @@ export const removeMember = async (actorId: string, chapterId: string, userId: s
   const profile = await prisma.profile.findUnique({ where: { userId }, select: { chapterId: true } });
   if (!profile || profile.chapterId !== chapterId) throw NotFound("They are not a member of this chapter");
 
+  const [chapter, user] = await Promise.all([
+    prisma.chapter.findUnique({ where: { id: chapterId }, select: { name: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { firstName: true, lastName: true } }),
+  ]);
+
   await setMembership(userId, null);
   // Drop the accepted invitation too, so they can be invited again later.
   await prisma.chapterInvitation.deleteMany({ where: { chapterId, userId } });
@@ -437,7 +454,11 @@ export const removeMember = async (actorId: string, chapterId: string, userId: s
       action: "chapter.member_remove",
       entity: "Chapter",
       entityId: chapterId,
-      metadata: { userId },
+      metadata: {
+        chapter: chapter?.name ?? "",
+        userId,
+        person: user ? `${user.firstName} ${user.lastName}`.trim() : "",
+      },
     },
   });
   return { userId, chapterId: null };
