@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { departmentSchema } from "../../lib/departments.js";
+import { DEGREE_VALUES } from "../../config/constants.js";
 
 /**
  * Profile update fields are all optional. The frontend often passes back the
@@ -19,6 +20,13 @@ const optionalUrl = (max = 500) =>
     .optional()
     .transform((v) => (v === "" || v == null ? null : v))
     .refine((v) => v == null || /^https?:\/\//i.test(v), { message: "Must be a valid URL" });
+
+/** A clearable 1..max integer, used for the birthday's day and month parts. */
+const optionalDayOrMonth = (max: number) =>
+  z
+    .union([z.coerce.number().int().min(1).max(max), z.null(), z.literal("")])
+    .optional()
+    .transform((v) => (v === "" || v == null ? null : (v as number)));
 
 const optionalYear = z
   .union([z.coerce.number().int().min(1980).max(2100), z.null(), z.literal("")])
@@ -40,10 +48,13 @@ export const updateProfileSchema = z.object({
   // free text here would reintroduce the spelling drift the rename fixed.
   department: z.union([departmentSchema, z.null(), z.literal("")]).optional()
     .transform((v) => (v === "" || v == null ? null : v)),
-  degree: z.union([z.enum(["BE", "ME", "PHD", "DIPLOMA"]), z.null(), z.literal("")]).optional()
+  degree: z.union([z.enum(DEGREE_VALUES), z.null(), z.literal("")]).optional()
     .transform((v) => (v === "" || v == null ? null : v)),
   admissionYear: optionalYear,
   graduationYear: optionalYear,
+  // Birthday, day + month only — no year is ever collected.
+  birthDay: optionalDayOrMonth(31),
+  birthMonth: optionalDayOrMonth(12),
   rollNumber: optionalString(40),
   currentCompany: optionalString(160),
   currentRole: optionalString(160),

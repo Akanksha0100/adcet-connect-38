@@ -27,11 +27,11 @@ enum ApprovalStatus {
   REJECTED
 }
 
+/// ADCET awards these two only. PHD/DIPLOMA existed in earlier releases and
+/// were dropped by migration `signup_required_fields` (no rows used them).
 enum DegreeType {
   BE
   ME
-  PHD
-  DIPLOMA
 }
 
 enum EmploymentType {
@@ -192,9 +192,16 @@ model Profile {
   twitterUrl      String?
   websiteUrl      String?
 
+  /// Birthday, stored as day + month only — the platform sends birthday wishes
+  /// and has no use for the year, so it deliberately isn't collected.
+  birthDay        Int?
+  birthMonth      Int?
+
   // Academic
   department      String?
   degree          DegreeType?
+  /// Derived at sign-up from `graduationYear` and the degree's course length
+  /// (see `admissionYearFor` in config/constants.ts) — never asked for.
   admissionYear   Int?
   graduationYear  Int?
   rollNumber      String?

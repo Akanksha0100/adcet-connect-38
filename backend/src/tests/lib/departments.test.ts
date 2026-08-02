@@ -63,6 +63,14 @@ describe("department is enforced on every write path", () => {
     otp: "123456",
     firstName: "A",
     lastName: "B",
+    degree: "BE",
+    graduationYear: 2020,
+    birthDay: 14,
+    birthMonth: 3,
+    phone: "+91 9876543210",
+    city: "Pune",
+    currentCompany: "Infosys",
+    currentRole: "SDE-2",
     linkedinUrl: "https://linkedin.com/in/a",
   };
 

@@ -16,12 +16,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
+import type { DegreeValue } from "@/lib/degrees";
 
 interface Profile {
   bio?: string | null; phone?: string | null; city?: string | null; country?: string | null;
   linkedinUrl?: string | null; githubUrl?: string | null; twitterUrl?: string | null; websiteUrl?: string | null;
-  department?: string | null; degree?: "BE" | "ME" | "PHD" | "DIPLOMA" | null;
+  department?: string | null; degree?: DegreeValue | null;
   admissionYear?: number | null; graduationYear?: number | null;
+  /** Birthday, day + month only — no year is stored. */
+  birthDay?: number | null; birthMonth?: number | null;
   currentCompany?: string | null; currentRole?: string | null;
   avatarKey?: string | null;
   /** Read-only here — chapter membership is changed on /dashboard/chapters. */
@@ -32,6 +35,7 @@ interface Profile {
 const WRITABLE_FIELDS: (keyof Profile)[] = [
   "bio", "phone", "city", "country", "linkedinUrl", "githubUrl", "twitterUrl", "websiteUrl",
   "department", "degree", "admissionYear", "graduationYear",
+  "birthDay", "birthMonth",
   "currentCompany", "currentRole", "avatarKey",
 ];
 

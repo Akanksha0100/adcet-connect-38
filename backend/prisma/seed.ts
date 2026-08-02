@@ -40,6 +40,8 @@ const USERS: SeedUser[] = [
     role: "ALUMNI",
     status: "APPROVED",
     profile: {
+      birthDay: 14,
+      birthMonth: 3,
       bio: "Backend engineer building distributed systems at Infosys.",
       department: "Computer Science and Engineering",
       degree: "BE",
@@ -61,6 +63,8 @@ const USERS: SeedUser[] = [
     role: "ALUMNI",
     status: "APPROVED",
     profile: {
+      birthDay: 2,
+      birthMonth: 8,
       bio: "Mechanical design engineer passionate about EVs.",
       department: "Mechanical Engineering",
       degree: "BE",
@@ -81,6 +85,8 @@ const USERS: SeedUser[] = [
     role: "ALUMNI",
     status: "APPROVED",
     profile: {
+      birthDay: 27,
+      birthMonth: 11,
       bio: "Full-stack dev, IEEE published researcher.",
       department: "Computer Science and Engineering",
       degree: "ME",
@@ -102,6 +108,8 @@ const USERS: SeedUser[] = [
     role: "ALUMNI",
     status: "APPROVED",
     profile: {
+      birthDay: 9,
+      birthMonth: 5,
       bio: "Founder of an EdTech startup. Mentor & angel investor.",
       department: "Electronics and Telecommunication Engineering",
       degree: "BE",
@@ -122,6 +130,8 @@ const USERS: SeedUser[] = [
     role: "STUDENT",
     status: "APPROVED",
     profile: {
+      birthDay: 21,
+      birthMonth: 1,
       bio: "Final-year CSE, GSoC '26 contributor.",
       department: "Computer Science and Engineering",
       degree: "BE",
@@ -139,6 +149,8 @@ const USERS: SeedUser[] = [
     role: "RECRUITER",
     status: "APPROVED",
     profile: {
+      birthDay: 30,
+      birthMonth: 6,
       bio: "Talent acquisition lead at Persistent Systems.",
       department: null as unknown as string,
       city: "Pune",

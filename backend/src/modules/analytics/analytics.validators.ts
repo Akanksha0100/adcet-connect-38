@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "../../lib/pagination.js";
+import { DEGREE_VALUES } from "../../config/constants.js";
 
 /** Filters for the admin insights dashboard (charts + KPIs). */
 export const insightsQuery = z.object({
@@ -18,7 +19,7 @@ const alumniFilterFields = {
   department: z.string().optional(),
   chapterId: chapterFilter,
   graduationYear: z.coerce.number().int().min(1900).max(2100).optional(),
-  degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
+  degree: z.enum(DEGREE_VALUES).optional(),
   city: z.string().optional(),
   country: z.string().optional(),
   location: z.string().optional(),
@@ -50,7 +51,7 @@ export const alumniAnalyticsQuery = paginationSchema.extend({
   department: z.string().optional(),
   chapterId: chapterFilter,
   graduationYear: z.coerce.number().int().min(1900).max(2100).optional(),
-  degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
+  degree: z.enum(DEGREE_VALUES).optional(),
   city: z.string().optional(),
   country: z.string().optional(),
   location: z.string().optional(),

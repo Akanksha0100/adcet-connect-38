@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Github, Linkedin, Loader2, ArrowLeft, ArrowRight, Twitter, Globe, Phone, MapPin, Briefcase, User as UserIcon, MailCheck } from "lucide-react";
+import { Eye, EyeOff, Github, Linkedin, Loader2, ArrowLeft, ArrowRight, Twitter, Globe, Phone, MapPin, Briefcase, User as UserIcon, MailCheck, Cake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,20 +10,26 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, apiUrl } from "@/lib/api";
 import { DEPARTMENTS as departments } from "@/lib/departments";
+import {
+  DEGREES as degrees,
+  MIN_ACADEMIC_YEAR,
+  MONTHS,
+  admissionYearFor,
+  daysInMonth,
+  type DegreeValue,
+} from "@/lib/degrees";
 import { landingRouteFor } from "@/lib/landing";
 import { toast } from "@/hooks/use-toast";
 import ForgotPasswordDialog from "@/components/ForgotPasswordDialog";
 
-const degrees: Array<{ value: "BE" | "ME" | "PHD" | "DIPLOMA"; label: string }> = [
-  { value: "BE", label: "B.E." },
-  { value: "ME", label: "M.E." },
-  { value: "PHD", label: "Ph.D." },
-  { value: "DIPLOMA", label: "Diploma" },
-];
-// Years run from the current year backwards — an alumnus can never have a
-// graduation (or admission) year in the future.
+// Final-year students register before convocation, so the list runs a few
+// years ahead; anything further out is a typo and the API rejects it.
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: currentYear - 1980 + 1 }, (_, i) => String(currentYear - i));
+const LAST_GRAD_YEAR = currentYear + 6;
+const years = Array.from(
+  { length: LAST_GRAD_YEAR - MIN_ACADEMIC_YEAR + 1 },
+  (_, i) => String(LAST_GRAD_YEAR - i),
+);
 
 const AuthPage = () => {
   const [showRegPassword, setShowRegPassword] = useState(false);
@@ -46,9 +52,12 @@ const AuthPage = () => {
     email: "",
     password: "",
     department: "",
-    degree: "" as "" | "BE" | "ME" | "PHD" | "DIPLOMA",
-    admissionYear: "",
+    degree: "" as "" | DegreeValue,
+    // Admission year is not asked for — it is derived from the graduation year
+    // and the degree's course length.
     graduationYear: "",
+    birthDay: "",
+    birthMonth: "",
     // Step 2
     linkedinUrl: "",
     githubUrl: "",
@@ -62,6 +71,7 @@ const AuthPage = () => {
   });
   const [registering, setRegistering] = useState(false);
   const [step1Errors, setStep1Errors] = useState<string[]>([]);
+  const [step2Errors, setStep2Errors] = useState<string[]>([]);
 
   // Step 3: email OTP verification
   const [otp, setOtp] = useState("");
@@ -85,11 +95,26 @@ const AuthPage = () => {
     if (!reg.lastName.trim()) errors.push("Last name is required");
     if (!reg.email.trim()) errors.push("Email is required");
     if (reg.password.length < 8) errors.push("Password must be at least 8 characters");
-    if (reg.graduationYear && Number(reg.graduationYear) > currentYear)
-      errors.push("Graduation year cannot be in the future");
-    if (reg.admissionYear && reg.graduationYear && Number(reg.graduationYear) < Number(reg.admissionYear))
-      errors.push("Graduation year cannot be before admission year");
+    if (!reg.degree) errors.push("Degree is required");
+    if (!reg.department) errors.push("Department is required");
+    if (!reg.graduationYear) errors.push("Graduation year is required");
+    if (!reg.birthMonth || !reg.birthDay) errors.push("Birth date and month are required");
     setStep1Errors(errors);
+    return errors.length === 0;
+  };
+
+  /**
+   * Step 2 gathers contact and professional details. All four are mandatory —
+   * the directory is only useful if everyone is reachable and placed.
+   */
+  const validateStep2 = (): boolean => {
+    const errors: string[] = [];
+    if (!reg.linkedinUrl.trim()) errors.push("LinkedIn profile URL is required");
+    if (!reg.phone.trim()) errors.push("Phone number is required");
+    if (!reg.city.trim()) errors.push("City is required");
+    if (!reg.currentCompany.trim()) errors.push("Current company is required");
+    if (!reg.currentRole.trim()) errors.push("Current role is required");
+    setStep2Errors(errors);
     return errors.length === 0;
   };
 
@@ -147,10 +172,7 @@ const AuthPage = () => {
 
   const handleStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reg.linkedinUrl.trim()) {
-      toast({ title: "LinkedIn required", description: "Please provide your LinkedIn profile URL", variant: "destructive" });
-      return;
-    }
+    if (!validateStep2()) return;
     await sendOtp();
   };
 
@@ -169,19 +191,20 @@ const AuthPage = () => {
         password: reg.password,
         firstName: reg.firstName.trim(),
         lastName: reg.lastName.trim(),
-        department: reg.department || undefined,
-        degree: reg.degree || undefined,
-        admissionYear: reg.admissionYear ? Number(reg.admissionYear) : undefined,
-        graduationYear: reg.graduationYear ? Number(reg.graduationYear) : undefined,
+        department: reg.department,
+        degree: reg.degree as DegreeValue,
+        graduationYear: Number(reg.graduationYear),
+        birthDay: Number(reg.birthDay),
+        birthMonth: Number(reg.birthMonth),
         linkedinUrl: reg.linkedinUrl.trim(),
         githubUrl: reg.githubUrl.trim() || undefined,
         twitterUrl: reg.twitterUrl.trim() || undefined,
         websiteUrl: reg.websiteUrl.trim() || undefined,
-        phone: reg.phone.trim() || undefined,
-        city: reg.city.trim() || undefined,
+        phone: reg.phone.trim(),
+        city: reg.city.trim(),
         bio: reg.bio.trim() || undefined,
-        currentCompany: reg.currentCompany.trim() || undefined,
-        currentRole: reg.currentRole.trim() || undefined,
+        currentCompany: reg.currentCompany.trim(),
+        currentRole: reg.currentRole.trim(),
       });
       toast({
         title: "Account created",
@@ -261,14 +284,14 @@ const AuthPage = () => {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Admission Year</Label>
-                      <Select value={reg.admissionYear} onValueChange={(v) => setReg({ ...reg, admissionYear: v })}>
-                        <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
-                        <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+                      <Label>Degree *</Label>
+                      <Select value={reg.degree} onValueChange={(v) => setReg({ ...reg, degree: v as typeof reg.degree })}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>{degrees.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Graduation Year</Label>
+                      <Label>Graduation Year *</Label>
                       <Select value={reg.graduationYear} onValueChange={(v) => setReg({ ...reg, graduationYear: v })}>
                         <SelectTrigger><SelectValue placeholder="Year" /></SelectTrigger>
                         <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
@@ -276,22 +299,70 @@ const AuthPage = () => {
                     </div>
                   </div>
 
+                  {/* The admission year isn't asked for — it follows from the
+                      degree's course length, so we just show what we inferred. */}
+                  {reg.degree && reg.graduationYear && (
+                    <p className="text-xs text-muted-foreground -mt-1">
+                      Admission year taken as{" "}
+                      <span className="font-medium text-foreground">
+                        {admissionYearFor(reg.degree as DegreeValue, Number(reg.graduationYear))}
+                      </span>{" "}
+                      ({degrees.find(d => d.value === reg.degree)?.durationYears}-year course).
+                    </p>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label>Department *</Label>
+                    <Select value={reg.department} onValueChange={(v) => setReg({ ...reg, department: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select your department" /></SelectTrigger>
+                      <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Degree</Label>
-                      <Select value={reg.degree} onValueChange={(v) => setReg({ ...reg, degree: v as typeof reg.degree })}>
-                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>{degrees.map(d => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                      <Label className="flex items-center gap-1.5">
+                        <Cake className="h-3.5 w-3.5 text-pink-500" /> Birth Month *
+                      </Label>
+                      <Select
+                        value={reg.birthMonth}
+                        onValueChange={(v) => setReg({
+                          ...reg,
+                          birthMonth: v,
+                          // Clamp a stale day when switching to a shorter month
+                          // (e.g. 31 selected, then February chosen).
+                          birthDay:
+                            reg.birthDay && Number(reg.birthDay) > daysInMonth(Number(v))
+                              ? ""
+                              : reg.birthDay,
+                        })}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Month" /></SelectTrigger>
+                        <SelectContent>
+                          {MONTHS.map(m => <SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}
+                        </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Department</Label>
-                      <Select value={reg.department} onValueChange={(v) => setReg({ ...reg, department: v })}>
-                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                        <SelectContent>{departments.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                      <Label>Birth Date *</Label>
+                      <Select
+                        value={reg.birthDay}
+                        onValueChange={(v) => setReg({ ...reg, birthDay: v })}
+                        disabled={!reg.birthMonth}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={reg.birthMonth ? "Date" : "Pick month"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: daysInMonth(Number(reg.birthMonth) || 1) }, (_, i) => i + 1)
+                            .map(d => <SelectItem key={d} value={String(d)}>{d}</SelectItem>)}
+                        </SelectContent>
                       </Select>
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    We only ask for the day and month, so we can wish you on your birthday.
+                  </p>
 
                   <div className="space-y-1.5">
                     <Label htmlFor="regPassword">Password *</Label>
@@ -368,30 +439,30 @@ const AuthPage = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
-                        <Phone className="h-3.5 w-3.5" /> Phone
+                        <Phone className="h-3.5 w-3.5" /> Phone *
                       </Label>
-                      <Input type="tel" placeholder="+91 9876543210" value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} />
+                      <Input required type="tel" placeholder="+91 9876543210" value={reg.phone} onChange={(e) => setReg({ ...reg, phone: e.target.value })} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5" /> City
+                        <MapPin className="h-3.5 w-3.5" /> City *
                       </Label>
-                      <Input placeholder="e.g. Pune" value={reg.city} onChange={(e) => setReg({ ...reg, city: e.target.value })} />
+                      <Input required placeholder="e.g. Pune" value={reg.city} onChange={(e) => setReg({ ...reg, city: e.target.value })} />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
-                        <Briefcase className="h-3.5 w-3.5" /> Current Company
+                        <Briefcase className="h-3.5 w-3.5" /> Current Company *
                       </Label>
-                      <Input placeholder="e.g. TCS" value={reg.currentCompany} onChange={(e) => setReg({ ...reg, currentCompany: e.target.value })} />
+                      <Input required placeholder="e.g. TCS" value={reg.currentCompany} onChange={(e) => setReg({ ...reg, currentCompany: e.target.value })} />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="flex items-center gap-1.5">
-                        <UserIcon className="h-3.5 w-3.5" /> Current Role
+                        <UserIcon className="h-3.5 w-3.5" /> Current Role *
                       </Label>
-                      <Input placeholder="e.g. Software Engineer" value={reg.currentRole} onChange={(e) => setReg({ ...reg, currentRole: e.target.value })} />
+                      <Input required placeholder="e.g. Software Engineer" value={reg.currentRole} onChange={(e) => setReg({ ...reg, currentRole: e.target.value })} />
                     </div>
                   </div>
 
@@ -399,6 +470,12 @@ const AuthPage = () => {
                     <Label>Bio (brief introduction)</Label>
                     <Textarea placeholder="Tell us a bit about yourself..." rows={2} value={reg.bio} onChange={(e) => setReg({ ...reg, bio: e.target.value })} />
                   </div>
+
+                  {step2Errors.length > 0 && (
+                    <div className="text-sm text-destructive space-y-1">
+                      {step2Errors.map((e, i) => <p key={i}>{e}</p>)}
+                    </div>
+                  )}
 
                   <div className="flex gap-2 mt-2">
                     <Button type="button" variant="outline" className="gap-1.5" onClick={() => setRegStep(1)}>

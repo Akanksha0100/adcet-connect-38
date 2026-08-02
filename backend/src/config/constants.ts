@@ -74,6 +74,38 @@ export type DepartmentName = (typeof DEPARTMENTS)[number];
 export const DEPARTMENT_SET: ReadonlySet<string> = new Set(DEPARTMENTS);
 
 /**
+ * The degrees ADCET awards. `durationYears` is what lets sign-up ask only for
+ * the graduation year and derive the admission year from it, so the two can
+ * never contradict each other. Mirrored by `src/lib/degrees.ts`.
+ */
+export const DEGREES = [
+  { value: "BE", label: "B.E. / B.Tech", durationYears: 4 },
+  { value: "ME", label: "M.E. / M.Tech", durationYears: 2 },
+] as const;
+
+export type DegreeValue = (typeof DEGREES)[number]["value"];
+
+export const DEGREE_VALUES = DEGREES.map((d) => d.value) as unknown as [
+  DegreeValue,
+  ...DegreeValue[],
+];
+
+/** Course length in years, keyed by degree. */
+export const DEGREE_DURATION_YEARS: Record<DegreeValue, number> = Object.fromEntries(
+  DEGREES.map((d) => [d.value, d.durationYears]),
+) as Record<DegreeValue, number>;
+
+/**
+ * Admission year implied by a graduation year for a given degree. Sign-up no
+ * longer collects it separately — see `DEGREES`.
+ */
+export const admissionYearFor = (degree: DegreeValue, graduationYear: number): number =>
+  graduationYear - DEGREE_DURATION_YEARS[degree];
+
+/** Earliest year the forms and validators will accept. */
+export const MIN_ACADEMIC_YEAR = 1980;
+
+/**
  * The regional chapters the platform ships with. Seeded on `npm run seed` and
  * on server boot so a fresh database always has them. Admins can create more
  * at runtime; none of them can ever be deleted (only archived).

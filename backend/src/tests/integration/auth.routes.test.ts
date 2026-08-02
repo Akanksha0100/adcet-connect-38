@@ -35,6 +35,32 @@ const baseUser = (overrides: any = {}) => ({
 });
 
 const OTP = "123456";
+
+/**
+ * A complete, valid sign-up body. Sign-up requires a full profile (department,
+ * degree, graduation year, birthday, phone, city, company, role), so tests
+ * build from this and override or delete only the field under test — otherwise
+ * an unrelated missing field would 422 before the assertion's code path runs.
+ */
+const registerBody = (overrides: Record<string, unknown> = {}) => ({
+  email: "alice@example.com",
+  password: "Strong#Pass1",
+  otp: OTP,
+  firstName: "Alice",
+  lastName: "A",
+  department: "Computer Science and Engineering",
+  degree: "BE",
+  graduationYear: 2020,
+  birthDay: 14,
+  birthMonth: 3,
+  phone: "+91 9876543210",
+  city: "Pune",
+  currentCompany: "Infosys",
+  currentRole: "SDE-2",
+  linkedinUrl: "https://linkedin.com/in/alice",
+  ...overrides,
+});
+
 const baseOtpRow = (overrides: any = {}) => ({
   id: "otp-1",
   email: "alice@example.com",
@@ -88,43 +114,130 @@ describe("POST /api/v1/auth/register", () => {
     prisma.user.create.mockResolvedValueOnce(baseUser() as any);
     prisma.refreshToken.create.mockResolvedValueOnce({} as any);
 
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody());
     expect(res.status).toBe(201);
     expect(res.body.user.email).toBe("alice@example.com");
     expect(res.body.accessToken).toEqual(expect.any(String));
     expect(res.body.refreshToken).toEqual(expect.any(String));
   });
 
+  it("derives admissionYear from the graduation year and the degree's length", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    // B.E. is a 4-year course, so graduating in 2020 implies admission in 2016.
+    await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ degree: "BE", graduationYear: 2020 }));
+
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          profile: {
+            create: expect.objectContaining({ admissionYear: 2016, graduationYear: 2020 }),
+          },
+        }),
+      }),
+    );
+  });
+
+  it("derives a 2-year gap for a master's degree", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ degree: "ME", graduationYear: 2020 }));
+
+    expect(prisma.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          profile: { create: expect.objectContaining({ admissionYear: 2018 }) },
+        }),
+      }),
+    );
+  });
+
+  it("stores the birthday as day + month, never a year", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ birthDay: 14, birthMonth: 3 }));
+
+    const created = (prisma.user.create as any).mock.calls[0][0].data.profile.create;
+    expect(created).toMatchObject({ birthDay: 14, birthMonth: 3 });
+    expect(created).not.toHaveProperty("birthYear");
+  });
+
   it("422 when the OTP is missing", async () => {
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const body = registerBody();
+    delete (body as any).otp;
+    const res = await request(app).post("/api/v1/auth/register").send(body);
     expect(res.status).toBe(422);
+  });
+
+  it.each([
+    "department",
+    "degree",
+    "graduationYear",
+    "birthDay",
+    "birthMonth",
+    "phone",
+    "city",
+    "currentCompany",
+    "currentRole",
+    "linkedinUrl",
+  ])("422 when the mandatory field %s is missing", async (field) => {
+    const body = registerBody();
+    delete (body as any)[field];
+    const res = await request(app).post("/api/v1/auth/register").send(body);
+    expect(res.status).toBe(422);
+  });
+
+  it("422 when a mandatory text field is only whitespace", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ city: "   ", currentCompany: "  " }));
+    expect(res.status).toBe(422);
+  });
+
+  it("422 on an impossible birth date", async () => {
+    // 31 April doesn't exist.
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ birthMonth: 4, birthDay: 31 }));
+    expect(res.status).toBe(422);
+  });
+
+  it("accepts 29 February — a real birthday, just not every year", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ birthMonth: 2, birthDay: 29 }));
+    expect(res.status).toBe(201);
   });
 
   it("400 when the OTP is wrong (and the attempt is counted)", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
     prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
     prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: "999999",
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody({ otp: "999999" }));
     expect(res.status).toBe(400);
     expect(prisma.emailVerificationOtp.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: { attempts: { increment: 1 } } }),
@@ -137,80 +250,74 @@ describe("POST /api/v1/auth/register", () => {
     prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(
       baseOtpRow({ expiresAt: new Date(Date.now() - 1000) }) as any,
     );
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody());
     expect(res.status).toBe(400);
   });
 
   it("400 after too many incorrect attempts", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
     prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow({ attempts: 5 }) as any);
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody());
     expect(res.status).toBe(400);
     expect(res.body.error.message).toMatch(/Too many/);
   });
 
-  it("422 when linkedinUrl is missing", async () => {
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-    });
+  it("422 on a rejected degree — ADCET awards B.E./B.Tech and M.E./M.Tech only", async () => {
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody({ degree: "PHD" }));
     expect(res.status).toBe(422);
   });
 
-  it("422 when graduationYear is in the future", async () => {
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-      graduationYear: new Date().getFullYear() + 1,
-    });
-    expect(res.status).toBe(422);
+  it("accepts a near-future graduation year (final-year students sign up early)", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ graduationYear: new Date().getFullYear() + 1 }));
+    expect(res.status).toBe(201);
   });
 
-  it("422 when graduationYear precedes admissionYear", async () => {
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-      admissionYear: 2015,
-      graduationYear: 2013,
-    });
+  it("422 when graduationYear is far in the future (a typo, not a student)", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ graduationYear: new Date().getFullYear() + 20 }));
     expect(res.status).toBe(422);
   });
 
   it("409 when the email is already registered", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(baseUser() as any);
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "alice@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Alice",
-      lastName: "A",
-      linkedinUrl: "https://linkedin.com/in/alice",
-    });
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody());
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("CONFLICT");
+  });
+
+  it("treats a differently-cased email as the same account", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser() as any);
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ email: "  ALICE@Example.COM  " }));
+
+    // Lowercased at the validator boundary, so the duplicate check sees it.
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { email: "alice@example.com" } }),
+    );
+    expect(res.status).toBe(409);
+  });
+
+  it("409 when the database rejects a duplicate email that raced past the check", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "5.22.0",
+      }),
+    );
+    const res = await request(app).post("/api/v1/auth/register").send(registerBody());
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("CONFLICT");
   });
@@ -222,14 +329,9 @@ describe("POST /api/v1/auth/register", () => {
     );
     prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
     prisma.user.create.mockRejectedValueOnce(new Error("DB down"));
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "bob@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Bob",
-      lastName: "B",
-      linkedinUrl: "https://linkedin.com/in/bob",
-    });
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ email: "bob@example.com", firstName: "Bob", lastName: "B" }));
     expect(res.status).toBe(500);
     expect(res.body.error.code).toBe("INTERNAL");
   });
@@ -395,14 +497,9 @@ describe("Prisma error mapping", () => {
         meta: { target: ["email"] },
       }),
     );
-    const res = await request(app).post("/api/v1/auth/register").send({
-      email: "dup@example.com",
-      password: "Strong#Pass1",
-      otp: OTP,
-      firstName: "Dup",
-      lastName: "Lic",
-      linkedinUrl: "https://linkedin.com/in/dup",
-    });
+    const res = await request(app)
+      .post("/api/v1/auth/register")
+      .send(registerBody({ email: "dup@example.com", firstName: "Dup", lastName: "Lic" }));
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("CONFLICT");
   });
