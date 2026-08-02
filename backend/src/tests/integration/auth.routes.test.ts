@@ -61,6 +61,22 @@ const registerBody = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+/** A profile with every mandatory field set — `profileComplete` should be true. */
+const fullProfile = (overrides: Record<string, unknown> = {}) => ({
+  department: "Computer Science and Engineering",
+  degree: "BE",
+  graduationYear: 2020,
+  admissionYear: 2016,
+  birthDay: 14,
+  birthMonth: 3,
+  phone: "+91 9876543210",
+  city: "Pune",
+  currentCompany: "Infosys",
+  currentRole: "SDE-2",
+  linkedinUrl: "https://linkedin.com/in/alice",
+  ...overrides,
+});
+
 const baseOtpRow = (overrides: any = {}) => ({
   id: "otp-1",
   email: "alice@example.com",
@@ -458,6 +474,95 @@ describe("GET /api/v1/auth/me", () => {
     const res = await request(app).get("/api/v1/auth/me").set("Authorization", `Bearer ${access}`);
     expect(res.status).toBe(200);
     expect(res.body.email).toBe("alice@example.com");
+  });
+
+  it("reports profileComplete false for an account with an empty profile", async () => {
+    const { signAccessToken } = await import("../../lib/jwt.js");
+    const access = signAccessToken({ sub: "user-1", email: "alice@example.com", roles: ["ALUMNI"] });
+    // What an OAuth sign-in leaves behind.
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser({ profile: {} }) as any);
+    const res = await request(app).get("/api/v1/auth/me").set("Authorization", `Bearer ${access}`);
+    expect(res.body.profileComplete).toBe(false);
+  });
+
+  it("reports profileComplete true once every mandatory field is set", async () => {
+    const { signAccessToken } = await import("../../lib/jwt.js");
+    const access = signAccessToken({ sub: "user-1", email: "alice@example.com", roles: ["ALUMNI"] });
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser({ profile: fullProfile() }) as any);
+    const res = await request(app).get("/api/v1/auth/me").set("Authorization", `Bearer ${access}`);
+    expect(res.body.profileComplete).toBe(true);
+  });
+});
+
+describe("POST /api/v1/auth/complete-profile", () => {
+  const tokenFor = async (sub = "user-1") => {
+    const { signAccessToken } = await import("../../lib/jwt.js");
+    return signAccessToken({ sub, email: "alice@example.com", roles: ["ALUMNI"] });
+  };
+
+  /** The mandatory profile, minus the credential fields sign-up also collects. */
+  const completeBody = (overrides: Record<string, unknown> = {}) => {
+    const body: Record<string, unknown> = { ...registerBody() };
+    for (const credentialField of ["email", "password", "otp", "firstName", "lastName"]) {
+      delete body[credentialField];
+    }
+    return { ...body, ...overrides };
+  };
+
+  it("401 without a bearer token", async () => {
+    const res = await request(app).post("/api/v1/auth/complete-profile").send(completeBody());
+    expect(res.status).toBe(401);
+  });
+
+  it("422 when a mandatory field is missing", async () => {
+    const body = completeBody();
+    delete (body as any).department;
+    const res = await request(app)
+      .post("/api/v1/auth/complete-profile")
+      .set("Authorization", `Bearer ${await tokenFor()}`)
+      .send(body);
+    expect(res.status).toBe(422);
+  });
+
+  it("fills the profile, derives admissionYear, and reports it complete", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser({ profile: {} }) as any);
+    prisma.profile.upsert.mockResolvedValueOnce(fullProfile() as any);
+
+    const res = await request(app)
+      .post("/api/v1/auth/complete-profile")
+      .set("Authorization", `Bearer ${await tokenFor()}`)
+      .send(completeBody({ degree: "BE", graduationYear: 2020 }));
+
+    expect(res.status).toBe(200);
+    expect(res.body.profileComplete).toBe(true);
+    expect(prisma.profile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { userId: "user-1" },
+        update: expect.objectContaining({ admissionYear: 2016, graduationYear: 2020 }),
+      }),
+    );
+  });
+
+  it("leaves the account PENDING — completing a profile is not approval", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(baseUser({ status: "PENDING", profile: {} }) as any);
+    prisma.profile.upsert.mockResolvedValueOnce(fullProfile() as any);
+
+    const res = await request(app)
+      .post("/api/v1/auth/complete-profile")
+      .set("Authorization", `Bearer ${await tokenFor()}`)
+      .send(completeBody());
+
+    expect(res.body.status).toBe("PENDING");
+    // Nothing here may touch the approval status.
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it("422 on a department outside the official list", async () => {
+    const res = await request(app)
+      .post("/api/v1/auth/complete-profile")
+      .set("Authorization", `Bearer ${await tokenFor()}`)
+      .send(completeBody({ department: "CSE" }));
+    expect(res.status).toBe(422);
   });
 });
 

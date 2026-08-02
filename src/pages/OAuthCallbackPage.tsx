@@ -30,10 +30,22 @@ const OAuthCallbackPage = () => {
       return;
     }
 
-    setSession({ accessToken, refreshToken, user: { id: "", email: "", firstName: "", lastName: "", status: "PENDING", roles: [] } })
+    // Placeholder user — `setSession` immediately replaces it with /auth/me.
+    // `profileComplete: false` is the safe default: an SSO account genuinely
+    // has no profile yet, and erring the other way would flash the dashboard.
+    setSession({
+      accessToken,
+      refreshToken,
+      user: {
+        id: "", email: "", firstName: "", lastName: "",
+        status: "PENDING", roles: [], profileComplete: false,
+      },
+    })
       .then((me) => {
         // Wipe tokens from URL bar.
         window.history.replaceState(null, "", window.location.pathname);
+        // SSO users land on /complete-profile here — `landingRouteFor` reads
+        // the `profileComplete` flag the server just returned.
         navigate(landingRouteFor(me), { replace: true });
       })
       .catch((e) => setError(e?.message ?? "Sign-in failed"));

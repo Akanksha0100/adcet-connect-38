@@ -6,6 +6,7 @@ import { authLimiter } from "../../middlewares/rateLimit.js";
 import * as ctrl from "./auth.controller.js";
 import {
   changePasswordSchema,
+  completeProfileSchema,
   forgotPasswordSchema,
   loginSchema,
   refreshSchema,
@@ -22,6 +23,9 @@ authRouter.post("/login", authLimiter, validate(loginSchema), asyncHandler(ctrl.
 authRouter.post("/refresh", validate(refreshSchema), asyncHandler(ctrl.refresh));
 authRouter.post("/logout", validate(refreshSchema), asyncHandler(ctrl.logout));
 authRouter.get("/me", requireAuth, asyncHandler(ctrl.me));
+// Onboarding for SSO accounts: providers give us no academic or contact
+// detail, so those users land here before they can use the portal.
+authRouter.post("/complete-profile", requireAuth, validate(completeProfileSchema), asyncHandler(ctrl.completeProfile));
 
 authRouter.post("/forgot-password", authLimiter, validate(forgotPasswordSchema), asyncHandler(ctrl.forgotPassword));
 authRouter.post("/reset-password", authLimiter, validate(resetPasswordSchema), asyncHandler(ctrl.resetPassword));

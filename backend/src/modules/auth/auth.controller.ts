@@ -50,6 +50,13 @@ export const me = async (req: Request, res: Response) => {
   res.json(user);
 };
 
+/** Onboarding step for SSO accounts — see `service.completeProfile`. */
+export const completeProfile = async (req: Request, res: Response) => {
+  if (!req.auth) throw Unauthorized();
+  const user = await service.completeProfile(req.auth.sub, req.body);
+  res.json(user);
+};
+
 /** OAuth endpoints are scaffolded but intentionally unimplemented (see PROJECT_CONTEXT). */
 /**
  * GET /auth/oauth/:provider

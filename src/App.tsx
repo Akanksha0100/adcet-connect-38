@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
@@ -82,6 +83,14 @@ const App = () => (
               <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+              {/* Onboarding for accounts without the mandatory profile —
+                  chiefly SSO sign-ins. Sits inside ProtectedRoute (login
+                  required) but outside DashboardLayout, so there is no nav to
+                  escape into until the form is done. */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/complete-profile" element={<CompleteProfilePage />} />
+              </Route>
 
               {/* Any logged-in user (any role) can access /dashboard. */}
               <Route element={<ProtectedRoute />}>

@@ -28,16 +28,17 @@ const requiredText = (max: number, message: string) =>
 
 const currentYear = new Date().getFullYear();
 
-export const registerSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(8).max(128),
-  // Email ownership must be proven via OTP before the account is created.
-  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code"),
-  firstName: requiredText(80, "First name is required"),
-  lastName: requiredText(80, "Last name is required"),
-  role: z.enum(["ALUMNI", "STUDENT", "RECRUITER"]).default("ALUMNI"),
-
-  // --- Academic (all mandatory) ---
+/**
+ * The mandatory profile every account must have, however it was created.
+ *
+ * Form sign-up spreads this into `registerSchema`; SSO accounts post exactly
+ * these fields to `POST /auth/complete-profile`. Sharing one definition is what
+ * stops an SSO user from skipping a field that form sign-up demands — and it
+ * must stay in step with `REQUIRED_PROFILE_FIELDS` in `lib/profileCompletion.ts`,
+ * which decides when the gate opens.
+ */
+export const requiredProfileFields = {
+  // --- Academic ---
   department: departmentSchema,
   degree: z.enum(DEGREE_VALUES, { errorMap: () => ({ message: "Select your degree" }) }),
   // Admission year is NOT collected — it is derived from the graduation year
@@ -69,7 +70,13 @@ export const registerSchema = z.object({
   twitterUrl: optionalUrl,
   websiteUrl: optionalUrl,
   bio: z.string().max(2000).optional(),
-}).superRefine((data, ctx) => {
+} as const;
+
+/** Cross-field rules that apply wherever the mandatory profile is submitted. */
+const checkProfileFields = (
+  data: { graduationYear: number; birthDay: number; birthMonth: number },
+  ctx: z.RefinementCtx,
+) => {
   // Alumni sign up after leaving college, but final-year students register
   // before convocation — so a near-future graduation year is legitimate while
   // a far-future one is a typo.
@@ -90,7 +97,27 @@ export const registerSchema = z.object({
       message: "That date doesn't exist in the selected month",
     });
   }
-});
+};
+
+export const registerSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(8).max(128),
+  // Email ownership must be proven via OTP before the account is created.
+  otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code"),
+  firstName: requiredText(80, "First name is required"),
+  lastName: requiredText(80, "Last name is required"),
+  role: z.enum(["ALUMNI", "STUDENT", "RECRUITER"]).default("ALUMNI"),
+  ...requiredProfileFields,
+}).superRefine(checkProfileFields);
+
+/**
+ * Body for `POST /auth/complete-profile` — the onboarding step an SSO account
+ * must finish before it can use the portal. Same profile requirements as
+ * sign-up, minus the credential fields the provider already established.
+ */
+export const completeProfileSchema = z
+  .object(requiredProfileFields)
+  .superRefine(checkProfileFields);
 
 export const sendRegistrationOtpSchema = z.object({ email: emailSchema });
 
@@ -115,3 +142,4 @@ export const changePasswordSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type CompleteProfileInput = z.infer<typeof completeProfileSchema>;

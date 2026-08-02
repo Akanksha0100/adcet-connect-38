@@ -30,6 +30,20 @@ export const ProtectedRoute = ({ roles, redirectTo = "/" }: Props) => {
 
   if (loading) return <Splash />;
   if (!user) return <Navigate to={redirectTo} replace state={{ from: location.pathname }} />;
+
+  /**
+   * Nobody uses the portal without the mandatory profile. This is what stops
+   * an SSO sign-in from walking straight in: Google/LinkedIn/GitHub give us a
+   * name and an email, so those accounts land here with `profileComplete`
+   * false and get routed to the onboarding form.
+   *
+   * Admins are exempt — locking the console behind an alumni-shaped form would
+   * leave nobody able to approve anyone.
+   */
+  if (!user.profileComplete && !hasRole("ADMIN") && location.pathname !== "/complete-profile") {
+    return <Navigate to="/complete-profile" replace />;
+  }
+
   if (roles && roles.length > 0 && !hasRole(...roles)) {
     // Logged-in but missing role — bounce to dashboard.
     return <Navigate to="/dashboard" replace />;
