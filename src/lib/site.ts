@@ -7,12 +7,20 @@
  * footer and individual sections never drift apart.
  */
 
-/** Social handles. Placeholders for now — the alumni office will supply URLs. */
+/**
+ * Official alumni-cell social accounts, rendered by `SocialLinks` in the
+ * landing hero, the public footer and the contact page.
+ *
+ * Every `href` must be an absolute `https://` URL — `SocialLinks` only opens a
+ * link in a new tab when it starts with "http", and a protocol-less value like
+ * `www.youtube.com/...` would be treated as a path relative to the current
+ * page. Keep tracking parameters out so site visits aren't misattributed.
+ */
 export const SOCIAL_LINKS = [
-  { name: "Instagram", href: "#", icon: "instagram" },
-  { name: "Twitter", href: "#", icon: "twitter" },
-  { name: "LinkedIn", href: "#", icon: "linkedin" },
-  { name: "Facebook", href: "#", icon: "facebook" },
+  { name: "Instagram", href: "https://www.instagram.com/adcet_alumni_cell/", icon: "instagram" },
+  { name: "X (Twitter)", href: "https://x.com/Adcet_Alumni", icon: "x" },
+  { name: "LinkedIn", href: "https://www.linkedin.com/in/adcet", icon: "linkedin" },
+  { name: "YouTube", href: "https://www.youtube.com/@ADCETALUMNI", icon: "youtube" },
 ] as const;
 
 export const CONTACT = {

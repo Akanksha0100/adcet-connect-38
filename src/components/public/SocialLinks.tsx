@@ -1,8 +1,26 @@
-import { Facebook, Instagram, Linkedin, Twitter } from "lucide-react";
+import { Facebook, Instagram, Linkedin, Twitter, Youtube } from "lucide-react";
 import { SOCIAL_LINKS } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-const icons = { instagram: Instagram, twitter: Twitter, linkedin: Linkedin, facebook: Facebook } as const;
+/**
+ * X's logo, drawn locally: lucide's `X` export is the close/cross glyph, and
+ * its `Twitter` icon is the retired bird. Filled rather than stroked, matching
+ * how the brand mark is actually set.
+ */
+const XMark = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const icons = {
+  instagram: Instagram,
+  x: XMark,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  youtube: Youtube,
+  facebook: Facebook,
+} as const;
 
 interface Props {
   /** `light` renders for dark/photographic backgrounds (hero), `muted` for the footer. */
