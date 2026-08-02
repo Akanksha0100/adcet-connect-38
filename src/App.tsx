@@ -30,7 +30,6 @@ import DonationsPage from "./pages/DonationsPage";
 import GeoMapPage from "./pages/GeoMapPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
-import ChaptersPage from "./pages/ChaptersPage";
 import NotFound from "./pages/NotFound";
 import AchievementDetailPage from "./pages/AchievementDetailPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -117,7 +116,6 @@ const App = () => (
                     <Route path="geomap" element={<GeoMapPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
-                    <Route path="chapters" element={<ChaptersPage />} />
                     <Route path="about" element={<StaticContentPage contentKey="about" />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />
                     <Route path="contact" element={<StaticContentPage contentKey="contact" />} />

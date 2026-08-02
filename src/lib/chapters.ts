@@ -94,17 +94,15 @@ export const fetchChapters = (opts: { includeInactive?: boolean } = {}) =>
     .get<{ items: Chapter[] }>("/chapters", opts.includeInactive ? { includeInactive: true } : undefined)
     .then((r) => r.items);
 
-/** The signed-in user's chapter, or null when they aren't in one. */
-export const fetchMyChapter = () =>
-  api.get<{ chapter: Chapter | null }>("/chapters/me").then((r) => r.chapter);
-
-/** Invitations awaiting the signed-in alumnus's response. */
-export const fetchMyInvitations = () =>
-  api.get<{ items: ChapterInvitation[] }>("/chapters/invitations/me").then((r) => r.items);
-
-/** Accept or decline an invitation. Accepting moves you out of any current chapter. */
-export const respondToInvitation = (invitationId: string, response: "ACCEPT" | "DECLINE") =>
-  api.post<ChapterInvitation>(`/chapters/invitations/${invitationId}/respond`, { response });
+/*
+ * There are deliberately no member-facing helpers here (my chapter, my
+ * invitations, respond-to-invitation). Chapters are administered entirely by
+ * the alumni office and never surfaced to alumni in the portal; an invitation
+ * is answered from the signed one-click links in its email, which hit the
+ * public `GET /chapters/invitations/email-respond` endpoint with no session.
+ * The corresponding API routes still exist and are still tested — only the
+ * frontend entry points are gone.
+ */
 
 /* --------------------------------- admin --------------------------------- */
 

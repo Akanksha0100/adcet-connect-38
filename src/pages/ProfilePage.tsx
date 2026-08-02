@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { User, MapPin, Briefcase, GraduationCap, Mail, Edit, Loader2, Camera, Linkedin, Github, Twitter, Globe, ExternalLink, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,10 @@ interface Profile {
   birthDay?: number | null; birthMonth?: number | null;
   currentCompany?: string | null; currentRole?: string | null;
   avatarKey?: string | null;
-  /** Read-only here — chapter membership is changed on /dashboard/chapters. */
+  /**
+   * Read-only. Chapters are administered entirely by the alumni office —
+   * members join only by accepting an emailed invitation.
+   */
   chapter?: { id: string; slug: string; name: string } | null;
 }
 
@@ -192,12 +194,6 @@ const ProfilePage = () => {
                 <p className="text-xs text-muted-foreground">Chapter</p>
                 <p className="text-sm font-medium text-foreground">{profile.data?.chapter?.name || "—"}</p>
               </div>
-              <Link
-                to="/dashboard/chapters"
-                className="text-xs font-medium text-primary hover:underline flex-shrink-0"
-              >
-                View
-              </Link>
             </div>
             {/* Social links */}
             {[

@@ -821,13 +821,9 @@ export const chapterInvitationEmail = (
     </div>
 
     <p style="font-size:12px;color:#6c757d;">
-      You can also respond from the portal under Chapters. Joining is entirely optional — if you decline,
+      Use the buttons above to respond — no sign-in needed. Joining is entirely optional; if you decline,
       nothing changes${d.currentChapterName ? ` and you stay in the ${esc(d.currentChapterName)}` : ""}.
     </p>
-
-    <div style="text-align:center;margin-top:24px;">
-      <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">View Chapters on Portal →</a>
-    </div>
   `;
 
   const text =
@@ -842,7 +838,7 @@ export const chapterInvitationEmail = (
       : ""}` +
     `Accept: ${d.acceptUrl}\n` +
     `Decline: ${d.declineUrl}\n\n` +
-    `You can also respond in the portal: ${PORTAL_URL}/dashboard/chapters\n`;
+    `Either link responds immediately — no sign-in needed.\n`;
 
   return {
     subject: `🏙 Invitation to join the ${d.chapterName} — ADCET Alumni`,
@@ -864,7 +860,7 @@ export const chapterInvitationResponseHtml = (
       <h2>${esc(headline)}</h2>
       <p>${esc(detail)}</p>
       <div style="margin-top: 24px;">
-        <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">Go to Alumni Portal →</a>
+        <a href="${PORTAL_URL}/dashboard" class="btn btn-primary">Go to Alumni Portal →</a>
       </div>
     </div>
   `,
