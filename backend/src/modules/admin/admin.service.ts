@@ -8,11 +8,14 @@ import { notify } from "../notifications/notifications.service.js";
 type UserStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export const listUsers = async (
-  q: PaginationQuery & { q?: string; status?: UserStatus; role?: AppRoleName },
+  q: PaginationQuery & { q?: string; status?: UserStatus; role?: AppRoleName; chapterId?: string },
 ) => {
   const where: Prisma.UserWhereInput = {
     ...(q.status && { status: q.status }),
     ...(q.role && { roles: { some: { role: q.role } } }),
+    ...(q.chapterId && {
+      profile: { chapterId: q.chapterId === "none" ? null : q.chapterId },
+    }),
     ...(q.q && {
       OR: [
         { firstName: { contains: q.q, mode: "insensitive" } },
@@ -25,7 +28,18 @@ export const listUsers = async (
     prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { roles: true, profile: { select: { department: true, graduationYear: true, currentCompany: true, city: true } } },
+      include: {
+        roles: true,
+        profile: {
+          select: {
+            department: true,
+            graduationYear: true,
+            currentCompany: true,
+            city: true,
+            chapter: { select: { id: true, name: true, slug: true } },
+          },
+        },
+      },
       ...paginate(q),
     }),
     prisma.user.count({ where }),
@@ -264,11 +278,50 @@ export interface ActivityItem {
   at: Date;
 }
 
+/**
+ * Human-readable titles for audit-log actions shown in the activity feed.
+ * Anything missing here falls back to the raw action code, which reads like
+ * `chapter.create` — so every new audited action needs an entry.
+ */
 const AUDIT_LABELS: Record<string, string> = {
   "user.approve": "Approved a user account",
   "user.reject": "Rejected a user account",
   "user.approval_import": "Imported department verification sheet",
   "alumni.bulk_email": "Sent an email to alumni",
+  "chapter.create": "Created a chapter",
+  "chapter.update": "Updated a chapter",
+  "chapter.archive": "Archived a chapter",
+  "chapter.restore": "Restored a chapter",
+  "chapter.delete": "Deleted a chapter",
+  "chapter.invite": "Invited an alumnus to a chapter",
+  "chapter.invite_cancel": "Withdrew a chapter invitation",
+  "chapter.member_remove": "Removed a chapter member",
+};
+
+/**
+ * Last-resort fallback for an action with no label: turn `chapter.invite_cancel`
+ * into "Chapter invite cancel" so the feed never shows a raw code.
+ */
+const humanizeAction = (action: string) => {
+  const words = action.replace(/[._]/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+};
+
+/** Builds the one-line detail under an audit entry's title. */
+const auditSubtitle = (action: string, meta: Record<string, unknown>): string => {
+  if (action === "alumni.bulk_email") {
+    return `${meta.subject ? `"${meta.subject}" · ` : ""}${(meta.recipientCount as number) ?? 0} recipients`;
+  }
+  if (action === "user.approval_import") {
+    return `${(meta.approved as number) ?? 0} approved · ${(meta.rejected as number) ?? 0} rejected · ${(meta.skipped as number) ?? 0} skipped`;
+  }
+  if (action.startsWith("chapter.")) {
+    const chapter = (meta.chapter as string) || (meta.name as string) || "";
+    const person = (meta.person as string) || (meta.email as string) || "";
+    // "Alice Patil → Pune Chapter" for member actions, just the name otherwise.
+    return [person, chapter].filter(Boolean).join(" → ");
+  }
+  return meta.reason ? `Reason: ${meta.reason}` : "";
 };
 
 export const recentActivity = async (limit = 12): Promise<ActivityItem[]> => {
@@ -320,15 +373,13 @@ export const recentActivity = async (limit = 12): Promise<ActivityItem[]> => {
     items.push({ id: `don-${d.id}`, category: "donation", title: `₹${d.amount.toLocaleString("en-IN")} donation`, subtitle: `from ${d.donorName || nm(d.user) || "a donor"}`, at: d.paidAt ?? d.createdAt });
   for (const au of audits) {
     const meta = (au.metadata ?? {}) as Record<string, unknown>;
-    let subtitle = "";
-    if (au.action === "alumni.bulk_email") {
-      subtitle = `${meta.subject ? `"${meta.subject}" · ` : ""}${(meta.recipientCount as number) ?? 0} recipients`;
-    } else if (au.action === "user.approval_import") {
-      subtitle = `${(meta.approved as number) ?? 0} approved · ${(meta.rejected as number) ?? 0} rejected · ${(meta.skipped as number) ?? 0} skipped`;
-    } else if (meta.reason) {
-      subtitle = `Reason: ${meta.reason}`;
-    }
-    items.push({ id: `audit-${au.id}`, category: "moderation", title: AUDIT_LABELS[au.action] ?? au.action, subtitle, at: au.createdAt });
+    items.push({
+      id: `audit-${au.id}`,
+      category: "moderation",
+      title: AUDIT_LABELS[au.action] ?? humanizeAction(au.action),
+      subtitle: auditSubtitle(au.action, meta),
+      at: au.createdAt,
+    });
   }
 
   return items
@@ -353,7 +404,13 @@ interface ReportFilters {
   to?: Date;
   status?: string;
   department?: string;
+  /** Chapter id, or "none" for members of no chapter. */
+  chapterId?: string;
 }
+
+/** Shared `Profile` where-fragment for the chapter report filter. */
+const chapterWhere = (chapterId?: string) =>
+  chapterId ? { chapterId: chapterId === "none" ? null : chapterId } : {};
 
 type Row = Record<string, unknown>;
 
@@ -400,7 +457,9 @@ const buildReport = async (
         where: {
           ...(created && { createdAt: created }),
           ...(forcedStatus && { status: forcedStatus as never }),
-          ...(f.department && { profile: { department: f.department } }),
+          ...((f.department || f.chapterId) && {
+            profile: { ...(f.department && { department: f.department }), ...chapterWhere(f.chapterId) },
+          }),
           ...NOT_ADMIN,
         },
         select: {
@@ -410,7 +469,15 @@ const buildReport = async (
           status: true,
           createdAt: true,
           roles: { select: { role: true } },
-          profile: { select: { department: true, graduationYear: true, city: true, phone: true } },
+          profile: {
+            select: {
+              department: true,
+              graduationYear: true,
+              city: true,
+              phone: true,
+              chapter: { select: { name: true } },
+            },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: MAX_ROWS,
@@ -421,6 +488,7 @@ const buildReport = async (
         Role: u.roles.map((r) => r.role).join(", "),
         Status: u.status,
         Department: u.profile?.department ?? "",
+        Chapter: u.profile?.chapter?.name ?? "",
         "Graduation Year": u.profile?.graduationYear ?? "",
         City: u.profile?.city ?? "",
         Phone: u.profile?.phone ?? "",
@@ -440,6 +508,7 @@ const buildReport = async (
         where: {
           user: { status: "APPROVED", ...NOT_ADMIN },
           ...(f.department && { department: f.department }),
+          ...chapterWhere(f.chapterId),
         },
         select: {
           department: true,
@@ -449,6 +518,7 @@ const buildReport = async (
           city: true,
           linkedinUrl: true,
           user: { select: { firstName: true, lastName: true, email: true, createdAt: true } },
+          chapter: { select: { name: true } },
         },
         orderBy: { graduationYear: "desc" },
         take: MAX_ROWS,
@@ -457,6 +527,7 @@ const buildReport = async (
         Name: fullName(p.user),
         Email: p.user?.email ?? "",
         Department: p.department ?? "",
+        Chapter: p.chapter?.name ?? "",
         "Graduation Year": p.graduationYear ?? "",
         Company: p.currentCompany ?? "",
         Role: p.currentRole ?? "",
@@ -476,6 +547,7 @@ const buildReport = async (
           ...(created && { createdAt: created }),
           ...(f.status && { status: f.status as never }),
           ...(f.department && { department: f.department }),
+          ...(f.chapterId && { chapterId: f.chapterId === "none" ? null : f.chapterId }),
         },
         select: {
           title: true,
@@ -487,6 +559,7 @@ const buildReport = async (
           capacity: true,
           createdAt: true,
           createdBy: { select: { firstName: true, lastName: true } },
+          chapter: { select: { name: true } },
           _count: { select: { rsvps: true } },
         },
         orderBy: { startsAt: "desc" },
@@ -496,6 +569,7 @@ const buildReport = async (
         Title: e.title,
         Status: e.status,
         Department: e.department ?? "All",
+        Chapter: e.chapter?.name ?? "All",
         Mode: e.isOnline ? "Online" : "In-person",
         Location: e.location ?? "",
         "Starts On": dt(e.startsAt),

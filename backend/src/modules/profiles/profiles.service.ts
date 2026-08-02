@@ -7,6 +7,9 @@ const profileInclude = {
   educations: { orderBy: { startYear: "desc" as const } },
   skills: { include: { skill: true } },
   user: { select: { id: true, firstName: true, lastName: true, email: true } },
+  // Read-only here — chapter membership is changed via POST /chapters/join,
+  // which enforces the alumni-only rule.
+  chapter: { select: { id: true, slug: true, name: true, city: true, isActive: true } },
 };
 
 export const getMyProfile = async (userId: string) => {

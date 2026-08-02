@@ -125,6 +125,52 @@ describe("rsvp", () => {
   });
 });
 
+/**
+ * Notification targeting. `create` fires the mailer as a fire-and-forget
+ * promise, so each case flushes the microtask queue and then inspects the
+ * recipient query. Returning no users short-circuits before any mail is sent.
+ */
+describe("event notification targeting", () => {
+  const recipientWhere = async (event: Record<string, unknown>) => {
+    prismaMock.event.create.mockResolvedValueOnce({
+      id: "e-1", title: "T", description: "D", startsAt: new Date(), endsAt: null,
+      location: null, isOnline: false, department: null, chapterId: null, attachmentKey: null,
+      ...event,
+    });
+    prismaMock.chapter.findUnique.mockResolvedValue({ name: "Pune Chapter" });
+    prismaMock.user.findMany.mockResolvedValue([]);
+    await svc.create(ADMIN, { title: "T" } as any);
+    await new Promise((r) => setImmediate(r));
+    return (prismaMock.user.findMany.mock.calls.at(-1)![0] as any).where;
+  };
+
+  it("mails every approved alumnus when neither filter is set", async () => {
+    const where = await recipientWhere({});
+    expect(where).toEqual({ status: "APPROVED", roles: { some: { role: "ALUMNI" } } });
+    expect(where.profile).toBeUndefined();
+  });
+
+  it("narrows to a department", async () => {
+    const where = await recipientWhere({ department: "CSE" });
+    expect(where.profile).toEqual({ department: "CSE" });
+  });
+
+  it('treats the "All" department as no department filter', async () => {
+    const where = await recipientWhere({ department: "All" });
+    expect(where.profile).toBeUndefined();
+  });
+
+  it("narrows to a chapter", async () => {
+    const where = await recipientWhere({ chapterId: "c1" });
+    expect(where.profile).toEqual({ chapterId: "c1" });
+  });
+
+  it("intersects department AND chapter when both are set", async () => {
+    const where = await recipientWhere({ department: "CSE", chapterId: "c1" });
+    expect(where.profile).toEqual({ department: "CSE", chapterId: "c1" });
+  });
+});
+
 describe("listRsvps (admin-only)", () => {
   it("404 when event missing", async () => {
     prismaMock.event.findUnique.mockResolvedValueOnce(null);

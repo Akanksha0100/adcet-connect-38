@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "../../lib/pagination.js";
+import { booleanQueryParam, paginationSchema } from "../../lib/pagination.js";
 
 export const achievementInputSchema = z.object({
   title: z.string().min(2).max(200),
@@ -19,6 +19,8 @@ export const listQuerySchema = paginationSchema.extend({
   q: z.string().optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
   userId: z.string().uuid().optional(),
+  /** Restrict to the caller's own submissions, at any moderation status. */
+  mine: booleanQueryParam,
 });
 
 export const moderationSchema = z.object({

@@ -29,6 +29,7 @@ import DonationsPage from "./pages/DonationsPage";
 import GeoMapPage from "./pages/GeoMapPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
+import ChaptersPage from "./pages/ChaptersPage";
 import NotFound from "./pages/NotFound";
 import AchievementDetailPage from "./pages/AchievementDetailPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -48,6 +49,7 @@ import AdminAnalyticsPage from "./pages/admin/AdminAnalyticsPage";
 import ReportsPage from "./pages/admin/ReportsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
+import ChaptersAdminPage from "./pages/admin/ChaptersAdminPage";
 import SiteContentPage from "./pages/admin/SiteContentPage";
 import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
@@ -101,6 +103,7 @@ const App = () => (
                     <Route path="geomap" element={<GeoMapPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
+                    <Route path="chapters" element={<ChaptersPage />} />
                     <Route path="about" element={<StaticContentPage contentKey="about" />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />
                     <Route path="contact" element={<StaticContentPage contentKey="contact" />} />
@@ -123,6 +126,7 @@ const App = () => (
                   <Route path="achievements" element={<AchievementsAdminPage />} />
                   <Route path="feed" element={<FeedModerationPage />} />
                   <Route path="donations" element={<DonationsAdminPage />} />
+                  <Route path="chapters" element={<ChaptersAdminPage />} />
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
                   <Route path="geomap" element={<AdminGeoMapPage />} />
                   <Route path="reports" element={<ReportsPage />} />

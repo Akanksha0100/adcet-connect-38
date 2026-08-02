@@ -60,5 +60,37 @@ export const DEPARTMENTS = [
 ] as const;
 export type DepartmentName = (typeof DEPARTMENTS)[number];
 
+/**
+ * The regional chapters the platform ships with. Seeded on `npm run seed` and
+ * on server boot so a fresh database always has them. Admins can create more
+ * at runtime; none of them can ever be deleted (only archived).
+ */
+export const DEFAULT_CHAPTERS = [
+  {
+    slug: "pune",
+    name: "Pune Chapter",
+    city: "Pune",
+    accent: "from-orange-500 to-amber-400",
+    blurb:
+      "Our largest regional community — IT, automotive and manufacturing professionals who meet through reunions, tech talks and referral drives.",
+  },
+  {
+    slug: "mumbai",
+    name: "Mumbai Chapter",
+    city: "Mumbai",
+    accent: "from-cyan-500 to-sky-400",
+    blurb:
+      "Alumni across finance, infrastructure, consulting and media in the MMR, connecting juniors to opportunities in the country's commercial capital.",
+  },
+  {
+    slug: "bangalore",
+    name: "Bangalore Chapter",
+    city: "Bangalore",
+    accent: "from-emerald-500 to-lime-400",
+    blurb:
+      "Engineers, founders and researchers in India's technology hub, driving mentorship, internships and startup collaboration for ADCET students.",
+  },
+] as const;
+
 export const THEMES = ["default", "ocean", "sunset", "forest", "royal"] as const;
 export type ThemeName = (typeof THEMES)[number];

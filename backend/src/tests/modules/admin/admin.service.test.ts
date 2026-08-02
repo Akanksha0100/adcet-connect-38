@@ -176,4 +176,59 @@ describe("modules/admin/service — recentActivity", () => {
     const audit = items.find((i: any) => i.category === "moderation");
     expect(audit.title).toBe("Approved a user account");
   });
+
+  /**
+   * The activity feed must never surface raw audit codes like `chapter.create`
+   * to admins — every action needs a readable title, and anything unmapped
+   * still has to be humanized rather than shown verbatim.
+   */
+  describe("audit titles are human-readable", () => {
+    const feedFor = async (rows: { action: string; metadata?: Record<string, unknown> }[]) => {
+      prismaMock.user.findMany.mockResolvedValueOnce([]);
+      prismaMock.event.findMany.mockResolvedValueOnce([]);
+      prismaMock.job.findMany.mockResolvedValueOnce([]);
+      prismaMock.achievement.findMany.mockResolvedValueOnce([]);
+      prismaMock.donation.findMany.mockResolvedValueOnce([]);
+      prismaMock.auditLog.findMany.mockResolvedValueOnce(
+        rows.map((r, i) => ({
+          id: `a${i}`, action: r.action, entity: "Chapter",
+          metadata: r.metadata ?? {}, createdAt: new Date("2024-03-02"),
+        })),
+      );
+      return svc.recentActivity(20);
+    };
+
+    it.each([
+      ["chapter.create", "Created a chapter"],
+      ["chapter.update", "Updated a chapter"],
+      ["chapter.archive", "Archived a chapter"],
+      ["chapter.restore", "Restored a chapter"],
+      ["chapter.delete", "Deleted a chapter"],
+      ["chapter.invite", "Invited an alumnus to a chapter"],
+      ["chapter.invite_cancel", "Withdrew a chapter invitation"],
+      ["chapter.member_remove", "Removed a chapter member"],
+    ])("labels %s as %s", async (action, expected) => {
+      const items = await feedFor([{ action }]);
+      expect(items[0].title).toBe(expected);
+    });
+
+    it("humanizes an action nobody has labelled yet", async () => {
+      const items = await feedFor([{ action: "widget.frobnicate_all" }]);
+      expect(items[0].title).toBe("Widget frobnicate all");
+      expect(items[0].title).not.toContain(".");
+      expect(items[0].title).not.toContain("_");
+    });
+
+    it("describes a chapter membership change as person → chapter", async () => {
+      const items = await feedFor([
+        { action: "chapter.invite", metadata: { person: "Alice Patil", chapter: "Pune Chapter" } },
+      ]);
+      expect(items[0].subtitle).toBe("Alice Patil → Pune Chapter");
+    });
+
+    it("falls back to the chapter name alone when there is no person", async () => {
+      const items = await feedFor([{ action: "chapter.create", metadata: { name: "Pune Chapter" } }]);
+      expect(items[0].subtitle).toBe("Pune Chapter");
+    });
+  });
 });

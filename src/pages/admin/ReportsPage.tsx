@@ -34,6 +34,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { DEPARTMENTS } from "@/lib/departments";
+import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 
 type Row = Record<string, unknown>;
@@ -60,14 +61,16 @@ interface ReportDef {
   icon: LucideIcon;
   statuses?: { value: string; label: string }[];
   department?: boolean;
+  /** Report supports narrowing to a single regional chapter. */
+  chapter?: boolean;
   date?: boolean;
 }
 
 const REPORTS: ReportDef[] = [
-  { value: "users", label: "All Users", description: "Every account with role, status, department & contact.", group: "People", icon: Users, statuses: APPROVAL_STATUSES, department: true, date: true },
-  { value: "alumni", label: "Alumni Directory", description: "Approved alumni with employment & city.", group: "People", icon: GraduationCap, department: true },
+  { value: "users", label: "All Users", description: "Every account with role, status, department & contact.", group: "People", icon: Users, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
+  { value: "alumni", label: "Alumni Directory", description: "Approved alumni with employment & city.", group: "People", icon: GraduationCap, department: true, chapter: true },
   { value: "pending-approvals", label: "Pending Approvals", description: "Accounts awaiting admin verification.", group: "People", icon: UserCheck, date: true },
-  { value: "events", label: "Events", description: "Events with organizer, RSVPs & status.", group: "Engagement", icon: Calendar, statuses: APPROVAL_STATUSES, department: true, date: true },
+  { value: "events", label: "Events", description: "Events with organizer, RSVPs & status.", group: "Engagement", icon: Calendar, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
   { value: "event-rsvps", label: "Event RSVPs", description: "Every RSVP with attendee & response.", group: "Engagement", icon: CalendarCheck, date: true },
   { value: "jobs", label: "Jobs", description: "Postings with poster, applications & status.", group: "Engagement", icon: Briefcase, statuses: APPROVAL_STATUSES, department: true, date: true },
   { value: "job-applications", label: "Job Applications", description: "Applicants per job with profile snapshot.", group: "Engagement", icon: FileText, date: true },
@@ -127,11 +130,14 @@ const ReportsPage = () => {
   const [to, setTo] = useState("");
   const [status, setStatus] = useState("all");
   const [department, setDepartment] = useState("all");
+  const [chapterId, setChapterId] = useState("all");
+
+  const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
 
   const def = REPORTS.find((r) => r.value === typeValue)!;
 
   const { data, isFetching, isError, error, refetch } = useQuery({
-    queryKey: ["admin", "report", typeValue, from, to, status, department],
+    queryKey: ["admin", "report", typeValue, from, to, status, department, chapterId],
     queryFn: () =>
       api.post<{ rows: Row[]; summary: Record<string, number | string> }>("/admin/reports", {
         type: typeValue,
@@ -140,6 +146,7 @@ const ReportsPage = () => {
         to: to || undefined,
         status: def.statuses && status !== "all" ? status : undefined,
         department: def.department && department !== "all" ? department : undefined,
+        chapterId: def.chapter && chapterId !== "all" ? chapterId : undefined,
       }),
     placeholderData: (prev) => prev,
   });
@@ -162,12 +169,13 @@ const ReportsPage = () => {
   // Jump back to page 1 whenever the report or its filters change.
   useEffect(() => {
     setPage(1);
-  }, [typeValue, from, to, status, department]);
+  }, [typeValue, from, to, status, department, chapterId]);
 
   const selectReport = (value: string) => {
     setTypeValue(value);
     setStatus("all");
     setDepartment("all");
+    setChapterId("all");
   };
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -271,11 +279,26 @@ const ReportsPage = () => {
               </Select>
             </div>
           )}
-          {(from || to || status !== "all" || department !== "all") && (
+          {def.chapter && (
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-xs">Chapter</Label>
+              <Select value={chapterId} onValueChange={setChapterId}>
+                <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Chapters</SelectItem>
+                  {(chapters.data ?? []).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                  <SelectItem value="none">No chapter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {(from || to || status !== "all" || department !== "all" || chapterId !== "all") && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => { setFrom(""); setTo(""); setStatus("all"); setDepartment("all"); }}
+              onClick={() => { setFrom(""); setTo(""); setStatus("all"); setDepartment("all"); setChapterId("all"); }}
             >
               Clear filters
             </Button>

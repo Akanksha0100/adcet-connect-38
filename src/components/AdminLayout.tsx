@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut, X,
-  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag
+  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag, Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -56,6 +56,7 @@ const AdminLayout = () => {
     { label: "View Feed", path: "/dashboard/feed", icon: Newspaper, badge: undefined },
     { label: "Feed Moderation", path: "/admin/feed", icon: Flag, badge: undefined },
     { label: "Donations", path: "/admin/donations", icon: Heart, badge: undefined },
+    { label: "Chapters", path: "/admin/chapters", icon: Building2, badge: undefined },
     { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
     { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },
     { label: "Analytics", path: "/admin/analytics", icon: BarChart3, badge: undefined },
@@ -138,7 +139,7 @@ const AdminLayout = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/dashboard/profile")}><User className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/admin/settings")}><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive"><LogOut className="mr-2 h-4 w-4" /> Sign Out</DropdownMenuItem>

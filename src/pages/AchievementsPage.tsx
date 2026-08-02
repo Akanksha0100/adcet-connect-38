@@ -15,6 +15,7 @@ import { uploadFile } from "@/lib/upload";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import AchievementCardMedia from "@/components/AchievementCardMedia";
 
 interface Achievement {
   id: string;
@@ -26,19 +27,105 @@ interface Achievement {
   attachmentKey?: string | null;
   link?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason?: string | null;
   user?: { firstName?: string; lastName?: string };
 }
 
+const STATUS_STYLES: Record<Achievement["status"], string> = {
+  PENDING: "bg-amber-500/15 text-amber-600 border-0",
+  APPROVED: "bg-accent/15 text-accent border-0",
+  REJECTED: "bg-destructive/15 text-destructive border-0",
+};
+
+const initialsOf = (u?: { firstName?: string; lastName?: string }) =>
+  `${u?.firstName?.[0] ?? ""}${u?.lastName?.[0] ?? ""}`.toUpperCase() || "A";
+
+/**
+ * One achievement card. `showStatus` is on for the author's own submissions,
+ * where the moderation state (and any rejection reason) is the whole point —
+ * before this, a submission vanished until an admin approved it.
+ */
+const AchievementCard = ({ a, showStatus }: { a: Achievement; showStatus?: boolean }) => (
+  <div className="card-elevated overflow-hidden flex flex-col h-full hover:-translate-y-0.5 hover:shadow-lg transition-all">
+    <Link to={`/achievements/${a.id}`} className="block">
+      <AchievementCardMedia item={a} />
+    </Link>
+
+    <div className="p-5 flex flex-col flex-1 gap-3">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xs font-semibold text-primary">
+          {initialsOf(a.user)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-foreground truncate">
+            {a.user ? `${a.user.firstName ?? ""} ${a.user.lastName ?? ""}`.trim() : "Alumni"}
+          </p>
+          {a.occurredOn && (
+            <p className="text-xs text-muted-foreground">
+              {new Date(a.occurredOn).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+            </p>
+          )}
+        </div>
+        {showStatus && (
+          <Badge className={`text-[10px] capitalize shrink-0 ${STATUS_STYLES[a.status]}`}>
+            {a.status.toLowerCase()}
+          </Badge>
+        )}
+      </div>
+
+      <Link to={`/achievements/${a.id}`} className="block">
+        <h3 className="font-semibold text-foreground text-sm hover:underline line-clamp-2">{a.title}</h3>
+      </Link>
+      {/* Fixed line count keeps every card in a row the same height. */}
+      <p className="text-xs text-muted-foreground line-clamp-3">{a.description}</p>
+
+      {showStatus && a.status === "REJECTED" && a.rejectionReason && (
+        <p className="text-xs rounded-md bg-destructive/10 text-destructive px-2.5 py-2">
+          <span className="font-medium">Not approved:</span> {a.rejectionReason}
+        </p>
+      )}
+      {showStatus && a.status === "PENDING" && (
+        <p className="text-xs text-muted-foreground italic">Waiting for admin review — only you can see this.</p>
+      )}
+
+      {/* Pinned to the bottom so links line up across the row. */}
+      <div className="flex flex-wrap items-center gap-3 mt-auto pt-1">
+        {a.link && (
+          <a href={a.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+            <ExternalLink className="h-3 w-3" /> Link
+          </a>
+        )}
+        {a.attachmentKey && (
+          <a href={storageUrl(a.attachmentKey)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Document
+          </a>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const TABS = ["All Achievements", "My Submissions"] as const;
+
 const AchievementsPage = () => {
   const qc = useQueryClient();
+  const [tab, setTab] = useState<(typeof TABS)[number]>("All Achievements");
+  const mine = tab === "My Submissions";
+
   const list = useQuery({
-    queryKey: ["achievements", "approved"],
-    queryFn: () => api.get<{ items: Achievement[] }>("/achievements", { status: "APPROVED", pageSize: 30 }),
+    queryKey: ["achievements", mine ? "mine" : "approved"],
+    queryFn: () =>
+      api.get<{ items: Achievement[] }>(
+        "/achievements",
+        mine ? { mine: true, pageSize: 30 } : { status: "APPROVED", pageSize: 30 },
+      ),
   });
+
+  const items = list.data?.items ?? [];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Achievements</h1>
           <p className="text-muted-foreground text-sm mt-1">Celebrating alumni accomplishments</p>
@@ -46,50 +133,32 @@ const AchievementsPage = () => {
         <CreateAchievementDialog onCreated={() => qc.invalidateQueries({ queryKey: ["achievements"] })} />
       </div>
 
+      <div className="flex gap-1 bg-muted p-1 rounded-lg w-fit">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`px-4 py-2 text-sm rounded-md transition-colors ${
+              tab === t ? "bg-card text-foreground font-medium shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+
       {list.isLoading && <LoadingGrid />}
-      {!list.isLoading && (list.data?.items.length ?? 0) === 0 && (
-        <EmptyState icon={Trophy} title="No achievements yet" description="Submit yours to be featured." />
+      {!list.isLoading && items.length === 0 && (
+        <EmptyState
+          icon={Trophy}
+          title={mine ? "You haven't submitted anything yet" : "No achievements yet"}
+          description={mine ? "Add an achievement and track its approval here." : "Submit yours to be featured."}
+        />
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {list.data?.items.map((a) => (
-          <div key={a.id} className="card-elevated overflow-hidden space-y-0 hover:-translate-y-0.5 transition-transform">
-            {a.imageKey && (
-              <Link to={`/achievements/${a.id}`} className="block h-32 bg-muted">
-                <img src={storageUrl(a.imageKey)} alt={a.title} className="w-full h-full object-cover" />
-              </Link>
-            )}
-            <div className="p-5 space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Trophy className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {a.user ? `${a.user.firstName ?? ""} ${a.user.lastName ?? ""}`.trim() : "Alumni"}
-                  </p>
-                  {a.occurredOn && <p className="text-xs text-muted-foreground">{new Date(a.occurredOn).toLocaleDateString()}</p>}
-                </div>
-              </div>
-              <Link to={`/achievements/${a.id}`} className="block">
-                <h3 className="font-medium text-foreground text-sm hover:underline">{a.title}</h3>
-              </Link>
-              <p className="text-xs text-muted-foreground line-clamp-2">{a.description}</p>
-              <div className="flex flex-wrap items-center gap-2">
-                {a.category && <Badge variant="secondary" className="text-xs">{a.category}</Badge>}
-                {a.link && (
-                  <a href={a.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-                    <ExternalLink className="h-3 w-3" /> Link
-                  </a>
-                )}
-                {a.attachmentKey && (
-                  <a href={storageUrl(a.attachmentKey)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
-                    <FileText className="h-3 w-3" /> Document
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
+        {items.map((a) => (
+          <AchievementCard key={a.id} a={a} showStatus={mine} />
         ))}
       </div>
     </motion.div>

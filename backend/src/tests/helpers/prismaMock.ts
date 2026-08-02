@@ -34,6 +34,8 @@ const MODELS = [
   "user",
   "userRole",
   "profile",
+  "chapter",
+  "chapterInvitation",
   "userPreferences",
   "refreshToken",
   "passwordResetToken",
