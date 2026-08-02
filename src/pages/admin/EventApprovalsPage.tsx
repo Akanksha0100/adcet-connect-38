@@ -20,7 +20,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
-import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
+import DepartmentMultiSelect from "@/components/DepartmentMultiSelect";
 import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -38,7 +38,7 @@ interface EventItem {
   startsAt: string;
   endsAt?: string | null;
   capacity?: number | null;
-  department?: string | null;
+  departments?: string[];
   chapterId?: string | null;
   chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
@@ -57,7 +57,9 @@ interface Rsvp {
 const toLocal = (iso?: string | null) => iso ? new Date(iso).toISOString().slice(0, 16) : "";
 const emptyForm = () => ({
   title: "", description: "", location: "", isOnline: false, meetingUrl: "",
-  startsAt: "", endsAt: "", capacity: "", department: "All", chapterId: "all", attachmentKey: "",
+  startsAt: "", endsAt: "", capacity: "", chapterId: "all", attachmentKey: "",
+  // Empty = every department is emailed, matching how the API stores it.
+  departments: [] as string[],
 });
 
 const EventApprovalsPage = () => {
@@ -85,7 +87,7 @@ const EventApprovalsPage = () => {
       isOnline: e.isOnline ?? false, meetingUrl: e.meetingUrl ?? "",
       startsAt: toLocal(e.startsAt), endsAt: toLocal(e.endsAt),
       capacity: e.capacity != null ? String(e.capacity) : "",
-      department: e.department ?? "All",
+      departments: e.departments ?? [],
       chapterId: e.chapterId ?? e.chapter?.id ?? "all",
       attachmentKey: e.attachmentKey ?? "",
     });
@@ -111,7 +113,7 @@ const EventApprovalsPage = () => {
       const body = {
         ...form,
         attachmentKey: attachmentKey || undefined,
-        department: form.department === "All" ? undefined : form.department,
+        departments: form.departments,
         // null (not undefined) so an edit can clear an existing chapter target.
         chapterId: form.chapterId === "all" ? null : form.chapterId,
         meetingUrl: form.isOnline ? form.meetingUrl : undefined,
@@ -167,7 +169,9 @@ const EventApprovalsPage = () => {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-foreground">{e.title}</h3>
                   <div className="flex items-center gap-1">
-                    {e.department && <Badge variant="outline" className="text-[10px]">{e.department}</Badge>}
+                    {e.departments?.map((d) => (
+                      <Badge key={d} variant="outline" className="text-[10px]">{d}</Badge>
+                    ))}
                     {e.chapter && <Badge variant="outline" className="text-[10px]">{e.chapter.name}</Badge>}
                     <Badge variant="secondary" className="text-[10px] capitalize">{e.isOnline ? "Online" : "Offline"}</Badge>
                   </div>
@@ -203,18 +207,12 @@ const EventApprovalsPage = () => {
             <div className="space-y-1.5"><Label>Description</Label>
               <Textarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </div>
-            <div className="space-y-1.5">
-              <Label>Department (target audience)</Label>
-              <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
-                <SelectTrigger><SelectValue placeholder="All alumni" /></SelectTrigger>
-                <SelectContent>
-                  {DEPARTMENTS.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">Email notifications will be sent to alumni in this department.</p>
-            </div>
+            <DepartmentMultiSelect
+              value={form.departments}
+              onChange={(departments) => setForm({ ...form, departments })}
+              label="Departments (target audience)"
+              allHint="No selection = every department is emailed"
+            />
             <div className="space-y-1.5">
               <Label>Chapter (target audience)</Label>
               <Select value={form.chapterId} onValueChange={(v) => setForm({ ...form, chapterId: v })}>
@@ -227,9 +225,9 @@ const EventApprovalsPage = () => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {form.department === "All"
+                {form.departments.length === 0
                   ? "Only members of this chapter will be emailed."
-                  : "Only alumni in both the selected department and chapter will be emailed."}
+                  : "Only alumni in both a selected department and this chapter will be emailed."}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

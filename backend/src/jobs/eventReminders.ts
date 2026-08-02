@@ -77,7 +77,7 @@ export const runEventReminders = async (): Promise<EventReminderResult> => {
     // Mirrors the department AND chapter targeting used when the event was
     // created, so reminders never reach anyone the original mail skipped.
     const targetedProfile = {
-      ...(event.department && event.department !== "All" && { department: event.department }),
+      ...(event.departments.length > 0 && { department: { in: event.departments } }),
       ...(event.chapterId && { chapterId: event.chapterId }),
     };
     const hasTargeting = Object.keys(targetedProfile).length > 0;

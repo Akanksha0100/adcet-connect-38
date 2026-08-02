@@ -33,7 +33,10 @@ export const list = async (
       ? q.status ? { status: q.status } : {}
       : { status: "APPROVED" }),
     ...(q.upcoming && { startsAt: { gte: new Date() } }),
-    ...(q.department && { department: q.department }),
+    // Matches events that list this department among their targets. Events with
+    // an empty list target everyone, so they are deliberately NOT returned by a
+    // department-specific filter — the filter asks "aimed at X", not "visible to X".
+    ...(q.department && { departments: { has: q.department } }),
     ...(q.chapterId && { chapterId: q.chapterId }),
     ...(q.q && {
       OR: [
@@ -196,7 +199,7 @@ async function sendEventNotifications(event: {
   endsAt: Date | null;
   location: string | null;
   isOnline: boolean;
-  department: string | null;
+  departments: string[];
   chapterId: string | null;
   attachmentKey: string | null;
 }) {
@@ -207,8 +210,9 @@ async function sendEventNotifications(event: {
   };
 
   const profileFilter: Prisma.ProfileWhereInput = {
-    // "All" is what the event form submits for the no-department option.
-    ...(event.department && event.department !== "All" && { department: event.department }),
+    // An empty list means the event is for everyone, so no department clause
+    // at all. Otherwise mail anyone in any of the targeted departments.
+    ...(event.departments.length > 0 && { department: { in: event.departments } }),
     ...(event.chapterId && { chapterId: event.chapterId }),
   };
   if (Object.keys(profileFilter).length > 0) whereClause.profile = profileFilter;
@@ -262,7 +266,7 @@ async function sendEventNotifications(event: {
         endsAt: event.endsAt,
         location: event.location,
         isOnline: event.isOnline,
-        department: event.department,
+        departments: event.departments,
         chapter: chapter?.name ?? null,
         eventId: event.id,
         attachmentKey: event.attachmentKey,
@@ -281,7 +285,7 @@ async function sendEventNotifications(event: {
     {
       eventId: event.id,
       recipientCount: emails.length,
-      department: event.department ?? null,
+      departments: event.departments,
       chapter: chapter?.name ?? null,
     },
     `Sending event notification emails for "${event.title}"`,

@@ -85,23 +85,46 @@ describe("department is enforced on every write path", () => {
     expect(updateProfileSchema.parse({ department: OFFICIAL }).department).toBe(OFFICIAL);
   });
 
-  it("event creation rejects a legacy department", () => {
-    const base = {
-      title: "Meetup",
-      description: "A long enough description",
-      startsAt: "2027-01-01T10:00:00Z",
-    };
-    expect(eventInputSchema.safeParse({ ...base, department: "E&TC" }).success).toBe(false);
-    expect(eventInputSchema.safeParse({ ...base, department: OFFICIAL }).success).toBe(true);
+  const eventBase = {
+    title: "Meetup",
+    description: "A long enough description",
+    startsAt: "2027-01-01T10:00:00Z",
+  };
+  const jobBase = {
+    title: "Engineer",
+    company: "ACME",
+    description: "A long enough description",
+  };
+
+  it("event creation rejects a legacy department in the target list", () => {
+    expect(eventInputSchema.safeParse({ ...eventBase, departments: ["E&TC"] }).success).toBe(false);
+    expect(eventInputSchema.safeParse({ ...eventBase, departments: [OFFICIAL] }).success).toBe(true);
   });
 
-  it("job creation rejects a legacy department", () => {
-    const base = {
-      title: "Engineer",
-      company: "ACME",
-      description: "A long enough description",
-    };
-    expect(jobInputSchema.safeParse({ ...base, department: "E&TC" }).success).toBe(false);
-    expect(jobInputSchema.safeParse({ ...base, department: OFFICIAL }).success).toBe(true);
+  it("job creation rejects a legacy department in the target list", () => {
+    expect(jobInputSchema.safeParse({ ...jobBase, departments: ["E&TC"] }).success).toBe(false);
+    expect(jobInputSchema.safeParse({ ...jobBase, departments: [OFFICIAL] }).success).toBe(true);
+  });
+
+  it("accepts several departments at once, and defaults to none", () => {
+    const other = "Mechanical Engineering";
+    const parsed = jobInputSchema.parse({ ...jobBase, departments: [OFFICIAL, other] });
+    expect(parsed.departments).toEqual([OFFICIAL, other]);
+    // Omitted entirely = open to all, represented as an empty list.
+    expect(jobInputSchema.parse(jobBase).departments).toEqual([]);
+  });
+
+  it("collapses duplicates so the stored list is a true set", () => {
+    const parsed = eventInputSchema.parse({ ...eventBase, departments: [OFFICIAL, OFFICIAL] });
+    expect(parsed.departments).toEqual([OFFICIAL]);
+  });
+
+  it('drops the legacy "All" sentinel rather than storing it', () => {
+    // The old event form submitted "All" to mean "no filter"; an empty list
+    // now carries that meaning, so "All" must not survive into the column.
+    expect(eventInputSchema.parse({ ...eventBase, departments: ["All"] }).departments).toEqual([]);
+    expect(
+      eventInputSchema.parse({ ...eventBase, departments: ["All", OFFICIAL] }).departments,
+    ).toEqual([OFFICIAL]);
   });
 });

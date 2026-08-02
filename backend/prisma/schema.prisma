@@ -353,7 +353,10 @@ model Event {
   capacity        Int?
   coverKey        String?
   attachmentKey   String?        // PDF/image/doc attachment storage key
-  department      String?        // Target department for notifications (null = all)
+  /// Target departments for notifications. **Empty = every department** — an
+  /// event can be aimed at any number of them, so this is a list rather than
+  /// the single nullable column it replaced.
+  departments     String[]       @default([])
   chapterId       String?        // Target chapter for notifications (null = all chapters)
   status          ApprovalStatus @default(PENDING)
   rejectionReason String?
@@ -401,7 +404,8 @@ model Job {
   currency        String         @default("INR")
   description     String
   attachmentKey   String?        // PDF/image/doc attachment storage key
-  department      String?        // Department filter for job listings
+  /// Departments this opening is aimed at. **Empty = open to all.**
+  departments     String[]       @default([])
   requirements    String?
   vacancies       Int            @default(1)
   positionsFilled Int            @default(0)

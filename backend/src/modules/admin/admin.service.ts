@@ -546,13 +546,13 @@ const buildReport = async (
         where: {
           ...(created && { createdAt: created }),
           ...(f.status && { status: f.status as never }),
-          ...(f.department && { department: f.department }),
+          ...(f.department && { departments: { has: f.department } }),
           ...(f.chapterId && { chapterId: f.chapterId === "none" ? null : f.chapterId }),
         },
         select: {
           title: true,
           status: true,
-          department: true,
+          departments: true,
           location: true,
           isOnline: true,
           startsAt: true,
@@ -568,7 +568,7 @@ const buildReport = async (
       const rows: Row[] = events.map((e) => ({
         Title: e.title,
         Status: e.status,
-        Department: e.department ?? "All",
+        Departments: e.departments.length ? e.departments.join("; ") : "All",
         Chapter: e.chapter?.name ?? "All",
         Mode: e.isOnline ? "Online" : "In-person",
         Location: e.location ?? "",
@@ -596,7 +596,7 @@ const buildReport = async (
           status: true,
           emailRsvpStatus: true,
           createdAt: true,
-          event: { select: { title: true, department: true, startsAt: true } },
+          event: { select: { title: true, departments: true, startsAt: true } },
           user: { select: { firstName: true, lastName: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -604,7 +604,7 @@ const buildReport = async (
       });
       const rows: Row[] = rsvps.map((r) => ({
         Event: r.event?.title ?? "",
-        Department: r.event?.department ?? "All",
+        Departments: r.event?.departments.length ? r.event.departments.join("; ") : "All",
         "Event Date": d10(r.event?.startsAt),
         Attendee: fullName(r.user),
         Email: r.user?.email ?? "",
@@ -627,13 +627,13 @@ const buildReport = async (
         where: {
           ...(created && { createdAt: created }),
           ...(f.status && { status: f.status as never }),
-          ...(f.department && { department: f.department }),
+          ...(f.department && { departments: { has: f.department } }),
         },
         select: {
           title: true,
           company: true,
           status: true,
-          department: true,
+          departments: true,
           location: true,
           employmentType: true,
           vacancies: true,
@@ -651,7 +651,7 @@ const buildReport = async (
         Status: j.status,
         "Open/Closed": j.isClosed ? "Closed" : "Open",
         Type: j.employmentType,
-        Department: j.department ?? "All",
+        Departments: j.departments.length ? j.departments.join("; ") : "All",
         Location: j.location ?? "",
         Vacancies: j.vacancies,
         Applications: j._count.applications,

@@ -92,7 +92,7 @@ describe("admin.service — generateReport", () => {
     await svc.generateReport({ type: "jobs", format: "json", status: "APPROVED", department: "Computer Science and Engineering" });
     const where = (prismaMock.job.findMany.mock.calls[0][0] as any).where;
     expect(where.status).toBe("APPROVED");
-    expect(where.department).toBe("Computer Science and Engineering");
+    expect(where.departments).toEqual({ has: "Computer Science and Engineering" });
   });
 
   it("unknown type falls through to empty rows", async () => {

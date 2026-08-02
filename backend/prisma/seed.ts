@@ -211,6 +211,8 @@ const upsertJob = async (
     vacancies?: number;
     salaryMin?: number;
     salaryMax?: number;
+    /** Departments targeted; empty/omitted = open to all. */
+    departments?: string[];
     status: ApprovalStatus;
     createdById: string;
   },
@@ -231,7 +233,8 @@ const upsertEvent = async (data: {
   startsAt: Date;
   endsAt?: Date;
   capacity?: number;
-  department?: string;
+  /** Departments targeted for notifications; empty/omitted = everyone. */
+  departments?: string[];
   chapterId?: string;
   status: ApprovalStatus;
   createdById: string;
@@ -307,6 +310,12 @@ async function main() {
     vacancies: 2,
     salaryMin: 1200000,
     salaryMax: 1800000,
+    // Open to all three CS-family branches.
+    departments: [
+      "Computer Science and Engineering",
+      "Artificial Intelligence and Data Science",
+      "Internet of Things and Cyber Security(CSE)",
+    ],
     status: "APPROVED",
     createdById: alice.id,
   });
@@ -331,6 +340,7 @@ async function main() {
     description: "Assist EV powertrain CAD modelling.",
     requirements: "Final-year Mechanical, SolidWorks.",
     vacancies: 4,
+    departments: ["Mechanical Engineering"],
     status: "APPROVED",
     createdById: bob.id,
   });
@@ -367,6 +377,11 @@ async function main() {
     isOnline: true,
     startsAt: inDays(7),
     capacity: 200,
+    // Targeted at two departments — only those alumni get the email.
+    departments: [
+      "Computer Science and Engineering",
+      "Electronics and Telecommunication Engineering",
+    ],
     status: "APPROVED",
     createdById: alice.id,
   });

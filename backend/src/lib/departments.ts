@@ -26,3 +26,19 @@ export const optionalDepartmentSchema = z
 
 /** Read-side filter — accepts anything, matches only what exists. */
 export const departmentFilterSchema = z.string().max(120).optional();
+
+/**
+ * Targeting list for events and job posts, which can aim at any number of
+ * departments. **An empty list means every department** — same meaning the old
+ * nullable `department` column gave to NULL.
+ *
+ * Duplicates are collapsed so the stored array is a true set; the legacy "All"
+ * sentinel the old event form submitted is dropped rather than rejected, since
+ * it always meant "no filter".
+ */
+export const departmentListSchema = z
+  .array(z.union([departmentSchema, z.literal("All")]))
+  .max(DEPARTMENTS.length)
+  .optional()
+  .default([])
+  .transform((list) => [...new Set(list.filter((d) => d !== "All"))] as string[]);

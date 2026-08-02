@@ -18,7 +18,7 @@ interface EventDetail {
   startsAt: string;
   endsAt?: string | null;
   capacity?: number | null;
-  department?: string | null;
+  departments?: string[];
   chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
   coverKey?: string | null;
@@ -74,13 +74,17 @@ const EventDetailPage = () => {
               </div>
             </div>
 
-            {(event.department || event.chapter) && (
+            {(!!event.departments?.length || event.chapter) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                {event.department && (
-                  <span className="flex items-center gap-2">
+                {!!event.departments?.length && (
+                  <span className="flex flex-wrap items-center gap-2">
                     <Building2 className="h-4 w-4 text-primary" />
-                    <span className="text-muted-foreground">Department:</span>
-                    <Badge variant="outline" className="text-primary">{event.department}</Badge>
+                    <span className="text-muted-foreground">
+                      {event.departments.length > 1 ? "Departments:" : "Department:"}
+                    </span>
+                    {event.departments.map((d) => (
+                      <Badge key={d} variant="outline" className="text-primary">{d}</Badge>
+                    ))}
                   </span>
                 )}
                 {event.chapter && (
