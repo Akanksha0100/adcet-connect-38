@@ -44,7 +44,7 @@ export default function AchievementDetailPage() {
         </Link>
         <div className="ml-auto flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild><Link to="/login">Sign In</Link></Button>
-          <Button size="sm" asChild><Link to="/login">Join Network</Link></Button>
+          <Button size="sm" asChild><Link to="/register">Join Network</Link></Button>
         </div>
       </header>
 
@@ -128,7 +128,7 @@ export default function AchievementDetailPage() {
             <p className="text-sm text-muted-foreground mb-3">
               Are you an ADCET alumnus? Join the network to share your achievements.
             </p>
-            <Button asChild><Link to="/login">Join the Alumni Network</Link></Button>
+            <Button asChild><Link to="/register">Join the Alumni Network</Link></Button>
           </div>
         </div>
       </main>

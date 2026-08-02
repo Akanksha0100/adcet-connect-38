@@ -96,7 +96,7 @@ export default function EsteemedAlumniPage() {
               <Link to="/contact">Nominate an Alumnus</Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to="/login">Join the Network</Link>
+              <Link to="/register">Join the Network</Link>
             </Button>
           </div>
         </section>

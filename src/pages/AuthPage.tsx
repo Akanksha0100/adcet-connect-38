@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, apiUrl } from "@/lib/api";
 import { DEPARTMENTS as departments } from "@/lib/departments";
@@ -34,11 +34,22 @@ const years = Array.from(
 const AuthPage = () => {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<"register" | "login">("login");
   const [regStep, setRegStep] = useState(1);
   const [forgotOpen, setForgotOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register, user, loading } = useAuth();
+
+  /**
+   * Which panel to show. Driven by the URL rather than local state so that
+   * "Sign In" and "Join Network" on the public pages land on the right form,
+   * and so switching between them is a real navigation the Back button
+   * understands.
+   */
+  const activeTab: "register" | "login" =
+    location.pathname === "/register" ? "register" : "login";
+  const setActiveTab = (tab: "register" | "login") =>
+    navigate(tab === "register" ? "/register" : "/login");
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -226,14 +237,52 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* Left - Register */}
-      <div className={`flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-card ${activeTab === "register" ? "flex" : "hidden lg:flex"}`}>
+      {/* Branding rail. Rendered before both forms so it stays anchored to the
+          same side — with only one form panel visible, leaving it in the middle
+          made it jump left/right on every switch. Desktop only; small screens
+          get the compact logo inside each form. */}
+      <div className="hidden lg:flex items-center justify-center hero-gradient px-8 py-16" style={{ minWidth: "280px" }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-center"
+        >
+          <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-6 overflow-hidden">
+            <img src="/logo.jpeg" alt="ADCET Logo" className="w-full h-full object-cover" />
+          </div>
+          <h1 className="text-2xl font-bold text-primary-foreground mb-1">ADCET Alumni Portal</h1>
+          <p className="text-primary-foreground/80 text-xs mb-1">Annasaheb Dange College of Engineering</p>
+          <p className="text-primary-foreground/80 text-xs mb-3">and Technology, Ashta</p>
+          <p className="text-primary-foreground/70 text-sm">Reconnect. Grow. Contribute.</p>
+          <div className="mt-4 space-y-1 text-primary-foreground/60 text-xs">
+            <p>NAAC A++ · NBA Accredited · ISO 9001:2015</p>
+            <p>Affiliated to Shivaji University, Kolhapur</p>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Register. Only the active panel is *mounted* — at every breakpoint,
+          not just on mobile. Merely hiding the other with CSS would leave a
+          second set of email/password fields in the accessibility tree for
+          screen readers and password managers to trip over. */}
+      {activeTab === "register" && (
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-card">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
+          {/* Mobile branding — the desktop rail is hidden below lg. */}
+          <div className="lg:hidden text-center mb-8">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4">
+              <img src="/logo.jpeg" alt="ADCET Logo" className="w-full h-full object-cover" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">ADCET Alumni Portal</h1>
+            <p className="text-muted-foreground text-xs">Annasaheb Dange College of Engineering and Technology, Ashta</p>
+          </div>
+
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2">
               <h2 className="text-2xl font-bold text-foreground">Create Account</h2>
@@ -545,36 +594,17 @@ const AuthPage = () => {
             )}
           </AnimatePresence>
 
-          <p className="text-center text-sm text-muted-foreground mt-6 lg:hidden">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             Already have an account?{" "}
             <button onClick={() => setActiveTab("login")} className="text-accent font-medium hover:underline">Sign in</button>
           </p>
         </motion.div>
       </div>
+      )}
 
-      <div className="hidden lg:flex items-center justify-center hero-gradient px-8 py-16" style={{ minWidth: "280px" }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-center"
-        >
-          <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center mx-auto mb-6 overflow-hidden">
-            <img src="/logo.jpeg" alt="ADCET Logo" className="w-full h-full object-cover" />
-          </div>
-          <h1 className="text-2xl font-bold text-primary-foreground mb-1">ADCET Alumni Portal</h1>
-          <p className="text-primary-foreground/80 text-xs mb-1">Annasaheb Dange College of Engineering</p>
-          <p className="text-primary-foreground/80 text-xs mb-3">and Technology, Ashta</p>
-          <p className="text-primary-foreground/70 text-sm">Reconnect. Grow. Contribute.</p>
-          <div className="mt-4 space-y-1 text-primary-foreground/60 text-xs">
-            <p>NAAC A++ · NBA Accredited · ISO 9001:2015</p>
-            <p>Affiliated to Shivaji University, Kolhapur</p>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Right - Login */}
-      <div className={`flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-background ${activeTab === "login" ? "flex" : "hidden lg:flex"}`}>
+      {/* Login */}
+      {activeTab === "login" && (
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-12 bg-background">
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -638,12 +668,13 @@ const AuthPage = () => {
             </Button>
           </div>
 
-          <p className="text-center text-sm text-muted-foreground mt-6 lg:hidden">
+          <p className="text-center text-sm text-muted-foreground mt-6">
             Don't have an account?{" "}
             <button onClick={() => setActiveTab("register")} className="text-accent font-medium hover:underline">Register</button>
           </p>
         </motion.div>
       </div>
+      )}
       <ForgotPasswordDialog open={forgotOpen} onOpenChange={setForgotOpen} defaultEmail={loginEmail} />
     </div>
   );

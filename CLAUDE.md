@@ -76,7 +76,8 @@ Prisma schema and `seed.ts` live in `backend/prisma/`. After changing `schema.pr
 ## Frontend architecture
 
 - **Routing** (`src/App.tsx`): all routes declared in one file. Three tiers:
-  - Public routes (landing, login, static pages).
+  - Public routes (landing, login, static pages). `/login` and `/register` both render `AuthPage`, which picks its panel from `location.pathname` and mounts **only that one** — never both, at any breakpoint (a CSS-hidden second form would still expose duplicate email/password fields to screen readers and password managers). Public CTAs must match their wording: "Join Network" / "Get Started" → `/register`, "Sign In" → `/login`; `src/pages/auth-page.test.tsx` asserts this.
+  - `/complete-profile` — logged-in but outside `DashboardLayout`, so there is no nav to escape into until onboarding is done.
   - `/dashboard/*` — wrapped in `<ProtectedRoute>` (any logged-in role) → `<DashboardLayout>` → `<AccountStatusGate>` (blocks non-approved users).
   - `/admin/*` — wrapped in `<ProtectedRoute roles={["ADMIN"]}>` → `<AdminLayout>`.
 - **API client** (`src/lib/api.ts`): the single typed gateway to the backend. Framework-agnostic (no React imports). Persists JWTs in `localStorage` under `adcet.tokens`, auto-attaches the bearer token, and on 401 **transparently refreshes once and retries**. On hard auth failure it clears tokens and dispatches an `adcet:auth-expired` event that `AuthContext` listens for to sign out. Add new endpoints here rather than calling `fetch` from components.

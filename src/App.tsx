@@ -72,7 +72,12 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              {/* One page, two entry points. AuthPage reads the path to decide
+                  which panel to show, so "Sign In" and "Join Network" land on
+                  the right form and the choice survives a bookmark or a
+                  browser Back. */}
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/register" element={<AuthPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/news" element={<NewsPage />} />
