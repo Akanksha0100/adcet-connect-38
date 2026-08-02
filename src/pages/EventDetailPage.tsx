@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Calendar, MapPin, Users, Loader2, Video, Paperclip, Building2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import EventCardMedia from "@/components/EventCardMedia";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 
@@ -18,6 +19,7 @@ interface EventDetail {
   endsAt?: string | null;
   capacity?: number | null;
   department?: string | null;
+  chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
   coverKey?: string | null;
   status: "PENDING" | "APPROVED" | "REJECTED";
@@ -62,7 +64,7 @@ const EventDetailPage = () => {
       {error && <div className="text-sm text-destructive">Failed to load event.</div>}
       {event && (
         <div className="card-elevated overflow-hidden">
-          <div className="hero-gradient h-3" />
+          <EventCardMedia event={event} className="aspect-[16/5]" />
           <div className="p-4 sm:p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
               <h1 className="text-xl sm:text-2xl font-bold text-foreground">{event.title}</h1>
@@ -72,11 +74,22 @@ const EventDetailPage = () => {
               </div>
             </div>
 
-            {event.department && (
-              <div className="flex items-center gap-2 text-sm">
-                <Building2 className="h-4 w-4 text-primary" />
-                <span className="text-muted-foreground">Department:</span>
-                <Badge variant="outline" className="text-primary">{event.department}</Badge>
+            {(event.department || event.chapter) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                {event.department && (
+                  <span className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">Department:</span>
+                    <Badge variant="outline" className="text-primary">{event.department}</Badge>
+                  </span>
+                )}
+                {event.chapter && (
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    <span className="text-muted-foreground">Chapter:</span>
+                    <Badge variant="outline" className="text-primary">{event.chapter.name}</Badge>
+                  </span>
+                )}
               </div>
             )}
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, MapPin, Users, Calendar as CalIcon, Plus, Loader2, CalendarOff, Paperclip, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
+import { Search, MapPin, Users, Plus, Loader2, CalendarOff, Paperclip, ChevronLeft, ChevronRight, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +23,7 @@ import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import EventCardMedia from "@/components/EventCardMedia";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EventItem {
@@ -34,6 +35,7 @@ interface EventItem {
   department?: string | null;
   chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
+  coverKey?: string | null;
   startsAt: string;
   endsAt?: string;
   capacity?: number | null;
@@ -133,23 +135,21 @@ const EventsPage = () => {
           <Link
             key={event.id}
             to={`/dashboard/events/${event.id}`}
-            className="card-elevated overflow-hidden group block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-lg"
+            className="card-elevated overflow-hidden group block focus:outline-none focus:ring-2 focus:ring-primary/40 rounded-lg hover:shadow-lg transition-shadow"
           >
-            <div className="hero-gradient h-2" />
+            <EventCardMedia event={event} className="aspect-[3/1]" />
             <div className="p-4 sm:p-5 space-y-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-foreground truncate">{event.title}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{event.description}</p>
                 </div>
-                <div className="flex flex-col gap-1 items-end shrink-0">
-                  <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-medium">
-                    {event.isOnline ? "Online" : "Offline"}
-                  </span>
-                  {event.attachmentKey && (
-                    <Paperclip className="h-3 w-3 text-muted-foreground" aria-label="Has attachment" />
-                  )}
-                </div>
+                {event.attachmentKey && (
+                  <Paperclip
+                    className="h-3.5 w-3.5 shrink-0 text-muted-foreground"
+                    aria-label="Has attachment"
+                  />
+                )}
               </div>
               {(event.department || event.chapter) && (
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -168,9 +168,6 @@ const EventsPage = () => {
                 </div>
               )}
               <div className="flex flex-wrap gap-2 sm:gap-3 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <CalIcon className="h-3 w-3" /> {new Date(event.startsAt).toLocaleString()}
-                </span>
                 {event.location && (
                   <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {event.location}</span>
                 )}

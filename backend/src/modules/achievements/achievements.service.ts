@@ -37,19 +37,38 @@ type AchievementStatus = "PENDING" | "APPROVED" | "REJECTED";
 export type AchievementInput = Omit<Prisma.AchievementUncheckedCreateInput, "userId">;
 
 export const list = async (
-  q: PaginationQuery & { q?: string; status?: AchievementStatus; userId?: string },
+  q: PaginationQuery & { q?: string; status?: AchievementStatus; userId?: string; mine?: boolean },
   caller?: Caller,
 ) => {
-  const where: Prisma.AchievementWhereInput = {
-    ...(isAdmin(caller) ? { ...(q.status && { status: q.status }) } : { status: q.status ?? "APPROVED" }),
-    ...(q.userId && { userId: q.userId }),
-    ...(q.q && {
+  const filters: Prisma.AchievementWhereInput[] = [];
+
+  if (isAdmin(caller)) {
+    if (q.status) filters.push({ status: q.status });
+    if (q.userId) filters.push({ userId: q.userId });
+  } else {
+    // A non-admin may read approved work from anyone, and their own
+    // submissions at any status — but never somebody else's unreviewed or
+    // rejected entry. Previously `status` was taken straight from the query,
+    // so `?status=PENDING` exposed every user's unmoderated submission.
+    if (q.mine) {
+      filters.push({ userId: caller?.sub ?? "" });
+      if (q.status) filters.push({ status: q.status });
+    } else {
+      filters.push({ status: "APPROVED" });
+      if (q.userId) filters.push({ userId: q.userId });
+    }
+  }
+
+  if (q.q) {
+    filters.push({
       OR: [
         { title: { contains: q.q, mode: "insensitive" } },
         { description: { contains: q.q, mode: "insensitive" } },
       ],
-    }),
-  };
+    });
+  }
+
+  const where: Prisma.AchievementWhereInput = filters.length ? { AND: filters } : {};
   const [items, total] = await Promise.all([
     prisma.achievement.findMany({
       where,

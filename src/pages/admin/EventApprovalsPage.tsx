@@ -25,6 +25,7 @@ import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import EventCardMedia from "@/components/EventCardMedia";
 
 
 interface EventItem {
@@ -41,6 +42,7 @@ interface EventItem {
   chapterId?: string | null;
   chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
+  coverKey?: string | null;
   status: string;
   _count?: { rsvps: number };
 }
@@ -160,7 +162,7 @@ const EventApprovalsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {events.map((e) => (
             <div key={e.id} className="card-elevated overflow-hidden">
-              <img src="/event-card-banner.svg" alt="" className="w-full h-20 object-cover" />
+              <EventCardMedia event={e} className="aspect-[4/1]" />
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="font-semibold text-foreground">{e.title}</h3>

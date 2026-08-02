@@ -13,6 +13,10 @@ const svc = await import("../../../modules/achievements/achievements.service.js"
 const ALUMNI = { sub: "u-1", roles: ["ALUMNI"] as any };
 const ADMIN = { sub: "admin", roles: ["ADMIN"] as any };
 
+/** The `where` passed to Prisma on the Nth findMany call. */
+const whereOf = (call = 0) =>
+  (prismaMock.achievement.findMany.mock.calls[call][0] as any).where;
+
 beforeEach(() => {
   Object.values(prismaMock).forEach((m: any) =>
     m && typeof m === "object" ? Object.values(m).forEach((fn: any) => fn?.mockReset?.()) : null,
@@ -25,7 +29,7 @@ describe("modules/achievements/service", () => {
     prismaMock.achievement.findMany.mockResolvedValueOnce([]);
     prismaMock.achievement.count.mockResolvedValueOnce(0);
     await svc.list({ page: 1, pageSize: 5 } as any);
-    expect((prismaMock.achievement.findMany.mock.calls[0][0] as any).where.status).toBe("APPROVED");
+    expect(whereOf(0).AND).toContainEqual({ status: "APPROVED" });
   });
 
   it("create stamps userId from caller", async () => {
@@ -91,19 +95,76 @@ describe("achievements/service — branch coverage extras", () => {
     prismaMock.achievement.findMany.mockResolvedValue([]);
     prismaMock.achievement.count.mockResolvedValue(0);
     await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ADMIN);
-    expect((prismaMock.achievement.findMany.mock.calls[0][0] as any).where.status).toBe("PENDING");
+    expect(whereOf(0).AND).toContainEqual({ status: "PENDING" });
 
     await svc.list({ page: 1, pageSize: 5 } as any, ALUMNI);
-    expect((prismaMock.achievement.findMany.mock.calls[1][0] as any).where.status).toBe("APPROVED");
+    expect(whereOf(1).AND).toContainEqual({ status: "APPROVED" });
   });
 
   it("list: q + userId build OR + userId filter", async () => {
     prismaMock.achievement.findMany.mockResolvedValueOnce([]);
     prismaMock.achievement.count.mockResolvedValueOnce(0);
     await svc.list({ page: 1, pageSize: 5, q: "win", userId: "u-2" } as any);
-    const where = (prismaMock.achievement.findMany.mock.calls[0][0] as any).where;
-    expect(where.userId).toBe("u-2");
-    expect(where.OR).toHaveLength(2);
+    const and = whereOf(0).AND;
+    expect(and).toContainEqual({ userId: "u-2" });
+    expect(and.find((c: any) => c.OR)?.OR).toHaveLength(2);
+  });
+
+  /**
+   * Moderation status is not a public filter. `?status=PENDING` from a
+   * non-admin used to return every user's unreviewed submission; a non-admin
+   * must only ever reach approved work plus their own entries.
+   */
+  describe("list: non-admins cannot read other people's unreviewed entries", () => {
+    beforeEach(() => {
+      prismaMock.achievement.findMany.mockResolvedValue([]);
+      prismaMock.achievement.count.mockResolvedValue(0);
+    });
+
+    it("ignores a PENDING status request and stays on APPROVED", async () => {
+      await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ALUMNI);
+      const and = whereOf(0).AND;
+      expect(and).toContainEqual({ status: "APPROVED" });
+      expect(and).not.toContainEqual({ status: "PENDING" });
+    });
+
+    it("ignores a REJECTED status request too", async () => {
+      await svc.list({ page: 1, pageSize: 5, status: "REJECTED" } as any, ALUMNI);
+      expect(whereOf(0).AND).toContainEqual({ status: "APPROVED" });
+      expect(whereOf(0).AND).not.toContainEqual({ status: "REJECTED" });
+    });
+
+    it("never lets a non-admin scope PENDING to another user", async () => {
+      await svc.list({ page: 1, pageSize: 5, status: "PENDING", userId: "someone-else" } as any, ALUMNI);
+      const and = whereOf(0).AND;
+      expect(and).toContainEqual({ status: "APPROVED" });
+    });
+
+    it("mine=true returns the caller's own rows at any status", async () => {
+      await svc.list({ page: 1, pageSize: 5, mine: true } as any, ALUMNI);
+      const and = whereOf(0).AND;
+      expect(and).toContainEqual({ userId: "u-1" });
+      expect(and).not.toContainEqual({ status: "APPROVED" });
+    });
+
+    it("mine=true still honours a status filter, scoped to the caller", async () => {
+      await svc.list({ page: 1, pageSize: 5, mine: true, status: "REJECTED" } as any, ALUMNI);
+      const and = whereOf(0).AND;
+      expect(and).toContainEqual({ userId: "u-1" });
+      expect(and).toContainEqual({ status: "REJECTED" });
+    });
+
+    it("mine=true cannot be pointed at somebody else via userId", async () => {
+      await svc.list({ page: 1, pageSize: 5, mine: true, userId: "someone-else" } as any, ALUMNI);
+      const and = whereOf(0).AND;
+      expect(and).toContainEqual({ userId: "u-1" });
+      expect(and).not.toContainEqual({ userId: "someone-else" });
+    });
+
+    it("admin keeps full access via mine-less status filters", async () => {
+      await svc.list({ page: 1, pageSize: 5, status: "PENDING" } as any, ADMIN);
+      expect(whereOf(0).AND).toContainEqual({ status: "PENDING" });
+    });
   });
 
   it("update: 404 when missing; admin can update someone else's row", async () => {

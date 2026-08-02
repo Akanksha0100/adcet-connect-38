@@ -12,6 +12,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { api } from "@/lib/api";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
+import EventCardMedia from "@/components/EventCardMedia";
 
 interface EventRow {
   id: string;
@@ -19,6 +20,7 @@ interface EventRow {
   startsAt: string;
   status: "PENDING" | "APPROVED" | "REJECTED";
   isOnline?: boolean;
+  coverKey?: string | null;
   _count?: { rsvps: number };
 }
 interface Paginated<T> { items: T[] }
@@ -45,7 +47,7 @@ const MyEventsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map((e) => (
             <div key={e.id} className="card-elevated overflow-hidden">
-              <img src="/event-card-banner.svg" alt="" className="w-full h-24 object-cover" />
+              <EventCardMedia event={e} className="aspect-[4/1]" />
               <div className="p-5 space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <Link to={`/dashboard/events/${e.id}`} className="font-semibold text-foreground hover:underline">
