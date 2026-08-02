@@ -4,16 +4,16 @@
  * which the API uses to validate department-targeted events/jobs.
  */
 export const DEPARTMENTS = [
-  "CSE",
-  "CSE (IoT & Cyber Security)",
-  "CSE (AI & Data Science)",
-  "Robotics & Automation",
   "Mechanical Engineering",
+  "Computer Science and Engineering",
   "Electrical Engineering",
   "Civil Engineering",
   "Aeronautical Engineering",
   "Food Technology",
-  "E&TC",
+  "Artificial Intelligence and Data Science",
+  "Internet of Things and Cyber Security(CSE)",
+  "Robotics and Artificial Intelligence",
+  "Electronics and Telecommunication Engineering",
 ] as const;
 
 export type DepartmentName = (typeof DEPARTMENTS)[number];

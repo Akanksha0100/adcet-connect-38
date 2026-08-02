@@ -133,7 +133,7 @@ describe("modules/admin/service — generateReport", () => {
     status: "APPROVED",
     createdAt: new Date("2024-01-01"),
     roles: [{ role: "ALUMNI" }],
-    profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: null },
+    profile: { department: "Computer Science and Engineering", graduationYear: 2020, city: "Pune", phone: null },
   };
 
   it("returns JSON rows + summary when format=json", async () => {

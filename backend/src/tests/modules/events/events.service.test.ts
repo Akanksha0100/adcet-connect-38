@@ -151,8 +151,8 @@ describe("event notification targeting", () => {
   });
 
   it("narrows to a department", async () => {
-    const where = await recipientWhere({ department: "CSE" });
-    expect(where.profile).toEqual({ department: "CSE" });
+    const where = await recipientWhere({ department: "Computer Science and Engineering" });
+    expect(where.profile).toEqual({ department: "Computer Science and Engineering" });
   });
 
   it('treats the "All" department as no department filter', async () => {
@@ -166,8 +166,8 @@ describe("event notification targeting", () => {
   });
 
   it("intersects department AND chapter when both are set", async () => {
-    const where = await recipientWhere({ department: "CSE", chapterId: "c1" });
-    expect(where.profile).toEqual({ department: "CSE", chapterId: "c1" });
+    const where = await recipientWhere({ department: "Computer Science and Engineering", chapterId: "c1" });
+    expect(where.profile).toEqual({ department: "Computer Science and Engineering", chapterId: "c1" });
   });
 });
 

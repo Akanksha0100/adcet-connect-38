@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalDepartmentSchema } from "../../lib/departments.js";
 
 const optionalUrl = z
   .string()
@@ -14,7 +15,7 @@ export const registerSchema = z.object({
   firstName: z.string().min(1).max(80),
   lastName: z.string().min(1).max(80),
   role: z.enum(["ALUMNI", "STUDENT", "RECRUITER"]).default("ALUMNI"),
-  department: z.string().optional(),
+  department: optionalDepartmentSchema,
   degree: z.enum(["BE", "ME", "PHD", "DIPLOMA"]).optional(),
   admissionYear: z.coerce.number().int().min(1980).optional(),
   graduationYear: z.coerce.number().int().min(1980).optional(),

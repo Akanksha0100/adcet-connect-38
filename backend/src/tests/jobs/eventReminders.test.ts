@@ -76,7 +76,7 @@ describe("runEventReminders", () => {
         endsAt: null,
         location: null,
         isOnline: true,
-        department: "CSE",
+        department: "Computer Science and Engineering",
         status: "APPROVED",
         rsvps: [],
       },

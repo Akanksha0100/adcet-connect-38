@@ -31,7 +31,7 @@ describe("admin.service — generateReport", () => {
         status: "APPROVED",
         createdAt: new Date("2024-05-01"),
         roles: [{ role: "ALUMNI" }],
-        profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: "123" },
+        profile: { department: "Computer Science and Engineering", graduationYear: 2020, city: "Pune", phone: "123" },
       },
     ]);
     const out = (await svc.generateReport({ type: "users", format: "json" })) as any;
@@ -40,7 +40,7 @@ describe("admin.service — generateReport", () => {
       Email: "a@b",
       Role: "ALUMNI",
       Status: "APPROVED",
-      Department: "CSE",
+      Department: "Computer Science and Engineering",
     });
     expect(out.summary).toMatchObject({ Total: 1, Approved: 1 });
   });
@@ -89,10 +89,10 @@ describe("admin.service — generateReport", () => {
 
   it("status + department filters are forwarded (jobs)", async () => {
     prismaMock.job.findMany.mockResolvedValueOnce([]);
-    await svc.generateReport({ type: "jobs", format: "json", status: "APPROVED", department: "CSE" });
+    await svc.generateReport({ type: "jobs", format: "json", status: "APPROVED", department: "Computer Science and Engineering" });
     const where = (prismaMock.job.findMany.mock.calls[0][0] as any).where;
     expect(where.status).toBe("APPROVED");
-    expect(where.department).toBe("CSE");
+    expect(where.department).toBe("Computer Science and Engineering");
   });
 
   it("unknown type falls through to empty rows", async () => {

@@ -41,7 +41,7 @@ const USERS: SeedUser[] = [
     status: "APPROVED",
     profile: {
       bio: "Backend engineer building distributed systems at Infosys.",
-      department: "CSE",
+      department: "Computer Science and Engineering",
       degree: "BE",
       admissionYear: 2016,
       graduationYear: 2020,
@@ -82,7 +82,7 @@ const USERS: SeedUser[] = [
     status: "APPROVED",
     profile: {
       bio: "Full-stack dev, IEEE published researcher.",
-      department: "CSE",
+      department: "Computer Science and Engineering",
       degree: "ME",
       admissionYear: 2018,
       graduationYear: 2022,
@@ -103,7 +103,7 @@ const USERS: SeedUser[] = [
     status: "APPROVED",
     profile: {
       bio: "Founder of an EdTech startup. Mentor & angel investor.",
-      department: "E&TC",
+      department: "Electronics and Telecommunication Engineering",
       degree: "BE",
       admissionYear: 2014,
       graduationYear: 2018,
@@ -123,7 +123,7 @@ const USERS: SeedUser[] = [
     status: "APPROVED",
     profile: {
       bio: "Final-year CSE, GSoC '26 contributor.",
-      department: "CSE",
+      department: "Computer Science and Engineering",
       degree: "BE",
       admissionYear: 2022,
       graduationYear: 2026,

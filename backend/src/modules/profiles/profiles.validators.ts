@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { departmentSchema } from "../../lib/departments.js";
 
 /**
  * Profile update fields are all optional. The frontend often passes back the
@@ -35,7 +36,10 @@ export const updateProfileSchema = z.object({
   githubUrl: optionalUrl(),
   twitterUrl: optionalUrl(),
   websiteUrl: optionalUrl(),
-  department: optionalString(120),
+  // Clearable, but when set it must be one of the official department names —
+  // free text here would reintroduce the spelling drift the rename fixed.
+  department: z.union([departmentSchema, z.null(), z.literal("")]).optional()
+    .transform((v) => (v === "" || v == null ? null : v)),
   degree: z.union([z.enum(["BE", "ME", "PHD", "DIPLOMA"]), z.null(), z.literal("")]).optional()
     .transform((v) => (v === "" || v == null ? null : v)),
   admissionYear: optionalYear,

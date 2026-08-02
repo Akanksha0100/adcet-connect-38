@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
+import { optionalDepartmentSchema } from "../../lib/departments.js";
 
 export const jobInputSchema = z.object({
   title: z.string().min(2).max(200),
@@ -14,7 +15,7 @@ export const jobInputSchema = z.object({
   currency: z.string().max(8).optional(),
   description: z.string().min(10).max(20000),
   attachmentKey: z.string().optional(),
-  department: z.string().max(100).optional(),
+  department: optionalDepartmentSchema,
   requirements: z.string().max(20000).optional(),
   vacancies: z.coerce.number().int().min(1).default(1),
   applyUrl: z.string().url().optional(),

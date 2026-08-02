@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
-import { DEPARTMENTS } from "../../config/constants.js";
+import { optionalDepartmentSchema } from "../../lib/departments.js";
 
 const eventBase = z.object({
   title: z.string().min(2).max(200),
@@ -13,7 +13,7 @@ const eventBase = z.object({
   capacity: z.coerce.number().int().min(1).optional(),
   coverKey: z.string().optional(),
   attachmentKey: z.string().optional(),
-  department: z.string().max(100).optional(),
+  department: optionalDepartmentSchema,
   /** Target chapter for notifications. Null/omitted = every chapter. */
   chapterId: z.union([z.string().uuid(), z.null(), z.literal("")]).optional()
     .transform((v) => (v === "" || v == null ? null : v)),

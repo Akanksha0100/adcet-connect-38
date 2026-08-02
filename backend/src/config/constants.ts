@@ -46,19 +46,32 @@ export const FEED_MEDIA = {
   VIDEO_MIME_PREFIX: "video/",
 } as const;
 
+/**
+ * The official ADCET department names — the single source of truth for every
+ * department-typed value the API accepts or stores. Mirrored verbatim by
+ * `src/lib/departments.ts` on the frontend; the two lists must stay identical.
+ *
+ * These are the names as the college writes them. Earlier releases stored
+ * abbreviations ("CSE", "E&TC", …); migration `rename_departments` rewrote the
+ * stored values, so nothing outside that migration should reference the old
+ * spellings.
+ */
 export const DEPARTMENTS = [
-  "CSE",
-  "CSE (IoT & Cyber Security)",
-  "CSE (AI & Data Science)",
-  "Robotics & Automation",
   "Mechanical Engineering",
+  "Computer Science and Engineering",
   "Electrical Engineering",
   "Civil Engineering",
   "Aeronautical Engineering",
   "Food Technology",
-  "E&TC",
+  "Artificial Intelligence and Data Science",
+  "Internet of Things and Cyber Security(CSE)",
+  "Robotics and Artificial Intelligence",
+  "Electronics and Telecommunication Engineering",
 ] as const;
 export type DepartmentName = (typeof DEPARTMENTS)[number];
+
+/** Set form for O(1) membership checks in validators and services. */
+export const DEPARTMENT_SET: ReadonlySet<string> = new Set(DEPARTMENTS);
 
 /**
  * The regional chapters the platform ships with. Seeded on `npm run seed` and

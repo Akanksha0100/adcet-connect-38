@@ -21,7 +21,7 @@ describe("email-templates", () => {
           endsAt: null,
           location: "Room A",
           isOnline: false,
-          department: "CSE",
+          department: "Computer Science and Engineering",
           eventId: "e-1",
           attachmentKey: null,
         },
@@ -32,7 +32,7 @@ describe("email-templates", () => {
       expect(result.text).toContain("Test Event");
       expect(result.html).toContain("Test Event");
       expect(result.html).toContain("John Doe");
-      expect(result.html).toContain("CSE");
+      expect(result.html).toContain("Computer Science and Engineering");
     });
 
     it("includes attachment notice when attachmentKey is present", () => {
@@ -104,7 +104,7 @@ describe("email-templates", () => {
           location: "Pune",
           isRemote: false,
           employmentType: "INTERNSHIP",
-          department: "CSE",
+          department: "Computer Science and Engineering",
           description: "Great opportunity for interns",
           experienceMin: 0,
           experienceMax: 1,
@@ -118,7 +118,7 @@ describe("email-templates", () => {
       expect(result.subject).toContain("Acme Corp");
       expect(result.html).toContain("Internship");
       expect(result.html).toContain("Pune");
-      expect(result.html).toContain("CSE");
+      expect(result.html).toContain("Computer Science and Engineering");
       expect(result.html).toContain("Dev");
     });
 
@@ -154,7 +154,7 @@ describe("email-templates", () => {
         jobId: "j-1",
         applicantName: "John Doe",
         applicantEmail: "john@test.com",
-        applicantDepartment: "CSE",
+        applicantDepartment: "Computer Science and Engineering",
         applicantGradYear: 2024,
         applicantCompany: "Startup",
         applicantRole: "Intern",
