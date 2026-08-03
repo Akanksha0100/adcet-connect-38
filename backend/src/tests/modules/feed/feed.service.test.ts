@@ -57,7 +57,16 @@ describe("modules/feed/service", () => {
     expect(args.include.likes.where).toEqual({ userId: "u-1" });
   });
 
+  /** Let the caller through the monthly quota check with `used` slots spent. */
+  const allowPost = (used = 0, limit?: number) => {
+    prismaMock.appSetting.findUnique.mockResolvedValueOnce(
+      limit === undefined ? null : { key: "feedPostsPerMonth", value: String(limit) },
+    );
+    prismaMock.postQuotaUsage.findUnique.mockResolvedValueOnce(used ? { count: used } : null);
+  };
+
   it("create stamps authorId from the caller and positions media in order", async () => {
+    allowPost();
     prismaMock.post.create.mockResolvedValueOnce(rawPost());
     await svc.create(ALUMNI, {
       content: "trip",
@@ -73,6 +82,109 @@ describe("modules/feed/service", () => {
       { key: "post/a.jpg", type: "IMAGE", mimeType: null, position: 0 },
       { key: "post/b.jpg", type: "IMAGE", mimeType: null, position: 1 },
     ]);
+  });
+
+  describe("monthly post quota", () => {
+    it("uses the configured limit and this month's usage counter", async () => {
+      allowPost(3, 10);
+      const quota = await svc.getPostQuota(ALUMNI);
+
+      expect(quota).toMatchObject({ limit: 10, used: 3, remaining: 7, exempt: false });
+      // Scoped to the caller and the current period — never a count of posts,
+      // which would give slots back on delete.
+      const args = prismaMock.postQuotaUsage.findUnique.mock.calls[0][0] as any;
+      expect(args.where.userId_period).toEqual({ userId: "u-1", period: svc.periodKey() });
+      expect(prismaMock.post.count).not.toHaveBeenCalled();
+    });
+
+    it("treats a member with no counter row as having spent nothing", async () => {
+      allowPost(0, 10);
+      expect(await svc.getPostQuota(ALUMNI)).toMatchObject({ used: 0, remaining: 10 });
+    });
+
+    it("falls back to the default limit when an admin has not set one", async () => {
+      allowPost(0);
+      const quota = await svc.getPostQuota(ALUMNI);
+      expect(quota.limit).toBe(10);
+    });
+
+    it("exempts admins entirely", async () => {
+      const quota = await svc.getPostQuota(ADMIN);
+      expect(quota).toMatchObject({ exempt: true, limit: null, remaining: null });
+      // No limit lookup and no usage read for an exempt caller.
+      expect(prismaMock.postQuotaUsage.findUnique).not.toHaveBeenCalled();
+      expect(prismaMock.appSetting.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("reports zero remaining rather than a negative once over the limit", async () => {
+      // Possible if an admin lowers the limit after members have posted.
+      allowPost(12, 10);
+      const quota = await svc.getPostQuota(ALUMNI);
+      expect(quota.remaining).toBe(0);
+    });
+
+    it("resets on the first of the next month", async () => {
+      allowPost(0, 10);
+      const quota = await svc.getPostQuota(ALUMNI, new Date(2026, 7, 20));
+      expect(new Date(quota.resetsAt)).toEqual(new Date(2026, 8, 1));
+    });
+
+    it("create returns the decremented allowance for the toast", async () => {
+      allowPost(3, 10);
+      prismaMock.post.create.mockResolvedValueOnce(rawPost());
+      const res = await svc.create(ALUMNI, { content: "hi", media: [] });
+      expect(res.quota).toMatchObject({ limit: 10, used: 4, remaining: 6 });
+    });
+
+    it("create refuses once the allowance is spent, without writing a post", async () => {
+      allowPost(10, 10);
+      await expect(svc.create(ALUMNI, { content: "hi", media: [] })).rejects.toMatchObject({
+        status: 429,
+      });
+      expect(prismaMock.post.create).not.toHaveBeenCalled();
+    });
+
+    it("does not report a used count for an exempt admin", async () => {
+      prismaMock.post.create.mockResolvedValueOnce(rawPost());
+      const res = await svc.create(ADMIN, { content: "hi", media: [] });
+      expect(res.quota.used).toBe(0);
+    });
+
+    it("spends a slot permanently — publishing increments an append-only counter", async () => {
+      allowPost(3, 10);
+      prismaMock.post.create.mockResolvedValueOnce(rawPost());
+      await svc.create(ALUMNI, { content: "hi", media: [] });
+
+      const args = prismaMock.postQuotaUsage.upsert.mock.calls[0][0] as any;
+      expect(args.where.userId_period).toEqual({ userId: "u-1", period: svc.periodKey() });
+      expect(args.create).toMatchObject({ count: 1 });
+      expect(args.update).toEqual({ count: { increment: 1 } });
+    });
+
+    it("deleting a post never gives the slot back", async () => {
+      // `remove` must not touch the counter — that is the whole point of
+      // keeping usage separate from the Post table.
+      prismaMock.post.findUnique.mockResolvedValueOnce({ authorId: "u-1", media: [] });
+      await svc.remove(ALUMNI, "p-1");
+
+      expect(prismaMock.postQuotaUsage.upsert).not.toHaveBeenCalled();
+      expect(prismaMock.postQuotaUsage.update).not.toHaveBeenCalled();
+      expect(prismaMock.postQuotaUsage.delete).not.toHaveBeenCalled();
+      expect(prismaMock.postQuotaUsage.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it("does not spend a slot for an exempt admin", async () => {
+      prismaMock.post.create.mockResolvedValueOnce(rawPost());
+      await svc.create(ADMIN, { content: "hi", media: [] });
+      expect(prismaMock.postQuotaUsage.upsert).not.toHaveBeenCalled();
+    });
+
+    it("lets an admin post past the limit", async () => {
+      prismaMock.post.create.mockResolvedValueOnce(rawPost());
+      const res = await svc.create(ADMIN, { content: "announcement", media: [] });
+      expect(res.quota).toMatchObject({ exempt: true, remaining: null });
+      expect(prismaMock.post.create).toHaveBeenCalled();
+    });
   });
 
   it("update rejects non-authors — even admins cannot rewrite someone's words", async () => {

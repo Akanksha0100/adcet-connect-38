@@ -2,6 +2,15 @@ import type { Request, Response } from "express";
 import type { AppRoleName } from "../../config/constants.js";
 import * as service from "./admin.service.js";
 import { sendAdminMessage } from "../notifications/notifications.service.js";
+import { SETTINGS, getAllSettings, setSettings } from "../../lib/settings.js";
+
+/** Labels/descriptions so the admin UI renders each setting without hardcoding. */
+const SETTINGS_META = Object.fromEntries(
+  Object.entries(SETTINGS).map(([key, def]) => [
+    key,
+    { label: def.label, description: def.description, default: def.default },
+  ]),
+);
 
 export const listUsers = async (req: Request, res: Response) =>
   res.json(await service.listUsers(req.query as unknown as Parameters<typeof service.listUsers>[0]));
@@ -55,3 +64,9 @@ export const messageUser = async (req: Request, res: Response) => {
 
 export const bulkSetUserStatus = async (req: Request, res: Response) =>
   res.json(await service.bulkSetUserStatus(req.auth!.sub, req.body.userIds, req.body.status, req.body.reason));
+/** Admin-tunable application settings (see `lib/settings.ts`). */
+export const getSettings = async (_req: Request, res: Response) =>
+  res.json({ settings: await getAllSettings(), meta: SETTINGS_META });
+
+export const updateSettings = async (req: Request, res: Response) =>
+  res.json({ settings: await setSettings(req.body, req.auth!.sub), meta: SETTINGS_META });

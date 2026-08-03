@@ -43,7 +43,7 @@ describe("runEventReminders", () => {
         endsAt: null,
         location: "Room A",
         isOnline: false,
-        department: null,
+        departments: [],
         status: "APPROVED",
         rsvps: [
           {
@@ -76,7 +76,7 @@ describe("runEventReminders", () => {
         endsAt: null,
         location: null,
         isOnline: true,
-        department: "CSE",
+        departments: ["Computer Science and Engineering"],
         status: "APPROVED",
         rsvps: [],
       },
@@ -107,7 +107,7 @@ describe("runEventReminders", () => {
         endsAt: null,
         location: null,
         isOnline: false,
-        department: null,
+        departments: [],
         status: "APPROVED",
         rsvps: [
           {

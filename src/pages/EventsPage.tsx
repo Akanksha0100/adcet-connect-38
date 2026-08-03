@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
-import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
+import DepartmentMultiSelect from "@/components/DepartmentMultiSelect";
 import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
@@ -32,7 +32,7 @@ interface EventItem {
   description: string;
   location?: string | null;
   isOnline?: boolean;
-  department?: string | null;
+  departments?: string[];
   chapter?: { id: string; slug: string; name: string } | null;
   attachmentKey?: string | null;
   coverKey?: string | null;
@@ -151,12 +151,12 @@ const EventsPage = () => {
                   />
                 )}
               </div>
-              {(event.department || event.chapter) && (
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  {event.department && (
+              {(!!event.departments?.length || event.chapter) && (
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  {!!event.departments?.length && (
                     <span className="flex items-center gap-1">
                       <Building2 className="h-3 w-3" />
-                      {event.department}
+                      {event.departments.join(", ")}
                     </span>
                   )}
                   {event.chapter && (
@@ -243,10 +243,12 @@ const CreateEventDialog = ({
     startsAt: "",
     endsAt: "",
     capacity: "",
-    department: "All",
+
     chapterId: "all",
     attachmentKey: "",
   });
+  // Empty = notify every department, matching how the API stores it.
+  const [departments, setDepartments] = useState<string[]>([]);
   const [attachFile, setAttachFile] = useState<File | null>(null);
 
   const chapters = useQuery({ queryKey: ["chapters"], queryFn: () => fetchChapters() });
@@ -270,7 +272,7 @@ const CreateEventDialog = ({
       return api.post("/events", {
         ...form,
         attachmentKey: attachmentKey || undefined,
-        department: form.department === "All" ? undefined : form.department,
+        departments,
         chapterId: form.chapterId === "all" ? undefined : form.chapterId,
         meetingUrl: form.isOnline ? form.meetingUrl : undefined,
         capacity: form.capacity ? Number(form.capacity) : undefined,
@@ -282,7 +284,8 @@ const CreateEventDialog = ({
       toast({ title: "Event created", description: "Notifications will be sent to alumni." });
       onOpenChange(false);
       onCreated();
-      setForm({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "", department: "All", chapterId: "all", attachmentKey: "" });
+      setForm({ title: "", description: "", location: "", isOnline: false, meetingUrl: "", startsAt: "", endsAt: "", capacity: "", chapterId: "all", attachmentKey: "" });
+      setDepartments([]);
       setAttachFile(null);
     },
     onError: (err: any) => toast({ title: "Could not create event", description: err?.message, variant: "destructive" }),
@@ -307,18 +310,12 @@ const CreateEventDialog = ({
             <Label>Description</Label>
             <Textarea required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
-          <div className="space-y-1.5">
-            <Label>Department (target audience)</Label>
-            <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
-              <SelectTrigger><SelectValue placeholder="All alumni" /></SelectTrigger>
-              <SelectContent>
-                {DEPARTMENTS.map((d) => (
-                  <SelectItem key={d} value={d}>{d}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">Email notifications will be sent to alumni in this department.</p>
-          </div>
+          <DepartmentMultiSelect
+            value={departments}
+            onChange={setDepartments}
+            label="Departments (target audience)"
+            allHint="No selection = every department is emailed"
+          />
           <div className="space-y-1.5">
             <Label>Chapter (target audience)</Label>
             <Select value={form.chapterId} onValueChange={(v) => setForm({ ...form, chapterId: v })}>
@@ -331,9 +328,9 @@ const CreateEventDialog = ({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {form.department === "All"
+              {departments.length === 0
                 ? "Only members of this chapter will be emailed."
-                : "Only alumni in both the selected department and chapter will be emailed."}
+                : "Only alumni in both a selected department and this chapter will be emailed."}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

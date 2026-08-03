@@ -12,11 +12,18 @@ export const campaignInputSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-/** Create a Razorpay order for a general donation. Amount is in whole rupees. */
+/** Create a Razorpay order. Amount is in whole rupees. */
 export const createOrderSchema = z.object({
   amount: z.coerce.number().int().min(1).max(10_000_000),
   message: z.string().max(1000).optional(),
   isAnonymous: z.boolean().optional(),
+  /**
+   * Which campaign the money is for. Omitted (or empty) means a general
+   * donation to the alumni fund, which stays a valid choice — hence optional
+   * rather than required.
+   */
+  campaignId: z.union([z.string().uuid(), z.literal("")]).optional()
+    .transform((v) => (v ? v : undefined)),
 });
 
 /** Payload returned by Razorpay Checkout, verified on the backend. */

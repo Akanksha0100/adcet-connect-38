@@ -24,6 +24,12 @@ export interface AuthUser {
   status: ApprovalStatus;
   roles: AppRole[];
   rejectionReason?: string | null;
+  /**
+   * Whether the mandatory profile is filled in. SSO sign-ins start `false`
+   * because Google/LinkedIn/GitHub supply only a name and email — those users
+   * are routed to `/complete-profile` before they can use anything else.
+   */
+  profileComplete: boolean;
 }
 
 export interface AuthTokens {

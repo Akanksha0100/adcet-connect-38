@@ -27,7 +27,7 @@ interface JobDetail {
   currency?: string;
   description: string;
   requirements?: string | null;
-  department?: string | null;
+  departments?: string[];
   attachmentKey?: string | null;
   vacancies?: number | null;
   positionsFilled?: number | null;
@@ -112,11 +112,15 @@ const JobDetailPage = () => {
             {job.expiresAt && <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4" />Closes {new Date(job.expiresAt).toLocaleDateString()}</span>}
           </div>
 
-          {job.department && (
-            <div className="flex items-center gap-2 text-sm">
+          {!!job.departments?.length && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
               <Tag className="h-4 w-4 text-primary" />
-              <span className="text-muted-foreground">Department:</span>
-              <Badge variant="outline" className="text-primary">{job.department}</Badge>
+              <span className="text-muted-foreground">
+                {job.departments.length > 1 ? "Departments:" : "Department:"}
+              </span>
+              {job.departments.map((d) => (
+                <Badge key={d} variant="outline" className="text-primary">{d}</Badge>
+              ))}
             </div>
           )}
 

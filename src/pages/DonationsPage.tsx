@@ -4,6 +4,7 @@ import { Heart, Loader2, ShieldCheck, Download, CheckCircle2 } from "lucide-reac
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +27,18 @@ interface OrderResponse {
   donorEmail: string;
 }
 
+/** A fundraising campaign a donor can earmark their gift for. */
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  goalAmount: number;
+  raisedAmount?: number;
+  startsAt: string;
+  endsAt?: string | null;
+  isActive: boolean;
+}
+
 interface MyDonation {
   id: string;
   amount: number;
@@ -36,6 +49,8 @@ interface MyDonation {
   razorpayPaymentId?: string | null;
   receiptNo?: string | null;
   receiptKey?: string | null;
+  /** What the gift was earmarked for; null means the general fund. */
+  campaign?: { id: string; title: string } | null;
 }
 
 const PRESETS = [1000, 5000, 10000, 50000];
@@ -55,12 +70,29 @@ const DonationsPage = () => {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [preset, setPreset] = useState<number | "other">(1000);
+  // "" = the general alumni fund, which stays a valid choice.
+  const [campaignId, setCampaignId] = useState("");
   const [custom, setCustom] = useState("");
   const [message, setMessage] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [processing, setProcessing] = useState(false);
 
   const amount = preset === "other" ? Number(custom) || 0 : preset;
+
+  // Only campaigns currently open to donations are offered.
+  const campaigns = useQuery({
+    queryKey: ["donations", "campaigns", "active"],
+    queryFn: () =>
+      api.get<{ items: Campaign[] }>("/donations/campaigns", { active: true, pageSize: 50 }),
+  });
+  const openCampaigns = (campaigns.data?.items ?? []).filter((c) => {
+    const now = Date.now();
+    return (
+      new Date(c.startsAt).getTime() <= now &&
+      (!c.endsAt || new Date(c.endsAt).getTime() >= now)
+    );
+  });
+  const selected = openCampaigns.find((c) => c.id === campaignId);
 
   const myDonations = useQuery({
     queryKey: ["donations", "me"],
@@ -106,6 +138,7 @@ const DonationsPage = () => {
         amount,
         message: message || undefined,
         isAnonymous: anonymous,
+        campaignId: campaignId || undefined,
       });
 
       if (!window.Razorpay) throw new Error("Payment gateway unavailable.");
@@ -115,7 +148,7 @@ const DonationsPage = () => {
         amount: order.amount * 100,
         currency: order.currency,
         name: "ADCET Alumni Portal",
-        description: "Donation to ADCET",
+        description: selected ? selected.title : "Donation to the ADCET general fund",
         image: "/logo.jpeg",
         order_id: order.orderId,
         prefill: { name: order.donorName, email: order.donorEmail },
@@ -174,6 +207,45 @@ const DonationsPage = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Choose an amount and pay securely. Your receipt is generated automatically.
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="campaign">What would you like to support?</Label>
+            <Select value={campaignId || "general"} onValueChange={(v) => setCampaignId(v === "general" ? "" : v)}>
+              <SelectTrigger id="campaign">
+                <SelectValue placeholder="Choose a cause" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">Wherever it's needed most (general fund)</SelectItem>
+                {openCampaigns.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selected ? (
+              <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">{selected.description}</p>
+                <div className="space-y-1">
+                  <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent transition-all"
+                      style={{
+                        width: `${Math.min(100, Math.round(((selected.raisedAmount ?? 0) / selected.goalAmount) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    ₹{(selected.raisedAmount ?? 0).toLocaleString("en-IN")} raised of
+                    {" "}₹{selected.goalAmount.toLocaleString("en-IN")} goal
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Your gift is recorded against the cause you pick, so the alumni office can report
+                back on how it was used.
+              </p>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -276,6 +348,9 @@ const DonationsPage = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground">
                     ₹{Number(d.amount).toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-xs text-foreground/80 truncate">
+                    {d.campaign?.title ?? "General fund"}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
                     {new Date(d.paidAt ?? d.createdAt).toLocaleDateString()} ·{" "}

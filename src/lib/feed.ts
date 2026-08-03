@@ -111,3 +111,32 @@ export const validateSelection = (existing: { type: PostMediaType }[], incoming:
   if (videos > FEED_MEDIA.MAX_VIDEOS) return `Only ${FEED_MEDIA.MAX_VIDEOS} video per post`;
   return null;
 };
+
+/**
+ * A member's monthly posting allowance. `limit`/`remaining` are null for
+ * admins, who are exempt.
+ */
+export interface PostQuota {
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  /** ISO timestamp of the 1st of next month, when the allowance refills. */
+  resetsAt: string;
+  exempt: boolean;
+}
+
+/** A freshly created post, plus the author's updated allowance. */
+export type CreatedPost = Post & { quota: PostQuota };
+
+/** Human-readable summary of what's left, for the post-publish toast. */
+export const quotaMessage = (quota: PostQuota): string => {
+  if (quota.exempt || quota.remaining === null) return "Your post is live in the feed.";
+  if (quota.remaining === 0) {
+    return `That was your last post this month. Your allowance resets on ${resetLabel(quota)}.`;
+  }
+  const plural = quota.remaining === 1 ? "post" : "posts";
+  return `${quota.remaining} ${plural} left this month (resets ${resetLabel(quota)}).`;
+};
+
+const resetLabel = (quota: PostQuota): string =>
+  new Date(quota.resetsAt).toLocaleDateString(undefined, { day: "numeric", month: "long" });

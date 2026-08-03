@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { uploadFile } from "@/lib/upload";
 import { DEPARTMENT_FILTER_OPTIONS as DEPARTMENTS } from "@/lib/departments";
+import DepartmentMultiSelect from "@/components/DepartmentMultiSelect";
 import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
@@ -29,7 +30,7 @@ interface Job {
   experienceMax?: number | null;
   description: string;
   attachmentKey?: string | null;
-  department?: string | null;
+  departments?: string[];
   vacancies?: number | null;
   positionsFilled?: number | null;
   applyUrl?: string | null;
@@ -161,7 +162,12 @@ const JobsPage = () => {
               )}
 
               <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                {job.department && <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{job.department}</span>}
+                {!!job.departments?.length && (
+                  <span className="flex items-center gap-1">
+                    <Briefcase className="h-3 w-3" />
+                    {job.departments.join(", ")}
+                  </span>
+                )}
                 {job.location && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{job.location}</span>}
                 {job.employmentType && <span className="flex items-center gap-1">{job.employmentType.replace("_", "-").toLowerCase()}</span>}
               </div>
@@ -205,10 +211,12 @@ const JobsPage = () => {
 const CreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    title: "", company: "", location: "", description: "", department: "All",
+    title: "", company: "", location: "", description: "",
     employmentType: "FULL_TIME" as Job["employmentType"], vacancies: "",
-    attachmentKey: "",
+    attachmentKey: "", salaryMin: "", salaryMax: "",
   });
+  // Empty = open to every department, which is what the API stores too.
+  const [departments, setDepartments] = useState<string[]>([]);
   const [attachFile, setAttachFile] = useState<File | null>(null);
   const [attachUploading, setAttachUploading] = useState(false);
 
@@ -230,14 +238,18 @@ const CreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
       return api.post("/jobs", {
         ...form,
         attachmentKey: attachmentKey || undefined,
-        department: form.department === "All" ? undefined : form.department,
+        departments,
         vacancies: form.vacancies ? Number(form.vacancies) : undefined,
+        // Salary is optional — send nothing rather than 0 when left blank.
+        salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
+        salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
       });
     },
     onSuccess: () => {
       toast({ title: "Job submitted", description: "Awaiting admin approval." });
       setOpen(false); onCreated();
-      setForm({ title: "", company: "", location: "", description: "", department: "All", employmentType: "FULL_TIME", vacancies: "", attachmentKey: "" });
+      setForm({ title: "", company: "", location: "", description: "", employmentType: "FULL_TIME", vacancies: "", attachmentKey: "", salaryMin: "", salaryMax: "" });
+      setDepartments([]);
       setAttachFile(null);
     },
     onError: (e: any) => toast({ title: "Could not post job", description: e?.message, variant: "destructive" }),
@@ -256,18 +268,35 @@ const CreateJobDialog = ({ onCreated }: { onCreated: () => void }) => {
             <div className="space-y-1.5"><Label>Location</Label><Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Vacancies</Label><Input type="number" min={1} value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} /></div>
           </div>
+          <DepartmentMultiSelect
+            value={departments}
+            onChange={setDepartments}
+            allHint="No selection = open to all departments"
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Department</Label>
-              <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
-                <SelectTrigger><SelectValue placeholder="All departments" /></SelectTrigger>
-                <SelectContent>
-                  {DEPARTMENTS.map((d) => (
-                    <SelectItem key={d} value={d}>{d}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Salary — minimum (optional)</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="e.g. 900000"
+                value={form.salaryMin}
+                onChange={(e) => setForm({ ...form, salaryMin: e.target.value })}
+              />
             </div>
+            <div className="space-y-1.5">
+              <Label>Salary — maximum (optional)</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="e.g. 1500000"
+                value={form.salaryMax}
+                onChange={(e) => setForm({ ...form, salaryMax: e.target.value })}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-1">Annual figure in INR. Leave blank to keep the pay undisclosed.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Type</Label>
               <Select value={form.employmentType} onValueChange={(v) => setForm({ ...form, employmentType: v as Job["employmentType"] })}>

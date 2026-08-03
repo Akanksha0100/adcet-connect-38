@@ -433,8 +433,6 @@ const AdminAnalyticsPage = () => {
               <SelectItem value="all">All Degrees</SelectItem>
               <SelectItem value="BE">BE</SelectItem>
               <SelectItem value="ME">ME</SelectItem>
-              <SelectItem value="PHD">PHD</SelectItem>
-              <SelectItem value="DIPLOMA">Diploma</SelectItem>
             </SelectContent>
           </Select>
           <Input placeholder="Skill" value={filters.skill} onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))} />

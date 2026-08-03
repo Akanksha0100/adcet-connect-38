@@ -111,7 +111,7 @@ describe("analytics.service — adminInsights", () => {
     prismaMock.achievement.findMany.mockResolvedValueOnce([{ createdAt: new Date("2024-03-01"), status: "APPROVED" }]);
     prismaMock.profile.count.mockResolvedValueOnce(42);
     prismaMock.profile.groupBy
-      .mockResolvedValueOnce([{ department: "CSE", _count: { _all: 10 } }])
+      .mockResolvedValueOnce([{ department: "Computer Science and Engineering", _count: { _all: 10 } }])
       .mockResolvedValueOnce([{ graduationYear: 2020, _count: { _all: 5 } }])
       .mockResolvedValueOnce([{ currentCompany: "TCS", _count: { _all: 7 } }])
       .mockResolvedValueOnce([{ city: "Pune", _count: { _all: 8 } }]);

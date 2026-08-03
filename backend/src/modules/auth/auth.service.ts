@@ -16,8 +16,9 @@ import { sendEmail } from "../../lib/mailer.js";
 import { emailVerificationOtpEmail, passwordResetEmail } from "../../lib/email-templates.js";
 import { logger } from "../../lib/logger.js";
 import { env } from "../../config/env.js";
-import type { AppRoleName } from "../../config/constants.js";
-import type { LoginInput, RegisterInput } from "./auth.validators.js";
+import { admissionYearFor, type AppRoleName } from "../../config/constants.js";
+import { isProfileComplete } from "../../lib/profileCompletion.js";
+import type { CompleteProfileInput, LoginInput, RegisterInput } from "./auth.validators.js";
 import type { OAuthProfile } from "./providers/index.js";
 
 const REFRESH_TTL_DAYS = 7;
@@ -129,7 +130,20 @@ const consumeRegistrationOtp = async (email: string, otp: string): Promise<void>
   });
 };
 
+/**
+ * Prisma's unique-violation code. `register` catches it explicitly rather than
+ * relying on the pre-flight lookup alone: two sign-ups for the same address can
+ * interleave between the check and the insert, and only the database can
+ * arbitrate that race.
+ */
+const UNIQUE_VIOLATION = "P2002";
+
+const isUniqueViolation = (err: unknown): boolean =>
+  typeof err === "object" && err !== null && (err as { code?: string }).code === UNIQUE_VIOLATION;
+
 export const register = async (input: RegisterInput) => {
+  // `email` arrives already trimmed and lowercased from `emailSchema`, so this
+  // lookup and the unique index agree on what "the same address" means.
   const existing = await prisma.user.findUnique({ where: { email: input.email } });
   if (existing) throw Conflict("Email already registered");
 
@@ -138,37 +152,48 @@ export const register = async (input: RegisterInput) => {
   const role: AppRoleName = input.role ?? "ALUMNI";
   const passwordHash = await hashPassword(input.password);
 
-  const user = await prisma.user.create({
-    data: {
-      email: input.email,
-      passwordHash,
-      firstName: input.firstName,
-      lastName: input.lastName,
-      // PENDING until an admin approves. Recruiters & alumni need admin moderation.
-      status: "PENDING",
-      // Ownership of the address was just proven via OTP.
-      emailVerifiedAt: new Date(),
-      roles: { create: { role } },
-      profile: {
-        create: {
-          department: input.department,
-          degree: input.degree,
-          admissionYear: input.admissionYear,
-          graduationYear: input.graduationYear,
-          linkedinUrl: input.linkedinUrl,
-          githubUrl: input.githubUrl || undefined,
-          twitterUrl: input.twitterUrl || undefined,
-          websiteUrl: input.websiteUrl || undefined,
-          phone: input.phone || undefined,
-          city: input.city || undefined,
-          bio: input.bio || undefined,
-          currentCompany: input.currentCompany || undefined,
-          currentRole: input.currentRole || undefined,
+  let user;
+  try {
+    user = await prisma.user.create({
+      data: {
+        email: input.email,
+        passwordHash,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        // PENDING until an admin approves. Recruiters & alumni need admin moderation.
+        status: "PENDING",
+        // Ownership of the address was just proven via OTP.
+        emailVerifiedAt: new Date(),
+        roles: { create: { role } },
+        profile: {
+          create: {
+            department: input.department,
+            degree: input.degree,
+            // Not collected — implied by the graduation year and course length.
+            admissionYear: admissionYearFor(input.degree, input.graduationYear),
+            graduationYear: input.graduationYear,
+            birthDay: input.birthDay,
+            birthMonth: input.birthMonth,
+            linkedinUrl: input.linkedinUrl,
+            githubUrl: input.githubUrl || undefined,
+            twitterUrl: input.twitterUrl || undefined,
+            websiteUrl: input.websiteUrl || undefined,
+            phone: input.phone,
+            city: input.city,
+            bio: input.bio || undefined,
+            currentCompany: input.currentCompany,
+            currentRole: input.currentRole,
+          },
         },
+        preferences: { create: {} },
       },
-      preferences: { create: {} },
-    },
-  });
+      // `publicUser` reads the profile to report `profileComplete`.
+      include: { profile: true },
+    });
+  } catch (err) {
+    if (isUniqueViolation(err)) throw Conflict("Email already registered");
+    throw err;
+  }
 
   const tokens = await issueTokens(user, [role]);
   return { user: publicUser(user, [role]), ...tokens };
@@ -177,7 +202,7 @@ export const register = async (input: RegisterInput) => {
 export const login = async (input: LoginInput) => {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
-    include: { roles: true },
+    include: { roles: true, profile: true },
   });
   if (!user || !user.passwordHash) throw Unauthorized("Invalid credentials");
   const ok = await verifyPassword(input.password, user.passwordHash);
@@ -222,6 +247,52 @@ export const logout = async (refreshToken: string) => {
     where: { tokenHash: hashToken(refreshToken), revokedAt: null },
     data: { revokedAt: new Date() },
   });
+};
+
+/**
+ * Fill in the mandatory profile for an account that couldn't supply it at
+ * creation time — i.e. an SSO sign-in, where the provider gives us a name and
+ * an email and nothing more.
+ *
+ * The account stays PENDING: completing the profile is what makes it
+ * *reviewable*, not approved. An admin still decides.
+ */
+export const completeProfile = async (userId: string, input: CompleteProfileInput) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { roles: true, profile: true },
+  });
+  if (!user) throw Unauthorized();
+
+  const profileData = {
+    department: input.department,
+    degree: input.degree,
+    // Derived, never asked for — same rule as form sign-up.
+    admissionYear: admissionYearFor(input.degree, input.graduationYear),
+    graduationYear: input.graduationYear,
+    birthDay: input.birthDay,
+    birthMonth: input.birthMonth,
+    phone: input.phone,
+    city: input.city,
+    currentCompany: input.currentCompany,
+    currentRole: input.currentRole,
+    linkedinUrl: input.linkedinUrl,
+    githubUrl: input.githubUrl || undefined,
+    twitterUrl: input.twitterUrl || undefined,
+    websiteUrl: input.websiteUrl || undefined,
+    bio: input.bio || undefined,
+  };
+
+  // `upsert` because an OAuth account is created with an empty profile row,
+  // but a profile could also be missing entirely on older accounts.
+  const profile = await prisma.profile.upsert({
+    where: { userId },
+    create: { userId, ...profileData },
+    update: profileData,
+  });
+
+  const roles = user.roles.map((r) => r.role as AppRoleName);
+  return publicUser({ ...user, profile }, roles);
 };
 
 export const me = async (userId: string) => {
@@ -308,10 +379,16 @@ export const changePassword = async (
  * - Else → create a new ALUMNI user (auto-approved since email is provider-verified).
  */
 export const loginWithOAuth = async (profile: OAuthProfile) => {
+  // Providers return whatever case the user typed when they signed up with
+  // them. Canonicalise before any lookup or insert, otherwise "Alice@x.com"
+  // from GitHub would create a second account alongside the "alice@x.com"
+  // registered through the form.
+  const email = profile.email.trim().toLowerCase();
+
   // 1. Already-linked account?
   const existingLink = await prisma.oAuthAccount.findUnique({
     where: { provider_providerId: { provider: profile.provider, providerId: profile.providerId } },
-    include: { user: { include: { roles: true } } },
+    include: { user: { include: { roles: true, profile: true } } },
   });
 
   let user = existingLink?.user;
@@ -319,8 +396,8 @@ export const loginWithOAuth = async (profile: OAuthProfile) => {
   // 2. Same email but no link yet → attach.
   if (!user) {
     const byEmail = await prisma.user.findUnique({
-      where: { email: profile.email },
-      include: { roles: true },
+      where: { email },
+      include: { roles: true, profile: true },
     });
     if (byEmail) {
       await prisma.oAuthAccount.create({
@@ -338,20 +415,28 @@ export const loginWithOAuth = async (profile: OAuthProfile) => {
   if (!user) {
     user = await prisma.user.create({
       data: {
-        email: profile.email,
+        email,
         firstName: profile.firstName,
         lastName: profile.lastName,
-        // SSO email is provider-verified → safe to auto-approve.
-        status: profile.emailVerified ? "APPROVED" : "PENDING",
+        /**
+         * ALWAYS pending. A provider-verified email proves the person owns the
+         * address — it says nothing about whether they are an ADCET alumnus,
+         * which is what approval is actually for. Auto-approving here used to
+         * hand anyone with a Google account full portal access while skipping
+         * both the mandatory profile and admin review.
+         */
+        status: "PENDING",
         emailVerifiedAt: profile.emailVerified ? new Date() : null,
         roles: { create: { role: "ALUMNI" } },
+        // Empty for now — the provider gives us no academic or contact detail.
+        // `/complete-profile` collects the same fields form sign-up requires.
         profile: { create: {} },
         preferences: { create: {} },
         oauthAccounts: {
           create: { provider: profile.provider, providerId: profile.providerId },
         },
       },
-      include: { roles: true },
+      include: { roles: true, profile: true },
     });
   }
 
@@ -362,7 +447,15 @@ export const loginWithOAuth = async (profile: OAuthProfile) => {
 };
 
 const publicUser = (
-  u: { id: string; email: string; firstName: string; lastName: string; status: string; rejectionReason?: string | null },
+  u: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    status: string;
+    rejectionReason?: string | null;
+    profile?: unknown;
+  },
   roles: AppRoleName[],
 ) => ({
   id: u.id,
@@ -372,4 +465,11 @@ const publicUser = (
   status: u.status,
   rejectionReason: u.rejectionReason ?? null,
   roles,
+  /**
+   * Whether the mandatory profile is filled in. SSO accounts start `false`;
+   * the frontend uses this to force them through `/complete-profile` before
+   * anything else. Callers that didn't load the profile relation get `false`
+   * — never silently `true`, so a missing `include` can't open the gate.
+   */
+  profileComplete: isProfileComplete(u.profile as Parameters<typeof isProfileComplete>[0]),
 });

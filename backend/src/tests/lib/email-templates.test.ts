@@ -21,7 +21,7 @@ describe("email-templates", () => {
           endsAt: null,
           location: "Room A",
           isOnline: false,
-          department: "CSE",
+          departments: ["Computer Science and Engineering"],
           eventId: "e-1",
           attachmentKey: null,
         },
@@ -32,7 +32,7 @@ describe("email-templates", () => {
       expect(result.text).toContain("Test Event");
       expect(result.html).toContain("Test Event");
       expect(result.html).toContain("John Doe");
-      expect(result.html).toContain("CSE");
+      expect(result.html).toContain("Computer Science and Engineering");
     });
 
     it("includes attachment notice when attachmentKey is present", () => {
@@ -44,7 +44,7 @@ describe("email-templates", () => {
           endsAt: null,
           location: null,
           isOnline: true,
-          department: null,
+          departments: [],
           eventId: "e-2",
           attachmentKey: "event-attachment/u/file.pdf",
         },
@@ -104,7 +104,7 @@ describe("email-templates", () => {
           location: "Pune",
           isRemote: false,
           employmentType: "INTERNSHIP",
-          department: "CSE",
+          departments: ["Computer Science and Engineering"],
           description: "Great opportunity for interns",
           experienceMin: 0,
           experienceMax: 1,
@@ -118,8 +118,42 @@ describe("email-templates", () => {
       expect(result.subject).toContain("Acme Corp");
       expect(result.html).toContain("Internship");
       expect(result.html).toContain("Pune");
-      expect(result.html).toContain("CSE");
+      expect(result.html).toContain("Computer Science and Engineering");
       expect(result.html).toContain("Dev");
+    });
+
+    it("lists every targeted department, pluralising the label", () => {
+      const result = jobNotificationEmail(
+        {
+          title: "SDE", company: "Acme", jobId: "j-3", location: "Pune", isRemote: false,
+          employmentType: "FULL_TIME",
+          departments: [
+            "Computer Science and Engineering",
+            "Electronics and Telecommunication Engineering",
+          ],
+          description: "d", experienceMin: null, experienceMax: null,
+          salaryMin: null, salaryMax: null, currency: "INR",
+        },
+        "Dev",
+      );
+      expect(result.html).toContain("Departments");
+      expect(result.html).toContain("Computer Science and Engineering");
+      expect(result.html).toContain("Electronics and Telecommunication Engineering");
+    });
+
+    it("omits the department row entirely when the job is open to all", () => {
+      const result = jobNotificationEmail(
+        {
+          title: "SDE", company: "Acme", jobId: "j-4", location: "Pune", isRemote: false,
+          employmentType: "FULL_TIME", departments: [],
+          description: "d", experienceMin: null, experienceMax: null,
+          salaryMin: null, salaryMax: null, currency: "INR",
+        },
+        "Dev",
+      );
+      // The whole table row is skipped. (Asserting on the `badge-dept` class
+      // would always match — it is defined in the shared <style> block.)
+      expect(result.html).not.toMatch(/>Departments?</);
     });
 
     it("handles remote jobs without location", () => {
@@ -131,7 +165,7 @@ describe("email-templates", () => {
           location: null,
           isRemote: true,
           employmentType: "FULL_TIME",
-          department: null,
+          departments: [],
           description: "Work from anywhere",
           experienceMin: null,
           experienceMax: null,
@@ -154,7 +188,7 @@ describe("email-templates", () => {
         jobId: "j-1",
         applicantName: "John Doe",
         applicantEmail: "john@test.com",
-        applicantDepartment: "CSE",
+        applicantDepartment: "Computer Science and Engineering",
         applicantGradYear: 2024,
         applicantCompany: "Startup",
         applicantRole: "Intern",

@@ -118,17 +118,17 @@ describe("/admin/approvals/export", () => {
         lastName: "A",
         email: "alice@x.com",
         createdAt: new Date("2026-07-01T00:00:00Z"),
-        profile: { department: "CSE", degree: "BE", graduationYear: 2020, linkedinUrl: "https://l.in/a" },
+        profile: { department: "Computer Science and Engineering", degree: "BE", graduationYear: 2020, linkedinUrl: "https://l.in/a" },
       } as any,
     ]);
     const res = await request(app)
-      .get("/api/v1/admin/approvals/export?department=CSE&from=2026-06-01&to=2026-07-31")
+      .get("/api/v1/admin/approvals/export?department=Computer%20Science%20and%20Engineering&from=2026-06-01&to=2026-07-31")
       .set("Authorization", bearer(adminToken));
     expect(res.status).toBe(200);
     expect(res.body.items[0]).toMatchObject({
       userId: "u1",
       email: "alice@x.com",
-      department: "CSE",
+      department: "Computer Science and Engineering",
       registeredOn: "2026-07-01",
     });
     // Only PENDING, non-admin users within the date/department window.
@@ -136,7 +136,7 @@ describe("/admin/approvals/export", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           status: "PENDING",
-          profile: { department: "CSE" },
+          profile: { department: "Computer Science and Engineering" },
         }),
       }),
     );
@@ -266,7 +266,7 @@ describe("/admin/audit-log & reports", () => {
     status: "APPROVED",
     createdAt: new Date(),
     roles: [{ role: "ALUMNI" }],
-    profile: { department: "CSE", graduationYear: 2020, city: "Pune", phone: null },
+    profile: { department: "Computer Science and Engineering", graduationYear: 2020, city: "Pune", phone: null },
   };
 
   it("200 JSON users report", async () => {

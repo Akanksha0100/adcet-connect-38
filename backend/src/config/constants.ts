@@ -46,19 +46,64 @@ export const FEED_MEDIA = {
   VIDEO_MIME_PREFIX: "video/",
 } as const;
 
+/**
+ * The official ADCET department names — the single source of truth for every
+ * department-typed value the API accepts or stores. Mirrored verbatim by
+ * `src/lib/departments.ts` on the frontend; the two lists must stay identical.
+ *
+ * These are the names as the college writes them. Earlier releases stored
+ * abbreviations ("CSE", "E&TC", …); migration `rename_departments` rewrote the
+ * stored values, so nothing outside that migration should reference the old
+ * spellings.
+ */
 export const DEPARTMENTS = [
-  "CSE",
-  "CSE (IoT & Cyber Security)",
-  "CSE (AI & Data Science)",
-  "Robotics & Automation",
   "Mechanical Engineering",
+  "Computer Science and Engineering",
   "Electrical Engineering",
   "Civil Engineering",
   "Aeronautical Engineering",
   "Food Technology",
-  "E&TC",
+  "Artificial Intelligence and Data Science",
+  "Internet of Things and Cyber Security(CSE)",
+  "Robotics and Artificial Intelligence",
+  "Electronics and Telecommunication Engineering",
 ] as const;
 export type DepartmentName = (typeof DEPARTMENTS)[number];
+
+/** Set form for O(1) membership checks in validators and services. */
+export const DEPARTMENT_SET: ReadonlySet<string> = new Set(DEPARTMENTS);
+
+/**
+ * The degrees ADCET awards. `durationYears` is what lets sign-up ask only for
+ * the graduation year and derive the admission year from it, so the two can
+ * never contradict each other. Mirrored by `src/lib/degrees.ts`.
+ */
+export const DEGREES = [
+  { value: "BE", label: "B.E. / B.Tech", durationYears: 4 },
+  { value: "ME", label: "M.E. / M.Tech", durationYears: 2 },
+] as const;
+
+export type DegreeValue = (typeof DEGREES)[number]["value"];
+
+export const DEGREE_VALUES = DEGREES.map((d) => d.value) as unknown as [
+  DegreeValue,
+  ...DegreeValue[],
+];
+
+/** Course length in years, keyed by degree. */
+export const DEGREE_DURATION_YEARS: Record<DegreeValue, number> = Object.fromEntries(
+  DEGREES.map((d) => [d.value, d.durationYears]),
+) as Record<DegreeValue, number>;
+
+/**
+ * Admission year implied by a graduation year for a given degree. Sign-up no
+ * longer collects it separately — see `DEGREES`.
+ */
+export const admissionYearFor = (degree: DegreeValue, graduationYear: number): number =>
+  graduationYear - DEGREE_DURATION_YEARS[degree];
+
+/** Earliest year the forms and validators will accept. */
+export const MIN_ACADEMIC_YEAR = 1980;
 
 /**
  * The regional chapters the platform ships with. Seeded on `npm run seed` and

@@ -13,6 +13,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { DegreeValue } from "@/lib/degrees";
 import {
   api,
   tokenStore,
@@ -35,6 +36,14 @@ interface AuthState {
   refreshMe: () => Promise<AuthUser | null>;
 }
 
+/**
+ * Everything sign-up must collect. The optional fields are genuinely optional;
+ * everything else is required by the API too (`registerSchema`), so the types
+ * here and the 400s from the server agree.
+ *
+ * Note there is no `admissionYear` — the API derives it from `graduationYear`
+ * and the degree's course length.
+ */
 export interface RegisterInput {
   email: string;
   password: string;
@@ -42,21 +51,22 @@ export interface RegisterInput {
   otp: string;
   firstName: string;
   lastName: string;
-  department?: string;
-  degree?: "BE" | "ME" | "PHD" | "DIPLOMA";
-  admissionYear?: number;
-  graduationYear?: number;
-  role?: "ALUMNI" | "STUDENT" | "RECRUITER";
-  // Step 2 fields
+  department: string;
+  degree: DegreeValue;
+  graduationYear: number;
+  /** Birthday, day + month only — used for birthday wishes, no year stored. */
+  birthDay: number;
+  birthMonth: number;
+  phone: string;
+  city: string;
+  currentCompany: string;
+  currentRole: string;
   linkedinUrl: string;
+  role?: "ALUMNI" | "STUDENT" | "RECRUITER";
   githubUrl?: string;
   twitterUrl?: string;
   websiteUrl?: string;
-  phone?: string;
-  city?: string;
   bio?: string;
-  currentCompany?: string;
-  currentRole?: string;
 }
 
 const AuthCtx = createContext<AuthState | null>(null);

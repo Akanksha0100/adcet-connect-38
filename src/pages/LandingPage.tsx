@@ -161,7 +161,7 @@ export default function LandingPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button size="lg" className="bg-white text-primary hover:bg-white/90 gap-2 shadow-lg" asChild>
-              <Link to="/login">Join the Alumni Network <ArrowRight className="h-4 w-4" /></Link>
+              <Link to="/register">Join the Alumni Network <ArrowRight className="h-4 w-4" /></Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white backdrop-blur-sm" asChild>
               <Link to="/about">Explore ADCET</Link>
@@ -277,7 +277,7 @@ export default function LandingPage() {
             Join thousands of ADCET graduates. Reconnect with batchmates, find career opportunities, attend events, and give back to the institution that shaped your career.
           </p>
           <Button size="lg" className="bg-white text-primary hover:bg-white/90 shadow-lg" asChild>
-            <Link to="/login">Get Started — It's Free</Link>
+            <Link to="/register">Get Started — It's Free</Link>
           </Button>
         </motion.div>
       </section>

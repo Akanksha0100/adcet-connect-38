@@ -150,7 +150,8 @@ export interface EventEmailData {
   endsAt?: Date | null;
   location?: string | null;
   isOnline?: boolean;
-  department?: string | null;
+  /** Departments the event targets; empty means it was sent to everyone. */
+  departments?: string[];
   /** Name of the regional chapter this event was targeted at, if any. */
   chapter?: string | null;
   eventId: string;
@@ -205,11 +206,11 @@ export const eventNotificationEmail = (
             <span class="badge ${event.isOnline ? "badge-online" : "badge-dept"}">${event.isOnline ? "Online" : "Offline"}</span>
           </td>
         </tr>
-        ${event.department ? `
+        ${event.departments?.length ? `
         <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Department</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">${event.departments.length > 1 ? "Departments" : "Department"}</td>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">
-            <span class="badge badge-dept">${esc(event.department)}</span>
+            ${event.departments.map((d) => `<span class="badge badge-dept">${esc(d)}</span>`).join(" ")}
           </td>
         </tr>` : ""}
         ${event.chapter ? `
@@ -244,7 +245,7 @@ export const eventNotificationEmail = (
     `Date: ${dateStr}\n` +
     `${event.location ? `Location: ${event.location}\n` : ""}` +
     `Mode: ${event.isOnline ? "Online" : "Offline"}\n` +
-    `${event.department ? `Department: ${event.department}\n` : ""}` +
+    `${event.departments?.length ? `${event.departments.length > 1 ? "Departments" : "Department"}: ${event.departments.join(", ")}\n` : ""}` +
     `${event.chapter ? `Chapter: ${event.chapter}\n` : ""}` +
     `\n${event.description.slice(0, 500)}\n\n` +
     `View event: ${eventUrl}\n`;
@@ -501,7 +502,8 @@ export interface JobNotificationEmailData {
   location?: string | null;
   isRemote: boolean;
   employmentType: string;
-  department?: string | null;
+  /** Departments the opening targets; empty means it was open to all. */
+  departments?: string[];
   description: string;
   experienceMin?: number | null;
   experienceMax?: number | null;
@@ -559,11 +561,11 @@ export const jobNotificationEmail = (
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Salary</td>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">${esc(salaryRange)}</td>
         </tr>` : ""}
-        ${job.department ? `
+        ${job.departments?.length ? `
         <tr>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">Department</td>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px;">${job.departments.length > 1 ? "Departments" : "Department"}</td>
           <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">
-            <span class="badge badge-dept">${esc(job.department)}</span>
+            ${job.departments.map((d) => `<span class="badge badge-dept">${esc(d)}</span>`).join(" ")}
           </td>
         </tr>` : ""}
       </table>
@@ -819,13 +821,9 @@ export const chapterInvitationEmail = (
     </div>
 
     <p style="font-size:12px;color:#6c757d;">
-      You can also respond from the portal under Chapters. Joining is entirely optional — if you decline,
+      Use the buttons above to respond — no sign-in needed. Joining is entirely optional; if you decline,
       nothing changes${d.currentChapterName ? ` and you stay in the ${esc(d.currentChapterName)}` : ""}.
     </p>
-
-    <div style="text-align:center;margin-top:24px;">
-      <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">View Chapters on Portal →</a>
-    </div>
   `;
 
   const text =
@@ -840,7 +838,7 @@ export const chapterInvitationEmail = (
       : ""}` +
     `Accept: ${d.acceptUrl}\n` +
     `Decline: ${d.declineUrl}\n\n` +
-    `You can also respond in the portal: ${PORTAL_URL}/dashboard/chapters\n`;
+    `Either link responds immediately — no sign-in needed.\n`;
 
   return {
     subject: `🏙 Invitation to join the ${d.chapterName} — ADCET Alumni`,
@@ -862,7 +860,7 @@ export const chapterInvitationResponseHtml = (
       <h2>${esc(headline)}</h2>
       <p>${esc(detail)}</p>
       <div style="margin-top: 24px;">
-        <a href="${PORTAL_URL}/dashboard/chapters" class="btn btn-primary">Go to Alumni Portal →</a>
+        <a href="${PORTAL_URL}/dashboard" class="btn btn-primary">Go to Alumni Portal →</a>
       </div>
     </div>
   `,

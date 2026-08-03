@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
+import CompleteProfilePage from "./pages/CompleteProfilePage";
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
@@ -29,7 +30,6 @@ import DonationsPage from "./pages/DonationsPage";
 import GeoMapPage from "./pages/GeoMapPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
-import ChaptersPage from "./pages/ChaptersPage";
 import NotFound from "./pages/NotFound";
 import AchievementDetailPage from "./pages/AchievementDetailPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -71,7 +71,12 @@ const App = () => (
           <AuthProvider>
             <Routes>
               <Route path="/" element={<LandingPage />} />
+              {/* One page, two entry points. AuthPage reads the path to decide
+                  which panel to show, so "Sign In" and "Join Network" land on
+                  the right form and the choice survives a bookmark or a
+                  browser Back. */}
               <Route path="/login" element={<AuthPage />} />
+              <Route path="/register" element={<AuthPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/news" element={<NewsPage />} />
@@ -82,6 +87,14 @@ const App = () => (
               <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+              {/* Onboarding for accounts without the mandatory profile —
+                  chiefly SSO sign-ins. Sits inside ProtectedRoute (login
+                  required) but outside DashboardLayout, so there is no nav to
+                  escape into until the form is done. */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/complete-profile" element={<CompleteProfilePage />} />
+              </Route>
 
               {/* Any logged-in user (any role) can access /dashboard. */}
               <Route element={<ProtectedRoute />}>
@@ -103,7 +116,6 @@ const App = () => (
                     <Route path="geomap" element={<GeoMapPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
-                    <Route path="chapters" element={<ChaptersPage />} />
                     <Route path="about" element={<StaticContentPage contentKey="about" />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />
                     <Route path="contact" element={<StaticContentPage contentKey="contact" />} />

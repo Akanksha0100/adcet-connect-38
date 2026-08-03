@@ -62,7 +62,7 @@ export default function PublicHeader() {
             <Link to="/login">Sign In</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/login">Join Network</Link>
+            <Link to="/register">Join Network</Link>
           </Button>
 
           <Sheet open={open} onOpenChange={setOpen}>

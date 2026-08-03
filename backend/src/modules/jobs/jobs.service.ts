@@ -37,7 +37,9 @@ export const list = async (
     ...(q.location && { location: { contains: q.location, mode: "insensitive" } }),
     ...(q.employmentType && { employmentType: q.employmentType }),
     ...(q.isRemote !== undefined && { isRemote: q.isRemote }),
-    ...(q.department && { department: q.department }),
+    // "aimed at this department" — postings open to all list nothing and so
+    // are deliberately excluded from a department-specific filter.
+    ...(q.department && { departments: { has: q.department } }),
     ...(q.q && {
       OR: [
         { title: { contains: q.q, mode: "insensitive" } },
@@ -309,8 +311,8 @@ export const moderate = async (
 };
 
 /**
- * Send email notifications to all alumni in the targeted department (or all alumni
- * if department is null) when a job is approved.
+ * Email the alumni a job targets when it is approved. An opening can name any
+ * number of departments; an **empty list means everyone**.
  */
 async function sendJobNotifications(job: {
   id: string;
@@ -319,7 +321,7 @@ async function sendJobNotifications(job: {
   location: string | null;
   isRemote: boolean;
   employmentType: string;
-  department: string | null;
+  departments: string[];
   description: string;
   experienceMin: number | null;
   experienceMax: number | null;
@@ -332,8 +334,9 @@ async function sendJobNotifications(job: {
     roles: { some: { role: "ALUMNI" } },
   };
 
-  if (job.department && job.department !== "All") {
-    whereClause.profile = { department: job.department };
+  // No departments named = open to all, so no profile filter at all.
+  if (job.departments.length > 0) {
+    whereClause.profile = { department: { in: job.departments } };
   }
 
   const alumni = await prisma.user.findMany({
@@ -364,7 +367,7 @@ async function sendJobNotifications(job: {
           location: job.location,
           isRemote: job.isRemote,
           employmentType: job.employmentType,
-          department: job.department,
+          departments: job.departments,
           description: job.description,
           experienceMin: job.experienceMin,
           experienceMax: job.experienceMax,

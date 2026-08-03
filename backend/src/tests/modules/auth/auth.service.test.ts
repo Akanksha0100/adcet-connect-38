@@ -232,10 +232,16 @@ describe("modules/auth/service — me / OAuth", () => {
     expect(prismaMock.user.create).not.toHaveBeenCalled();
   });
 
-  it("loginWithOAuth: creates a brand-new APPROVED user when email is provider-verified", async () => {
+  /**
+   * A provider-verified email proves someone owns the address; it says nothing
+   * about whether they are an ADCET alumnus. Auto-approving here used to let
+   * anyone with a Google account into the portal, skipping both admin review
+   * and the mandatory profile.
+   */
+  it("loginWithOAuth: creates a brand-new user as PENDING even when the provider verified the email", async () => {
     prismaMock.oAuthAccount.findUnique.mockResolvedValueOnce(null);
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
-    prismaMock.user.create.mockResolvedValueOnce(mkUser({ status: "APPROVED" }));
+    prismaMock.user.create.mockResolvedValueOnce(mkUser({ status: "PENDING" }));
     prismaMock.user.update.mockResolvedValueOnce({});
     prismaMock.refreshToken.create.mockResolvedValueOnce({});
     await loginWithOAuth({
@@ -247,6 +253,48 @@ describe("modules/auth/service — me / OAuth", () => {
       emailVerified: true,
     } as any);
     const createArg = prismaMock.user.create.mock.calls[0][0] as any;
-    expect(createArg.data.status).toBe("APPROVED");
+    expect(createArg.data.status).toBe("PENDING");
+    // The address is still recorded as verified — that part the provider does prove.
+    expect(createArg.data.emailVerifiedAt).toBeInstanceOf(Date);
+  });
+
+  it("loginWithOAuth: reports the new account's profile as incomplete", async () => {
+    prismaMock.oAuthAccount.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.create.mockResolvedValueOnce(mkUser({ status: "PENDING", profile: {} }));
+    prismaMock.user.update.mockResolvedValueOnce({});
+    prismaMock.refreshToken.create.mockResolvedValueOnce({});
+    const res = await loginWithOAuth({
+      provider: "google",
+      providerId: "g-1",
+      email: "new@x.com",
+      firstName: "N",
+      lastName: "U",
+      emailVerified: true,
+    } as any);
+    // This flag is what routes the user to /complete-profile on the frontend.
+    expect(res.user.profileComplete).toBe(false);
+  });
+
+  it("loginWithOAuth: lowercases the provider-supplied email", async () => {
+    prismaMock.oAuthAccount.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.create.mockResolvedValueOnce(mkUser());
+    prismaMock.user.update.mockResolvedValueOnce({});
+    prismaMock.refreshToken.create.mockResolvedValueOnce({});
+    await loginWithOAuth({
+      provider: "github",
+      providerId: "gh-1",
+      email: "  New.User@Example.COM ",
+      firstName: "N",
+      lastName: "U",
+      emailVerified: true,
+    } as any);
+    // Otherwise GitHub could mint a second account beside the form-registered one.
+    expect(prismaMock.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { email: "new.user@example.com" } }),
+    );
+    const createArg = prismaMock.user.create.mock.calls[0][0] as any;
+    expect(createArg.data.email).toBe("new.user@example.com");
   });
 });

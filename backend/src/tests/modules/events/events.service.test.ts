@@ -134,7 +134,7 @@ describe("event notification targeting", () => {
   const recipientWhere = async (event: Record<string, unknown>) => {
     prismaMock.event.create.mockResolvedValueOnce({
       id: "e-1", title: "T", description: "D", startsAt: new Date(), endsAt: null,
-      location: null, isOnline: false, department: null, chapterId: null, attachmentKey: null,
+      location: null, isOnline: false, departments: [], chapterId: null, attachmentKey: null,
       ...event,
     });
     prismaMock.chapter.findUnique.mockResolvedValue({ name: "Pune Chapter" });
@@ -144,19 +144,29 @@ describe("event notification targeting", () => {
     return (prismaMock.user.findMany.mock.calls.at(-1)![0] as any).where;
   };
 
+  const CSE = "Computer Science and Engineering";
+  const ENTC = "Electronics and Telecommunication Engineering";
+
   it("mails every approved alumnus when neither filter is set", async () => {
     const where = await recipientWhere({});
     expect(where).toEqual({ status: "APPROVED", roles: { some: { role: "ALUMNI" } } });
     expect(where.profile).toBeUndefined();
   });
 
-  it("narrows to a department", async () => {
-    const where = await recipientWhere({ department: "CSE" });
-    expect(where.profile).toEqual({ department: "CSE" });
+  it("narrows to a single department", async () => {
+    const where = await recipientWhere({ departments: [CSE] });
+    expect(where.profile).toEqual({ department: { in: [CSE] } });
   });
 
-  it('treats the "All" department as no department filter', async () => {
-    const where = await recipientWhere({ department: "All" });
+  it("mails the union of several departments", async () => {
+    // Multiple targets are OR-ed among themselves — an alumnus in any one of
+    // them qualifies.
+    const where = await recipientWhere({ departments: [CSE, ENTC] });
+    expect(where.profile).toEqual({ department: { in: [CSE, ENTC] } });
+  });
+
+  it("treats an empty department list as no department filter", async () => {
+    const where = await recipientWhere({ departments: [] });
     expect(where.profile).toBeUndefined();
   });
 
@@ -165,9 +175,10 @@ describe("event notification targeting", () => {
     expect(where.profile).toEqual({ chapterId: "c1" });
   });
 
-  it("intersects department AND chapter when both are set", async () => {
-    const where = await recipientWhere({ department: "CSE", chapterId: "c1" });
-    expect(where.profile).toEqual({ department: "CSE", chapterId: "c1" });
+  it("intersects departments AND chapter when both are set", async () => {
+    // Departments OR together, then AND with the chapter.
+    const where = await recipientWhere({ departments: [CSE, ENTC], chapterId: "c1" });
+    expect(where.profile).toEqual({ department: { in: [CSE, ENTC] }, chapterId: "c1" });
   });
 });
 

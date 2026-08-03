@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SETTING_KEYS } from "../../lib/settings.js";
 import { paginationSchema } from "../../lib/pagination.js";
 
 /** A chapter id, or "none" to match users who haven't joined a chapter. */
@@ -80,3 +81,19 @@ export const approvalImportSchema = z.object({
     .max(5000),
   reason: z.string().max(1000).optional(),
 });
+/**
+ * Settings PATCH body. Each key is validated by its own schema in
+ * `lib/settings.ts` when applied; here we only insist the payload names at
+ * least one known setting, so a typo'd key fails loudly instead of silently
+ * doing nothing.
+ */
+export const settingsUpdateSchema = z
+  .object(
+    Object.fromEntries(
+      SETTING_KEYS.map((key) => [key, z.unknown().optional()]),
+    ) as Record<string, z.ZodTypeAny>,
+  )
+  .strict()
+  .refine((body) => Object.keys(body).length > 0, {
+    message: "Provide at least one setting to update",
+  });

@@ -213,7 +213,7 @@ export default function AboutPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild>
-              <Link to="/login">Join the Network</Link>
+              <Link to="/register">Join the Network</Link>
             </Button>
             <Button variant="outline" asChild>
               <a href={CONTACT.website} target="_blank" rel="noopener noreferrer">

@@ -11,6 +11,15 @@ import { EmptyState } from "@/components/EmptyState";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 
+/** A campaign, for the ledger filter and the breakdown panel. */
+interface CampaignItem {
+  id: string;
+  title: string;
+  goalAmount: number;
+  raisedAmount?: number;
+  isActive: boolean;
+}
+
 interface DonationItem {
   id: string;
   amount: number;
@@ -49,12 +58,20 @@ const statusColors: Record<string, string> = {
 const DonationsAdminPage = () => {
   const qc = useQueryClient();
   const [status, setStatus] = useState("all");
+  const [campaignId, setCampaignId] = useState("all");
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "donations", status],
+    queryKey: ["admin", "donations", status, campaignId],
     queryFn: () => api.get<Paginated<DonationItem>>("/donations", {
       pageSize: 100,
       status: status === "all" ? undefined : status,
+      campaignId: campaignId === "all" ? undefined : campaignId,
     }),
+  });
+
+  // Every campaign, including archived ones — old donations still point at them.
+  const campaigns = useQuery({
+    queryKey: ["admin", "donations", "campaigns"],
+    queryFn: () => api.get<Paginated<CampaignItem>>("/donations/campaigns", { pageSize: 100 }),
   });
 
   const updateStatus = useMutation({
@@ -76,6 +93,26 @@ const DonationsAdminPage = () => {
     .filter((d) => d.status === "RECEIVED" && new Date(d.createdAt) >= monthCutoff)
     .reduce((s, d) => s + d.amount, 0);
   const donorCount = new Set(items.filter((d) => d.user.id).map((d) => d.user.id)).size;
+
+  /**
+   * What the money on screen was given for. Built from the filtered rows, so
+   * it always agrees with the ledger below it rather than being a separate
+   * server-side total that could drift.
+   */
+  const byCampaign = (() => {
+    const totals = new Map<string, { title: string; received: number; count: number }>();
+    for (const d of items) {
+      const key = d.campaign?.id ?? "general";
+      const title = d.campaign?.title ?? "General fund";
+      const entry = totals.get(key) ?? { title, received: 0, count: 0 };
+      entry.count += 1;
+      if (d.status === "RECEIVED") entry.received += d.amount;
+      totals.set(key, entry);
+    }
+    return [...totals.entries()]
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => b.received - a.received);
+  })();
 
   const summaryCards = [
     { label: "Total Received", value: formatINR(total), icon: IndianRupee, bg: "bg-accent/10", text: "text-accent" },
@@ -113,9 +150,51 @@ const DonationsAdminPage = () => {
         ))}
       </div>
 
+      {!isLoading && byCampaign.length > 0 && (
+        <div className="card-elevated p-5 space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">What donors gave for</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Received totals for the donations currently shown below.
+            </p>
+          </div>
+          <div className="space-y-2">
+            {byCampaign.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 text-sm">
+                <span className={c.id === "general" ? "text-muted-foreground italic" : "text-foreground"}>
+                  {c.title}
+                </span>
+                <span className="flex items-center gap-3 shrink-0">
+                  <span className="text-xs text-muted-foreground">
+                    {c.count} donation{c.count === 1 ? "" : "s"}
+                  </span>
+                  <span className="font-semibold text-foreground tabular-nums">
+                    {formatINR(c.received)}
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="card-elevated overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-foreground">Donation Ledger</h2>
+          <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={campaignId} onValueChange={setCampaignId}>
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Campaigns</SelectItem>
+              {(campaigns.data?.items ?? []).map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.title}{c.isActive ? "" : " (archived)"}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Status" />
@@ -127,6 +206,7 @@ const DonationsAdminPage = () => {
               <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          </div>
         </div>
         {isLoading ? (
           <div className="p-5 space-y-2">
@@ -139,6 +219,7 @@ const DonationsAdminPage = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Donor</TableHead>
+                <TableHead>Given for</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Receipt No.</TableHead>
@@ -165,6 +246,13 @@ const DonationsAdminPage = () => {
                         </p>
                         {donorEmail && <p className="text-xs text-muted-foreground">{donorEmail}</p>}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {d.campaign ? (
+                        <span className="text-sm text-foreground">{d.campaign.title}</span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">General fund</span>
+                      )}
                     </TableCell>
                     <TableCell className="font-semibold text-foreground">{formatINR(d.amount)}</TableCell>
                     <TableCell>

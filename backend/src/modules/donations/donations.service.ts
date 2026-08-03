@@ -66,30 +66,58 @@ export const deleteCampaign = async (id: string) => {
 };
 
 /**
+ * Resolve the campaign a donation is earmarked for.
+ *
+ * Refuses anything a donor shouldn't be able to give to — archived campaigns,
+ * ones that haven't opened, ones that have closed. Without this a stale page
+ * (or a hand-crafted request) could pin money to a campaign the alumni office
+ * has already wound up, and the mistake only surfaces at reconciliation.
+ */
+const resolveCampaign = async (campaignId: string | undefined) => {
+  if (!campaignId) return null;
+  const campaign = await prisma.donationCampaign.findUnique({ where: { id: campaignId } });
+  if (!campaign) throw NotFound("Campaign not found");
+
+  const now = new Date();
+  if (!campaign.isActive) throw BadRequest("That campaign is no longer accepting donations.");
+  if (campaign.startsAt > now) throw BadRequest("That campaign hasn't opened yet.");
+  if (campaign.endsAt && campaign.endsAt < now) {
+    throw BadRequest("That campaign has closed. Please choose another.");
+  }
+  return campaign;
+};
+
+/**
  * Step 1 of the payment flow: create a Razorpay order and a matching PLEDGED
  * donation row. Returns the data the browser needs to open Razorpay Checkout.
- * The donor's name/email are snapshotted so records/receipts stay correct.
+ * The donor's name/email are snapshotted so records/receipts stay correct, and
+ * the chosen campaign is recorded on the donation so the alumni office can see
+ * what each contribution was given for.
  */
 export const createOrder = async (
   userId: string,
-  data: { amount: number; message?: string; isAnonymous?: boolean },
+  data: { amount: number; message?: string; isAnonymous?: boolean; campaignId?: string },
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw NotFound("User not found");
 
+  const campaign = await resolveCampaign(data.campaignId);
   const amount = Math.round(data.amount);
   const donorName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
 
   const order = await razorpay.createOrder({
     amountPaise: amount * 100,
     receipt: `don_${Date.now()}`,
-    notes: { userId },
+    // Echoed back on the webhook — handy when reconciling in the Razorpay
+    // dashboard, where our own campaign ids aren't otherwise visible.
+    notes: { userId, ...(campaign && { campaignId: campaign.id, campaign: campaign.title }) },
   });
 
   const donation = await prisma.$transaction(async (tx) => {
     const d = await tx.donation.create({
       data: {
         userId,
+        campaignId: campaign?.id ?? null,
         amount,
         currency: "INR",
         message: data.message ?? null,
@@ -108,7 +136,9 @@ export const createOrder = async (
         entryType: "ORDER_CREATED",
         status: "PLEDGED",
         amount,
-        note: `Razorpay order ${order.id}`,
+        note: campaign
+          ? `Razorpay order ${order.id} — ${campaign.title}`
+          : `Razorpay order ${order.id} — general fund`,
       },
     });
     return d;
