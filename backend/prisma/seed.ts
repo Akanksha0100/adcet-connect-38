@@ -448,36 +448,81 @@ async function main() {
     status: "PENDING",
   });
 
-  console.log("💝 Seeding donation campaign + donations…");
-  const campaign = await upsertCampaign({
-    title: "ADCET Scholarship Fund 2026",
-    description: "Support meritorious students from underprivileged backgrounds.",
-    goalAmount: 1_000_000,
-    startsAt: inDays(-30),
-    endsAt: inDays(120),
-    isActive: true,
-  });
+  console.log("💝 Seeding donation campaigns + donations…");
+  // Donors pick one of these when giving, so the alumni office can see what
+  // each contribution was meant for. A donation with no campaign is still
+  // valid — it goes to the general fund.
+  const campaigns = {
+    scholarship: await upsertCampaign({
+      title: "ADCET Scholarship Fund 2026",
+      description:
+        "Support meritorious students from underprivileged backgrounds with tuition, hostel and exam fees so no admission is lost to affordability.",
+      goalAmount: 1_000_000,
+      startsAt: inDays(-30),
+      endsAt: inDays(120),
+      isActive: true,
+    }),
+    labs: await upsertCampaign({
+      title: "Laboratory Modernisation Drive",
+      description:
+        "Re-equip the engineering labs with current instrumentation, workstations and consumables so coursework matches what industry actually uses.",
+      goalAmount: 2_500_000,
+      startsAt: inDays(-60),
+      endsAt: inDays(180),
+      isActive: true,
+    }),
+    library: await upsertCampaign({
+      title: "Central Library & Digital Resources",
+      description:
+        "Fund journal subscriptions, e-book licences and reading-room upgrades — the resources students ask for most and the ones grants rarely cover.",
+      goalAmount: 750_000,
+      startsAt: inDays(-15),
+      endsAt: inDays(150),
+      isActive: true,
+    }),
+    sports: await upsertCampaign({
+      title: "Sports & Campus Wellness",
+      description:
+        "Maintain the grounds, refresh gym equipment and support teams travelling to inter-collegiate tournaments.",
+      goalAmount: 500_000,
+      startsAt: inDays(-10),
+      endsAt: inDays(200),
+      isActive: true,
+    }),
+    incubation: await upsertCampaign({
+      title: "Student Startup Incubation Fund",
+      description:
+        "Seed grants, prototyping budgets and mentorship for student-founded ventures coming out of the campus incubation cell.",
+      goalAmount: 1_500_000,
+      startsAt: inDays(-5),
+      endsAt: inDays(240),
+      isActive: true,
+    }),
+  };
 
   // Idempotent: only create if user has no donation in this campaign.
   const ensureDonation = async (
     userId: string,
     amount: number,
     status: "PLEDGED" | "RECEIVED",
+    campaignId: string | null,
     message?: string,
   ) => {
-    const existing = await prisma.donation.findFirst({
-      where: { userId, campaignId: campaign.id, amount },
-    });
+    const existing = await prisma.donation.findFirst({ where: { userId, campaignId, amount } });
     if (existing) return existing;
     return prisma.donation.create({
-      data: { userId, campaignId: campaign.id, amount, status, message },
+      data: { userId, campaignId, amount, status, message },
     });
   };
 
-  await ensureDonation(rahul.id, 50000, "RECEIVED", "Happy to give back.");
-  await ensureDonation(alice.id, 10000, "RECEIVED");
-  await ensureDonation(priya.id, 7500, "RECEIVED", "For the next generation.");
-  await ensureDonation(bob.id, 5000, "PLEDGED");
+  await ensureDonation(rahul.id, 50000, "RECEIVED", campaigns.scholarship.id, "Happy to give back.");
+  await ensureDonation(alice.id, 10000, "RECEIVED", campaigns.labs.id);
+  await ensureDonation(priya.id, 7500, "RECEIVED", campaigns.scholarship.id, "For the next generation.");
+  await ensureDonation(bob.id, 5000, "PLEDGED", campaigns.library.id);
+  await ensureDonation(alice.id, 25000, "RECEIVED", campaigns.incubation.id, "Backing the founders.");
+  await ensureDonation(rahul.id, 15000, "RECEIVED", campaigns.sports.id);
+  // A general-fund gift — campaign is genuinely optional.
+  await ensureDonation(priya.id, 3000, "RECEIVED", null, "Wherever it's needed most.");
 
   console.log("✅ Seeding RSVPs + Job applications…");
   const ensureRsvp = async (eventId: string, userId: string) => {

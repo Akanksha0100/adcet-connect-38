@@ -123,6 +123,68 @@ describe("donations.service — createOrder", () => {
     });
     expect(out).toMatchObject({ orderId: "order_123", keyId: "rzp_test_key", amount: 5000 });
   });
+
+  describe("campaign selection", () => {
+    const donor = { id: "u-9", firstName: "Alice", lastName: "A", email: "alice@adcet.in" };
+    const openCampaign = (over: Record<string, unknown> = {}) => ({
+      id: "c-1",
+      title: "Laboratory Modernisation Drive",
+      isActive: true,
+      startsAt: new Date(Date.now() - 86_400_000),
+      endsAt: new Date(Date.now() + 86_400_000),
+      ...over,
+    });
+
+    const orderFor = (campaignId?: string) => {
+      prismaMock.user.findUnique.mockResolvedValueOnce(donor);
+      prismaMock.donation.create.mockResolvedValueOnce({ id: "d-1", amount: 5000 });
+      prismaMock.donationLedgerEntry.create.mockResolvedValueOnce({});
+      return svc.createOrder("u-9", { amount: 5000, campaignId });
+    };
+
+    it("records the chosen campaign on the donation", async () => {
+      prismaMock.donationCampaign.findUnique.mockResolvedValueOnce(openCampaign());
+      await orderFor("c-1");
+
+      const created = (prismaMock.donation.create.mock.calls[0][0] as any).data;
+      expect(created.campaignId).toBe("c-1");
+      // The ledger note names the cause, so reconciliation doesn't need a join.
+      const note = (prismaMock.donationLedgerEntry.create.mock.calls[0][0] as any).data.note;
+      expect(note).toContain("Laboratory Modernisation Drive");
+    });
+
+    it("treats an omitted campaign as a general-fund gift", async () => {
+      await orderFor(undefined);
+      const created = (prismaMock.donation.create.mock.calls[0][0] as any).data;
+      expect(created.campaignId).toBeNull();
+      expect(prismaMock.donationCampaign.findUnique).not.toHaveBeenCalled();
+    });
+
+    it("404s on a campaign that does not exist", async () => {
+      prismaMock.donationCampaign.findUnique.mockResolvedValueOnce(null);
+      prismaMock.user.findUnique.mockResolvedValueOnce(donor);
+      await expect(svc.createOrder("u-9", { amount: 5000, campaignId: "gone" })).rejects.toMatchObject(
+        { status: 404 },
+      );
+    });
+
+    it.each([
+      ["archived", { isActive: false }],
+      ["not yet open", { startsAt: new Date(Date.now() + 86_400_000) }],
+      ["already closed", { endsAt: new Date(Date.now() - 86_400_000) }],
+      ])("refuses a campaign that is %s, without charging anyone", async (_label, over) => {
+      prismaMock.donationCampaign.findUnique.mockResolvedValueOnce(openCampaign(over));
+      prismaMock.user.findUnique.mockResolvedValueOnce(donor);
+
+      await expect(
+        svc.createOrder("u-9", { amount: 5000, campaignId: "c-1" }),
+      ).rejects.toMatchObject({ status: 400 });
+
+      // Nothing may reach Razorpay or the ledger once the campaign is rejected.
+      expect(razorpayMock.createOrder).not.toHaveBeenCalled();
+      expect(prismaMock.donation.create).not.toHaveBeenCalled();
+    });
+  });
 });
 
 describe("donations.service — verifyPayment", () => {
