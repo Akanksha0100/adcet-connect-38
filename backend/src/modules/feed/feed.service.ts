@@ -1,11 +1,12 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma.js";
-import { Forbidden, NotFound } from "../../lib/errors.js";
+import { Forbidden, NotFound, TooMany } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
 import { getStorage } from "../../storage/index.js";
 import { logger } from "../../lib/logger.js";
 import { notify } from "../notifications/notifications.service.js";
+import { getSetting } from "../../lib/settings.js";
 
 type Caller = { sub: string; roles: AppRoleName[] };
 const isAdmin = (c: Caller) => c.roles.includes("ADMIN");
@@ -80,26 +81,116 @@ export const getById = async (id: string, caller: Caller) => {
   return toDto(post);
 };
 
+/** First instant of the calendar month containing `now`, in server local time. */
+export const startOfMonth = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+
+/** First instant of the *next* calendar month — when the allowance resets. */
+export const startOfNextMonth = (now = new Date()) =>
+  new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0);
+
+/** "YYYY-MM" key identifying the quota period `now` falls in. */
+export const periodKey = (now = new Date()) =>
+  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+export interface PostQuota {
+  /** Posts allowed per calendar month, or `null` when the caller is exempt. */
+  limit: number | null;
+  used: number;
+  /** How many more the caller may publish, or `null` when exempt. */
+  remaining: number | null;
+  /** When the allowance resets. */
+  resetsAt: string;
+  /** True for admins, who are not rate-limited. */
+  exempt: boolean;
+}
+
+/**
+ * The caller's posting allowance for the current calendar month.
+ *
+ * A calendar month (resetting on the 1st) rather than a rolling 30-day window:
+ * everyone's allowance refills on the same, predictable day, which is far
+ * easier to explain in a toast than "you may post again on the 14th".
+ *
+ * `used` comes from the increment-only `PostQuotaUsage` counter, **not** from
+ * counting live posts. Publishing spends the slot for the month permanently:
+ * deleting the post afterwards does not hand it back, so the cap cannot be
+ * side-stepped by posting and deleting in a loop.
+ */
+export const getPostQuota = async (caller: Caller, now = new Date()): Promise<PostQuota> => {
+  const resetsAt = startOfNextMonth(now).toISOString();
+
+  // Admins post announcements and moderation notices; capping them would be
+  // counterproductive.
+  if (isAdmin(caller)) {
+    return { limit: null, used: 0, remaining: null, resetsAt, exempt: true };
+  }
+
+  const limit = await getSetting("feedPostsPerMonth");
+  const usage = await prisma.postQuotaUsage.findUnique({
+    where: { userId_period: { userId: caller.sub, period: periodKey(now) } },
+    select: { count: true },
+  });
+  const used = usage?.count ?? 0;
+  return { limit, used, remaining: Math.max(0, limit - used), resetsAt, exempt: false };
+};
+
 export const create = async (
   caller: Caller,
   data: { content?: string; media: { key: string; type: "IMAGE" | "VIDEO"; mimeType?: string }[] },
 ) => {
-  const post = await prisma.post.create({
-    data: {
-      authorId: caller.sub,
-      content: data.content ?? null,
-      media: {
-        create: data.media.map((m, position) => ({
-          key: m.key,
-          type: m.type,
-          mimeType: m.mimeType ?? null,
-          position,
-        })),
+  const quota = await getPostQuota(caller);
+  if (!quota.exempt && quota.remaining !== null && quota.remaining <= 0) {
+    throw TooMany(
+      `You've used all ${quota.limit} of your posts for this month. ` +
+        `Your allowance resets on ${new Date(quota.resetsAt).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "long",
+        })}.`,
+    );
+  }
+
+  // The post and the counter move together: a published post must always cost
+  // a slot, and a slot must never be spent without a post to show for it.
+  const post = await prisma.$transaction(async (tx) => {
+    const created = await tx.post.create({
+      data: {
+        authorId: caller.sub,
+        content: data.content ?? null,
+        media: {
+          create: data.media.map((m, position) => ({
+            key: m.key,
+            type: m.type,
+            mimeType: m.mimeType ?? null,
+            position,
+          })),
+        },
       },
-    },
-    include: postInclude(caller.sub),
+      include: postInclude(caller.sub),
+    });
+    if (!quota.exempt) {
+      const period = periodKey();
+      await tx.postQuotaUsage.upsert({
+        where: { userId_period: { userId: caller.sub, period } },
+        create: { userId: caller.sub, period, count: 1 },
+        update: { count: { increment: 1 } },
+      });
+    }
+    return created;
   });
-  return toDto(post);
+
+  // Returned alongside the post so the composer can tell the author how many
+  // they have left without a second round trip.
+  return {
+    ...toDto(post),
+    quota: quota.exempt
+      ? quota
+      : {
+          ...quota,
+          used: quota.used + 1,
+          remaining: quota.remaining === null ? null : Math.max(0, quota.remaining - 1),
+        },
+  };
 };
 
 /** Authors edit their own text. Admins can remove posts but not rewrite them. */

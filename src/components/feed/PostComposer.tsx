@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Loader2, Video, X } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import {
   validateSelection,
   type Post,
   type PostMediaType,
+  type CreatedPost,
+  type PostQuota,
+  quotaMessage,
 } from "@/lib/feed";
 
 /** A locally-picked file plus its object-URL preview, before upload. */
@@ -32,6 +35,14 @@ export const PostComposer = ({ onCreated }: { onCreated?: (post: Post) => void }
   const fileInput = useRef<HTMLInputElement>(null);
 
   const initials = `${user?.firstName?.[0] ?? ""}${user?.lastName?.[0] ?? ""}`.toUpperCase() || "U";
+
+  // The server is the authority on the allowance; this read just lets the
+  // composer show what's left (and disable itself) before anyone hits a 429.
+  const quota = useQuery({
+    queryKey: ["feed", "quota"],
+    queryFn: () => api.get<PostQuota>("/feed/quota"),
+  });
+  const exhausted = quota.data ? !quota.data.exempt && quota.data.remaining === 0 : false;
 
   const addFiles = (files: FileList | null) => {
     if (!files?.length) return;
@@ -75,13 +86,15 @@ export const PostComposer = ({ onCreated }: { onCreated?: (post: Post) => void }
           mimeType: d.file.type || undefined,
         })),
       );
-      return api.post<Post>("/feed", { content: content.trim() || undefined, media });
+      return api.post<CreatedPost>("/feed", { content: content.trim() || undefined, media });
     },
     onSuccess: (post) => {
       reset();
       qc.invalidateQueries({ queryKey: ["feed"] });
+      // Keep the header counter in step with what the server just told us.
+      qc.setQueryData(["feed", "quota"], post.quota);
       onCreated?.(post);
-      toast({ title: "Posted", description: "Your post is live in the feed." });
+      toast({ title: "Posted", description: quotaMessage(post.quota) });
     },
     onError: (err: unknown) =>
       toast({ title: "Couldn't post", description: errorMessage(err, "Please try again"), variant: "destructive" }),
@@ -150,10 +163,22 @@ export const PostComposer = ({ onCreated }: { onCreated?: (post: Post) => void }
           </Button>
           <span className="text-xs text-muted-foreground hidden sm:inline">2 images or 1 video · 10 MB each</span>
         </div>
-        <Button size="sm" onClick={() => publish.mutate()} disabled={empty || publish.isPending}>
-          {publish.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-          Post
-        </Button>
+        <div className="flex items-center gap-3">
+          {quota.data && !quota.data.exempt && quota.data.remaining !== null && (
+            <span
+              className={`text-xs ${exhausted ? "text-destructive" : "text-muted-foreground"}`}
+              title={`Resets on ${new Date(quota.data.resetsAt).toLocaleDateString()}`}
+            >
+              {exhausted
+                ? "Monthly limit reached"
+                : `${quota.data.remaining} of ${quota.data.limit} left`}
+            </span>
+          )}
+          <Button size="sm" onClick={() => publish.mutate()} disabled={empty || publish.isPending || exhausted}>
+            {publish.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Post
+          </Button>
+        </div>
       </div>
     </div>
   );

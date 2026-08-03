@@ -9,6 +9,10 @@ const caller = (req: Request) => ({ sub: req.auth!.sub, roles: req.auth!.roles }
 export const list = async (req: Request, res: Response) =>
   res.json(await service.list(req.query as unknown as z.infer<typeof listQuerySchema>, caller(req)));
 
+/** The caller's remaining post allowance — read by the composer on mount. */
+export const quota = async (req: Request, res: Response) =>
+  res.json(await service.getPostQuota(caller(req)));
+
 export const getById = async (req: Request, res: Response) =>
   res.json(await service.getById(req.params.id, caller(req)));
 

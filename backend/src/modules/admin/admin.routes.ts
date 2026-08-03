@@ -14,6 +14,7 @@ import {
   userStatusSchema,
   adminMessageSchema,
   bulkStatusSchema,
+  settingsUpdateSchema,
 } from "./admin.validators.js";
 
 export const adminRouter = Router();
@@ -62,3 +63,6 @@ adminRouter.post(
 adminRouter.get("/audit-log", validate(paginationSchema, "query"), asyncHandler(ctrl.auditLog));
 adminRouter.get("/activity", asyncHandler(ctrl.recentActivity));
 adminRouter.post("/reports", validate(reportSchema), asyncHandler(ctrl.generateReport));
+
+adminRouter.get("/settings", asyncHandler(ctrl.getSettings));
+adminRouter.patch("/settings", validate(settingsUpdateSchema), asyncHandler(ctrl.updateSettings));

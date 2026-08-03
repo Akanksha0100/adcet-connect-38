@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Moon, Shield, Mail, Edit, Loader2, Camera, X } from "lucide-react";
+import { User, Bell, Moon, Shield, Mail, Edit, Loader2, Camera, X, Gauge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,15 @@ import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requestPushPermission, usePreferences, type PreferenceKey } from "@/lib/preferences";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
+
+/** Shape of `GET /admin/settings`. */
+interface AdminSettings {
+  settings: { feedPostsPerMonth: number };
+  meta: Record<
+    "feedPostsPerMonth",
+    { label: string; description: string; default: number }
+  >;
+}
 
 interface AdminProfile {
   bio?: string | null;
@@ -68,6 +77,35 @@ const SettingsPage = () => {
   useEffect(() => {
     if (recipientsSection.data) setRecipients(recipientsSection.data.body ?? "");
   }, [recipientsSection.data]);
+
+  /**
+   * Platform settings (`GET/PATCH /admin/settings`). `meta` carries each
+   * setting's label, description and default, so this screen renders them
+   * without duplicating copy that lives in the backend registry.
+   */
+  const [postLimit, setPostLimit] = useState("");
+  const settings = useQuery({
+    queryKey: ["admin", "settings"],
+    queryFn: () => api.get<AdminSettings>("/admin/settings"),
+  });
+  useEffect(() => {
+    if (settings.data) setPostLimit(String(settings.data.settings.feedPostsPerMonth));
+  }, [settings.data]);
+
+  const saveSettings = useMutation({
+    mutationFn: () => api.patch("/admin/settings", { feedPostsPerMonth: Number(postLimit) }),
+    onSuccess: () => {
+      toast({
+        title: "Settings saved",
+        description: `Members may now publish ${postLimit} posts per month.`,
+      });
+      qc.invalidateQueries({ queryKey: ["admin", "settings"] });
+      // Members' composers read this; refresh so the new figure shows up.
+      qc.invalidateQueries({ queryKey: ["feed", "quota"] });
+    },
+    onError: (e: any) =>
+      toast({ title: "Save failed", description: e?.message, variant: "destructive" }),
+  });
 
   const saveRecipients = useMutation({
     mutationFn: () =>
@@ -324,6 +362,52 @@ const SettingsPage = () => {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="card-elevated p-6 space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+            <Gauge className="h-4 w-4" /> Feed Posting Limit
+          </h2>
+          <p className="text-xs text-muted-foreground mt-1">
+            {settings.data?.meta.feedPostsPerMonth.description ??
+              "How many posts each member may publish per calendar month."}
+          </p>
+        </div>
+        {settings.isLoading ? (
+          <Skeleton className="h-10 w-full max-w-xs" />
+        ) : (
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="feedPostsPerMonth">Posts per member each month</Label>
+              <Input
+                id="feedPostsPerMonth"
+                type="number"
+                min={1}
+                max={1000}
+                className="w-40"
+                value={postLimit}
+                onChange={(e) => setPostLimit(e.target.value)}
+              />
+            </div>
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => saveSettings.mutate()}
+              disabled={
+                saveSettings.isPending ||
+                !postLimit ||
+                Number(postLimit) < 1 ||
+                String(settings.data?.settings.feedPostsPerMonth) === postLimit
+              }
+            >
+              {saveSettings.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Save limit"}
+            </Button>
+            <span className="text-xs text-muted-foreground pb-2">
+              Default {settings.data?.meta.feedPostsPerMonth.default ?? 10} · admins are not limited
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="card-elevated p-6 space-y-4">

@@ -32,6 +32,8 @@ feedRouter.patch(
 );
 
 feedRouter.get("/", validate(listQuerySchema, "query"), asyncHandler(ctrl.list));
+// Declared before "/:id" so "quota" isn't parsed as a post id.
+feedRouter.get("/quota", asyncHandler(ctrl.quota));
 feedRouter.post("/", validate(createPostSchema), asyncHandler(ctrl.create));
 feedRouter.get("/:id", asyncHandler(ctrl.getById));
 feedRouter.patch("/:id", validate(updatePostSchema), asyncHandler(ctrl.update));
