@@ -52,7 +52,7 @@ const MODELS = [
   "auditLog",
   "notification",
   "newsItem",
-  "resourceItem",
+  "newsletter",
   "supportMessage",
   "siteSection",
   "workExperience",

@@ -611,7 +611,7 @@ model AuditLog {
   @@index([actorId])
 }
 // =====================================================================
-// CMS: News, Resources, Support inbox, Site sections
+// CMS: News, Newsletters, Support inbox, Site sections
 // =====================================================================
 
 model NewsItem {
@@ -619,6 +619,8 @@ model NewsItem {
   title       String
   body        String
   link        String?
+  /// Short chip rendered above the headline on the public news page ("Placements", "Campus", …).
+  tag         String?
   imageKey    String?
   publishedAt DateTime @default(now())
   createdAt   DateTime @default(now())
@@ -627,14 +629,22 @@ model NewsItem {
   @@index([publishedAt])
 }
 
-model ResourceItem {
-  id        String   @id @default(uuid())
-  title     String
-  body      String
-  link      String?
-  category  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+/// A published newsletter edition. `coverKey` is the first page of `fileKey`,
+/// rendered client-side at upload time so the public page can show the cover
+/// instead of a bare download link.
+model Newsletter {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  /// Storage key of the PDF, or a path under `public/` for the editions that
+  /// predate admin uploads — `assetUrl()` on the frontend resolves both.
+  fileKey     String
+  coverKey    String?
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([publishedAt])
 }
 
 model SupportMessage {

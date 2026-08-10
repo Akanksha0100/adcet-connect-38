@@ -274,6 +274,35 @@ const upsertCampaign = async (data: {
   return prisma.donationCampaign.create({ data });
 };
 
+/**
+ * News + newsletters the public pages used to hardcode. Seeded so a fresh
+ * install shows the same content the site shipped with, after which the alumni
+ * office owns it from `/admin/newsroom`.
+ */
+const upsertNews = async (data: {
+  title: string;
+  body: string;
+  tag: string;
+  link?: string;
+  publishedAt: Date;
+}) => {
+  const existing = await prisma.newsItem.findFirst({ where: { title: data.title } });
+  if (existing) return existing;
+  return prisma.newsItem.create({ data });
+};
+
+const upsertNewsletter = async (data: {
+  title: string;
+  description: string;
+  fileKey: string;
+  coverKey: string;
+  publishedAt: Date;
+}) => {
+  const existing = await prisma.newsletter.findFirst({ where: { title: data.title } });
+  if (existing) return existing;
+  return prisma.newsletter.create({ data });
+};
+
 async function main() {
   console.log("🏙  Seeding chapters…");
   const chapterIds = await upsertChapters();
@@ -548,6 +577,70 @@ async function main() {
   await ensureApplication(job1.id, sneha.id);
   await ensureApplication(job2.id, priya.id);
   await ensureApplication(job3.id, sneha.id);
+
+  console.log("📰 Seeding news + newsletters…");
+  await upsertNews({
+    title: "ADCET Hackathon 2026 – Season 3 Now Open",
+    tag: "Campus",
+    body:
+      "ADCET Hackathon Season 3 is underway, themed around Sustainable Development Goals (SDGs) and Vikasit Bharat-2047. Alumni are invited to mentor student teams and participate as judges.",
+    link: "https://www.adcet.ac.in",
+    publishedAt: new Date("2026-06-01"),
+  });
+  await upsertNews({
+    title: "Alumni Database Update Drive",
+    tag: "Alumni Cell",
+    body:
+      "ADCET has launched a drive to update its alumni database. If you graduated from ADCET, fill in the form to ensure you receive alumni portal invitations, event notifications and placement referral opportunities.",
+    link: "https://forms.gle/wfafkr3xvBxDGPup6",
+    publishedAt: new Date("2026-03-01"),
+  });
+  await upsertNews({
+    title: "Placement Season 2025–26 Ongoing",
+    tag: "Placements",
+    body:
+      "Companies continue to visit campus through this placement season. Alumni working in industry are encouraged to refer open positions to the Placement Cell.",
+    publishedAt: new Date("2026-01-15"),
+  });
+  await upsertNews({
+    title: "NAAC A++ Reaffirmation",
+    tag: "Accreditation",
+    body:
+      "ADCET has once again been reaffirmed with the NAAC A++ grade — the highest accreditation a college can achieve in India. This recognition reflects our commitment to quality education, research, and student outcomes.",
+    publishedAt: new Date("2025-09-01"),
+  });
+  await upsertNews({
+    title: "JSW Foundation-Sponsored Innovation: Plastic Bottle Shredder",
+    tag: "Innovation",
+    body:
+      "A team of ADCET engineering students designed and developed a Plastic Bottle Shredding Machine sponsored by JSW Foundation — a practical solution addressing the plastic waste problem in rural Maharashtra.",
+    publishedAt: new Date("2025-07-01"),
+  });
+  await upsertNews({
+    title: "Research & Publications",
+    tag: "Research",
+    body:
+      "ADCET faculty and students publish research papers in national and international journals annually. Alumni with industry research experience are welcome to collaborate on funded projects and consultancy.",
+    link: "https://www.adcet.ac.in",
+    publishedAt: new Date("2025-04-01"),
+  });
+
+  // These two editions predate admin uploads, so their keys are `public/` paths
+  // rather than storage keys — `assetUrl()` on the frontend resolves both.
+  await upsertNewsletter({
+    title: "Synergy — 2nd Edition",
+    description: "Alumni & Institute: reunions, chapter activity and campus updates from the past year.",
+    fileKey: "/NewsLetter/Alumni Newsletter_ Synergy_2nd Edition 2026.pdf",
+    coverKey: "/NewsLetter/Alumni Newsletter_ Synergy_2nd Edition 2026-cover.png",
+    publishedAt: new Date("2026-05-01"),
+  });
+  await upsertNewsletter({
+    title: "Alumni Newsletter — 1st Edition",
+    description: "The inaugural edition of the ADCET Alumni Cell newsletter.",
+    fileKey: "/NewsLetter/Alumni Newsletter_1st Edition.pdf",
+    coverKey: "/NewsLetter/Alumni Newsletter_1st Edition-cover.png",
+    publishedAt: new Date("2025-05-01"),
+  });
 
   console.log("🎉 Seed complete.");
   console.log("   Admin:    admin@adcet.in / Admin@12345");

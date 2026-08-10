@@ -60,7 +60,7 @@ const AdminLayout = () => {
     { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
     { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },
     { label: "Analytics", path: "/admin/analytics", icon: BarChart3, badge: undefined },
-    { label: "Site Content", path: "/admin/site-content", icon: FileText, badge: undefined },
+    { label: "Newsroom", path: "/admin/newsroom", icon: FileText, badge: undefined },
     { label: "Support Inbox", path: "/admin/support", icon: MessageSquare, badge: undefined },
     { label: "Settings", path: "/admin/settings", icon: Settings, badge: undefined },
   ];

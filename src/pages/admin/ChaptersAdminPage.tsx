@@ -23,7 +23,7 @@ import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 import BulkEmailDialog from "@/components/BulkEmailDialog";
 import {
-  DEFAULT_CHAPTER_ACCENT, cancelChapterInvitation, deleteChapter, fetchChapterInvitations,
+  DEFAULT_CHAPTER_ACCENT, cancelChapterInvitation, chapterImage, deleteChapter, fetchChapterInvitations,
   fetchChapterMembers, fetchChapters, inviteToChapter, removeChapterMember, type Chapter,
 } from "@/lib/chapters";
 
@@ -36,17 +36,7 @@ interface AlumniSearchRow {
   chapter?: { id: string; name: string } | null;
 }
 
-/** Gradient presets offered when creating a chapter, matching the seeded ones. */
-const ACCENTS = [
-  { label: "Amber", value: "from-orange-500 to-amber-400" },
-  { label: "Sky", value: "from-cyan-500 to-sky-400" },
-  { label: "Lime", value: "from-emerald-500 to-lime-400" },
-  { label: "Violet", value: "from-violet-500 to-fuchsia-400" },
-  { label: "Rose", value: "from-rose-500 to-pink-400" },
-  { label: "Slate", value: DEFAULT_CHAPTER_ACCENT },
-];
-
-const emptyForm = () => ({ name: "", city: "", blurb: "", accent: ACCENTS[0].value });
+const emptyForm = () => ({ name: "", city: "", blurb: "" });
 
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`.trim();
 
@@ -336,7 +326,6 @@ const ChaptersAdminPage = () => {
         name: form.name.trim(),
         city: form.city.trim() || null,
         blurb: form.blurb.trim() || null,
-        accent: form.accent || null,
       };
       return editing ? api.patch(`/chapters/${editing.id}`, body) : api.post("/chapters", body);
     },
@@ -382,7 +371,7 @@ const ChaptersAdminPage = () => {
   const openCreate = () => { setEditing(null); setForm(emptyForm()); setFormOpen(true); };
   const openEdit = (c: Chapter) => {
     setEditing(c);
-    setForm({ name: c.name, city: c.city ?? "", blurb: c.blurb ?? "", accent: c.accent ?? ACCENTS[0].value });
+    setForm({ name: c.name, city: c.city ?? "", blurb: c.blurb ?? "" });
     setFormOpen(true);
   };
 
@@ -414,12 +403,16 @@ const ChaptersAdminPage = () => {
               key={c.id}
               className={`card-elevated overflow-hidden flex flex-col ${c.isActive ? "" : "opacity-70"}`}
             >
-              <div className={`h-16 bg-gradient-to-br ${c.accent || DEFAULT_CHAPTER_ACCENT}`} />
+              {/* Same city photograph the public cards use, so admins see what alumni see. */}
+              {chapterImage(c) ? (
+                <img src={chapterImage(c)} alt="" aria-hidden="true" className="h-16 w-full object-cover" />
+              ) : (
+                <div className={`h-16 bg-gradient-to-br ${c.accent || DEFAULT_CHAPTER_ACCENT}`} />
+              )}
               <div className="p-5 flex flex-col flex-1 gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <h2 className="font-semibold text-foreground truncate">{c.name}</h2>
-                    <p className="text-xs text-muted-foreground">/{c.slug}</p>
                   </div>
                   {!c.isActive && <Badge variant="secondary" className="text-[10px]">Archived</Badge>}
                 </div>
@@ -522,22 +515,10 @@ const ChaptersAdminPage = () => {
                 onChange={(e) => setForm({ ...form, blurb: e.target.value })}
               />
             </div>
-            <div className="space-y-1.5">
-              <Label>Card colour</Label>
-              <div className="flex flex-wrap gap-2">
-                {ACCENTS.map((a) => (
-                  <button
-                    key={a.value}
-                    type="button"
-                    aria-label={a.label}
-                    onClick={() => setForm({ ...form, accent: a.value })}
-                    className={`h-8 w-12 rounded-md bg-gradient-to-br ${a.value} ring-offset-2 ring-offset-background ${
-                      form.accent === a.value ? "ring-2 ring-primary" : ""
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Chapters for cities with a photograph in <code>public/Chapters/</code> show it on their card; the rest
+              fall back to a plain header.
+            </p>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button>
               <Button type="submit" disabled={save.isPending || !form.name.trim()}>

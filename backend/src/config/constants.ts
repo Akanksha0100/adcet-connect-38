@@ -34,6 +34,7 @@ export const RATE_LIMITS = {
 export const UPLOAD_SCOPES = [
   "avatar", "banner", "event", "achievement", "receipt", "resume",
   "event-attachment", "job-attachment", "email-attachment", "post",
+  "newsletter", "newsletter-cover",
 ] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
 

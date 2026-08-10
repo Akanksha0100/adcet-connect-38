@@ -13,15 +13,15 @@ export const deleteNews = async (req: Request, res: Response) => {
   res.status(204).end();
 };
 
-/* Resources */
-export const listResources = async (req: Request, res: Response) =>
-  res.json(await service.listResources(req.query as unknown as Parameters<typeof service.listResources>[0]));
-export const createResource = async (req: Request, res: Response) =>
-  res.status(201).json(await service.createResource(req.body));
-export const updateResource = async (req: Request, res: Response) =>
-  res.json(await service.updateResource(req.params.id, req.body));
-export const deleteResource = async (req: Request, res: Response) => {
-  await service.deleteResource(req.params.id);
+/* Newsletters */
+export const listNewsletters = async (req: Request, res: Response) =>
+  res.json(await service.listNewsletters(req.query as unknown as Parameters<typeof service.listNewsletters>[0]));
+export const createNewsletter = async (req: Request, res: Response) =>
+  res.status(201).json(await service.createNewsletter(req.body));
+export const updateNewsletter = async (req: Request, res: Response) =>
+  res.json(await service.updateNewsletter(req.params.id, req.body));
+export const deleteNewsletter = async (req: Request, res: Response) => {
+  await service.deleteNewsletter(req.params.id);
   res.status(204).end();
 };
 

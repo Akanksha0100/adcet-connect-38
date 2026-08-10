@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   DEFAULT_CHAPTER_ACCENT,
   FALLBACK_CHAPTERS,
+  chapterImage,
   fetchChapters,
   type Chapter,
 } from "@/lib/chapters";
@@ -38,19 +39,37 @@ export default function ChaptersSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {chapters.map((c, i) => (
+          {chapters.map((c, i) => {
+            const image = chapterImage(c);
+            return (
             <motion.div
               key={c.slug}
               initial={{ opacity: 0, y: 12 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all"
+              className="flex flex-col rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group"
             >
+              {/* City photograph where we have one; the accent gradient otherwise. */}
               <div
-                className={`h-24 bg-gradient-to-br ${c.accent || DEFAULT_CHAPTER_ACCENT} flex items-end p-5`}
+                className={`relative h-32 flex items-end p-5 overflow-hidden ${
+                  image ? "bg-muted" : `bg-gradient-to-br ${c.accent || DEFAULT_CHAPTER_ACCENT}`
+                }`}
               >
-                <h3 className="text-lg font-semibold text-white drop-shadow-sm">{c.name}</h3>
+                {image && (
+                  <>
+                    <img
+                      src={image}
+                      alt=""
+                      aria-hidden="true"
+                      loading="lazy"
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    {/* Keeps the name legible over whatever the photo happens to show. */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
+                  </>
+                )}
+                <h3 className="relative text-lg font-semibold text-white drop-shadow-md">{c.name}</h3>
               </div>
               <div className="p-5 flex flex-col flex-1 gap-3">
                 <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
@@ -69,13 +88,9 @@ export default function ChaptersSection() {
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">{c.blurb}</p>
               </div>
             </motion.div>
-          ))}
+            );
+          })}
         </div>
-
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          Chapter membership is coordinated by the alumni office. If you'd like to be part of your regional
-          chapter, get in touch and we'll send you an invitation.
-        </p>
       </div>
     </section>
   );

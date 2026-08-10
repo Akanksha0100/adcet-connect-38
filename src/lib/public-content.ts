@@ -26,12 +26,14 @@ export const DIRECTOR = {
 /** Alumni Cell vision, mission and activities — as published by the institute. */
 export const ALUMNI_CELL = {
   vision:
-    "To maintain a lifelong relationship with alumni through opportunities and benefits that promotes interaction and engagement with wits and facilitates their contribution to the advancement and success of the institute.",
+    "To build a lifelong alumni community that empowers alumni and contributes to the excellence and growth of ADCET.",
   mission: [
-    "To strengthen the relationship between institute and alumni.",
-    "To inspire alumni to contribute to the development of the institute and the promotion of its good name and reputation, locally and internationally.",
-    "To strengthen ties between the institute and alumni, and encourage them to participate in the various cultural, social and scientific activities.",
-    "To celebrate achievements of alumni motivating the current students.",
+    "To strengthen lifelong relationships",
+    "To support alumni career growth",
+    "To facilitate student development",
+    "To promote industry–academia collaboration",
+    "To encourage alumni participation",
+    "To build a strong national and global alumni network",
   ],
   activities: [
     "Staying connected with alumni through e-mail, SMS and social networking.",

@@ -20,7 +20,7 @@ export const GALLERY_ALBUMS: GalleryAlbum[] = [
     slug: "pune-chapter-march-2025",
     title: "Pune Chapter Meet",
     date: "1 March 2025",
-    location: "COEP, Pune",
+    location: "Pune",
     folder: "PuneChapter1March2025",
     files: ["1.png", "COEPPune.png", "2.JPG", "3.JPG", "4.jpeg", "5.jpeg", "6.jpeg"],
   },

@@ -44,17 +44,6 @@ export const PUBLIC_NAV = [
   { label: "Alumni Map", to: "/alumni-map" },
   { label: "Gallery", to: "/gallery" },
   { label: "News", to: "/news" },
+  { label: "Newsletters", to: "/newsletters" },
   { label: "Contact", to: "/contact" },
-] as const;
-
-/** Newsletter editions kept as PDFs under `public/NewsLetter/`. */
-export const NEWSLETTERS = [
-  {
-    title: "Alumni Newsletter — 1st Edition",
-    href: encodeURI("/NewsLetter/Alumni Newsletter_1st Edition.pdf"),
-  },
-  {
-    title: "Synergy — 2nd Edition, 2026",
-    href: encodeURI("/NewsLetter/Alumni Newsletter_ Synergy_2nd Edition 2026.pdf"),
-  },
 ] as const;
