@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { TESTIMONIALS, initialsOfName } from "@/lib/testimonials";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { TESTIMONIALS } from "@/lib/testimonials";
+import TestimonialCard from "./TestimonialCard";
 
-/** Long enough to read the longest quote before it rotates away. */
-const INTERVAL_MS = 14000;
+/** Cards now show an excerpt, so they can rotate rather sooner than the full quotes did. */
+const INTERVAL_MS = 8000;
 
 /**
  * Horizontal slide: the incoming quote enters from the side you are heading
@@ -49,7 +51,7 @@ export default function TestimonialsSection() {
           {/* Clipped so the slide-in never widens the page on narrow screens. */}
           <div className="overflow-x-clip">
             <AnimatePresence mode="wait" custom={direction} initial={false}>
-              <motion.blockquote
+              <motion.div
                 key={index}
                 custom={direction}
                 variants={SLIDE}
@@ -57,33 +59,9 @@ export default function TestimonialsSection() {
                 animate="center"
                 exit="exit"
                 transition={{ duration: 0.35, ease: "easeInOut" }}
-                className="bg-card border border-border rounded-2xl px-6 sm:px-10 py-9 text-center shadow-sm"
               >
-                <Quote className="h-7 w-7 text-primary/25 mx-auto mb-5" />
-                <p className="text-base sm:text-lg text-foreground italic leading-relaxed">"{t.quote}"</p>
-
-                <div className="flex items-center justify-center gap-4 mt-7">
-                  {t.photo ? (
-                    <img
-                      src={t.photo}
-                      alt={t.name}
-                      loading="lazy"
-                      className="w-16 h-16 rounded-full object-cover object-top ring-2 ring-border"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-base font-semibold">
-                      {initialsOfName(t.name)}
-                    </div>
-                  )}
-                  <div className="text-left">
-                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t.role}
-                      {t.batch ? ` · ${t.batch}` : ""}
-                    </p>
-                  </div>
-                </div>
-              </motion.blockquote>
+                <TestimonialCard testimonial={t} />
+              </motion.div>
             </AnimatePresence>
           </div>
 
@@ -121,6 +99,15 @@ export default function TestimonialsSection() {
             ))}
           </div>
         )}
+
+        <div className="text-center mt-8">
+          <Link
+            to="/testimonials"
+            className="text-sm font-medium text-primary hover:underline underline-offset-4"
+          >
+            Read all {count} testimonials
+          </Link>
+        </div>
       </div>
     </section>
   );

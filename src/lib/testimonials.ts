@@ -50,6 +50,24 @@ export const TESTIMONIALS: Testimonial[] = [
   },
 ];
 
+/**
+ * Trim a quote down to a card-sized excerpt.
+ *
+ * The carousel shows every testimonial in a fixed-height card, so the quote is
+ * cut at a word boundary and closed with a literal ellipsis rather than a CSS
+ * line clamp — the card must be the same size whatever the viewport width, and
+ * the full text lives on `/testimonials`.
+ */
+export const EXCERPT_LENGTH = 230;
+
+export const excerptOf = (quote: string, max = EXCERPT_LENGTH) => {
+  if (quote.length <= max) return { text: quote, truncated: false };
+  const cut = quote.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  const body = (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:]+$/, "");
+  return { text: `${body}...`, truncated: true };
+};
+
 export const initialsOfName = (name: string) =>
   name
     .split(/\s+/)

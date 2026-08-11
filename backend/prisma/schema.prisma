@@ -217,8 +217,14 @@ model Profile {
   /// chapter at a time; switching simply repoints this column.
   chapterId       String?
 
+  /// Resolved city centroid for the alumni map, kept in step with `city` +
+  /// `country` by `resolveProfileLocation()`. Never a residential coordinate —
+  /// see `GeoLocation`.
+  locationId      String?
+
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   chapter         Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  location        GeoLocation?      @relation(fields: [locationId], references: [id], onDelete: SetNull)
   experiences     WorkExperience[]
   educations      Education[]
   skills          ProfileSkill[]
@@ -227,6 +233,47 @@ model Profile {
   @@index([currentCompany])
   @@index([graduationYear])
   @@index([chapterId])
+  @@index([locationId])
+}
+
+/// Where a city is, resolved once and reused by every profile in it.
+///
+/// Two things this model deliberately is **not**:
+///
+/// 1. **Not per-alumnus.** Profiles point at a shared row, so 50,000 alumni in
+///    200 cities cost 200 geocodes, and the map aggregates with one `groupBy`
+///    on `locationId` instead of geocoding anything per request.
+/// 2. **Not a precise address.** `lat`/`lng` are the *city centroid* rounded to
+///    `GEO_PRECISION` decimal places (see `lib/geocode.ts`), so publishing them
+///    reveals only the city an alumnus already chose to list. Nothing finer than
+///    a city is ever stored, and there is no field to store it in.
+///
+/// `slug` is the normalised `city|country` key (lower-cased, punctuation
+/// stripped) that lookups go through, so "New Delhi", "new-delhi" and
+/// "NEW DELHI" all resolve to one row.
+model GeoLocation {
+  id        String    @id @default(uuid())
+  slug      String    @unique
+  city      String
+  state     String?
+  country   String    @default("India")
+  lat       Float
+  lng       Float
+  source    GeoSource @default(GAZETTEER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  profiles  Profile[]
+
+  @@index([country])
+}
+
+/// Where a `GeoLocation`'s coordinates came from. `MANUAL` rows are written by
+/// an admin and are never overwritten by a later geocoder run.
+enum GeoSource {
+  GAZETTEER
+  NOMINATIM
+  MANUAL
 }
 
 /// Regional alumni chapter (Pune, Mumbai, Bangalore, …).

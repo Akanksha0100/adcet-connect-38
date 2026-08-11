@@ -8,6 +8,9 @@
 import { PrismaClient, type AppRole, type ApprovalStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_CHAPTERS } from "../src/config/constants.js";
+import { runGeoBackfill } from "../src/jobs/geoBackfill.js";
+// The backfill runs against the app's own client, so the seed has to close both.
+import { prisma as appPrisma } from "../src/lib/prisma.js";
 
 const prisma = new PrismaClient();
 
@@ -696,6 +699,12 @@ async function main() {
     ],
   });
 
+  // Place the seeded alumni on the map. Gazetteer-only, so seeding never
+  // depends on the network being up or on Nominatim being reachable.
+  console.log("🗺  Placing alumni on the map…");
+  const placed = await runGeoBackfill({ allowRemote: false });
+  console.log(`   ${placed.profilesUpdated} profile(s) placed across ${placed.resolved} cit(ies).`);
+
   console.log("🎉 Seed complete.");
   console.log("   Admin:    admin@adcet.in / Admin@12345");
   console.log("   Alumni:   alice@adcet.in / Alumni@123");
@@ -708,4 +717,4 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => Promise.all([prisma.$disconnect(), appPrisma.$disconnect()]));

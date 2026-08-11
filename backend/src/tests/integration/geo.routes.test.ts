@@ -9,12 +9,16 @@ const prisma = createPrismaDeepMock();
 jest.unstable_mockModule("../../lib/prisma.js", () => ({ prisma }));
 
 const { buildApp } = await import("../../app.js");
+const geoService = await import("../../modules/geo/geo.service.js");
 const app = buildApp();
 
 const token = makeToken({ sub: "user-1" });
 
 beforeEach(() => {
   prisma.user.findUnique.mockResolvedValue({ id: "user-1", status: "APPROVED" } as any);
+  // The map endpoint is served from a one-minute cache; each test needs a
+  // cold one or it would assert against the previous test's stubs.
+  geoService.invalidateMapCache();
 });
 
 describe("/geo", () => {
@@ -60,5 +64,68 @@ describe("/geo", () => {
     expect(res.body[0].totalAlumni).toBe(3);
     expect(res.body[0].companies[0].company).toBe("Acme");
     expect(res.body[0].companies[0].count).toBe(2);
+  });
+});
+
+describe("/geo map", () => {
+  const stubMap = () => {
+    prisma.profile.groupBy.mockResolvedValueOnce([
+      { locationId: "loc-pune", _count: { _all: 287 } },
+    ] as any);
+    prisma.profile.count.mockResolvedValueOnce(300 as any).mockResolvedValueOnce(13 as any);
+    prisma.geoLocation.findMany.mockResolvedValueOnce([
+      {
+        id: "loc-pune",
+        city: "Pune",
+        state: "Maharashtra",
+        country: "India",
+        lat: 18.52,
+        lng: 73.857,
+      },
+    ] as any);
+  };
+
+  it("serves the public map without a session", async () => {
+    stubMap();
+    const res = await request(app).get("/api/v1/geo/public/map");
+
+    expect(res.status).toBe(200);
+    expect(res.body.points).toEqual([
+      {
+        id: "loc-pune",
+        city: "Pune",
+        state: "Maharashtra",
+        country: "India",
+        lat: 18.52,
+        lng: 73.857,
+        count: 287,
+      },
+    ]);
+    expect(res.body.totals).toEqual({
+      alumni: 300,
+      placed: 287,
+      unplaced: 13,
+      cities: 1,
+      countries: 1,
+    });
+    expect(res.body.campus).toMatchObject({ name: "ADCET, Ashta" });
+  });
+
+  it("gives a signed-in member exactly the same aggregated payload", async () => {
+    stubMap();
+    const anon = await request(app).get("/api/v1/geo/public/map");
+
+    geoService.invalidateMapCache();
+    stubMap();
+    const member = await request(app).get("/api/v1/geo/map").set("Authorization", bearer(token));
+
+    expect(member.status).toBe(200);
+    // Signing in must not buy finer location data — there is none to buy.
+    expect(member.body.points).toEqual(anon.body.points);
+  });
+
+  it("401s the member route anonymously", async () => {
+    const res = await request(app).get("/api/v1/geo/map");
+    expect(res.status).toBe(401);
   });
 });

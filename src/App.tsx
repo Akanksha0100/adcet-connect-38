@@ -13,6 +13,7 @@ import NewslettersPage from "./pages/NewslettersPage";
 import EsteemedAlumniPage from "./pages/EsteemedAlumniPage";
 import GalleryPage from "./pages/GalleryPage";
 import AlumniMapPage from "./pages/AlumniMapPage";
+import TestimonialsPage from "./pages/TestimonialsPage";
 import SupportPage from "./pages/SupportPage";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
@@ -86,6 +87,8 @@ const App = () => (
               <Route path="/esteemed-alumni" element={<EsteemedAlumniPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/alumni-map" element={<AlumniMapPage />} />
+              {/* Reached only from the landing-page carousel — deliberately not in the nav. */}
+              <Route path="/testimonials" element={<TestimonialsPage />} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
