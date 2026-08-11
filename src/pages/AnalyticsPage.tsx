@@ -12,15 +12,15 @@ const AnalyticsPage = () => {
   const o = useQuery({ queryKey: ["analytics", "overview"], queryFn: () => api.get<Overview>("/analytics/overview") });
   const stats = [
     { label: "Total Alumni", value: o.data?.totalAlumni?.toLocaleString(), icon: Users },
-    { label: "Active Jobs", value: o.data?.totalJobs?.toLocaleString(), icon: Briefcase },
+    { label: "Open Job Posts", value: o.data?.totalJobs?.toLocaleString(), icon: Briefcase },
     { label: "Events", value: o.data?.totalEvents?.toLocaleString(), icon: Calendar },
-    { label: "Donations", value: o.data?.totalDonationsAmount ? `₹${o.data.totalDonationsAmount.toLocaleString("en-IN")}` : undefined, icon: Heart },
+    { label: "Money Raised", value: o.data?.totalDonationsAmount ? `₹${o.data.totalDonationsAmount.toLocaleString("en-IN")}` : undefined, icon: Heart },
   ];
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-        <p className="text-muted-foreground text-sm mt-1">Platform overview</p>
+        <p className="text-muted-foreground text-sm mt-1">A quick look at the alumni network</p>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((s) => (

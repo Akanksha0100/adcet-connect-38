@@ -34,7 +34,7 @@ export const RATE_LIMITS = {
 export const UPLOAD_SCOPES = [
   "avatar", "banner", "event", "achievement", "receipt", "resume",
   "event-attachment", "job-attachment", "email-attachment", "post",
-  "newsletter", "newsletter-cover",
+  "newsletter", "newsletter-cover", "gallery",
 ] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
 
@@ -68,6 +68,8 @@ export const DEPARTMENTS = [
   "Internet of Things and Cyber Security(CSE)",
   "Robotics and Artificial Intelligence",
   "Electronics and Telecommunication Engineering",
+  "Automobile Engineering",
+  "Mechanical and Automation Engineering",
 ] as const;
 export type DepartmentName = (typeof DEPARTMENTS)[number];
 

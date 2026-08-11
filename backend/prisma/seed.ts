@@ -303,6 +303,33 @@ const upsertNewsletter = async (data: {
   return prisma.newsletter.create({ data });
 };
 
+/**
+ * Gallery albums the public page used to hardcode. Photo keys are `public/`
+ * paths (the files are committed under `public/gallery/`); everything uploaded
+ * from `/admin/gallery` afterwards is a storage key instead.
+ */
+const upsertAlbum = async (data: {
+  slug: string;
+  title: string;
+  eventDate: Date;
+  location: string;
+  photos: string[];
+}) => {
+  const existing = await prisma.galleryAlbum.findUnique({ where: { slug: data.slug } });
+  if (existing) return existing;
+  return prisma.galleryAlbum.create({
+    data: {
+      slug: data.slug,
+      title: data.title,
+      eventDate: data.eventDate,
+      location: data.location,
+      photos: {
+        create: data.photos.map((imageKey, sortOrder) => ({ imageKey, sortOrder })),
+      },
+    },
+  });
+};
+
 async function main() {
   console.log("🏙  Seeding chapters…");
   const chapterIds = await upsertChapters();
@@ -640,6 +667,33 @@ async function main() {
     fileKey: "/NewsLetter/Alumni Newsletter_1st Edition.pdf",
     coverKey: "/NewsLetter/Alumni Newsletter_1st Edition-cover.png",
     publishedAt: new Date("2025-05-01"),
+  });
+
+  console.log("🖼  Seeding gallery albums…");
+  await upsertAlbum({
+    slug: "pune-chapter-march-2025",
+    title: "Pune Chapter Meet",
+    eventDate: new Date("2025-03-01"),
+    location: "Pune",
+    photos: [
+      "/gallery/PuneChapter1March2025/1.png",
+      "/gallery/PuneChapter1March2025/COEPPune.png",
+      "/gallery/PuneChapter1March2025/2.JPG",
+      "/gallery/PuneChapter1March2025/3.JPG",
+      "/gallery/PuneChapter1March2025/4.jpeg",
+      "/gallery/PuneChapter1March2025/5.jpeg",
+      "/gallery/PuneChapter1March2025/6.jpeg",
+    ],
+  });
+  await upsertAlbum({
+    slug: "pune-chapter-sep-2025",
+    title: "Pune Chapter Meet",
+    eventDate: new Date("2025-09-29"),
+    location: "Pune",
+    photos: [
+      "/gallery/PuneChapter29Sep2025/20250928_113711AMByGPSMapCamera.jpg",
+      "/gallery/PuneChapter29Sep2025/WhatsApp Image 2026-07-14 at 11.02.48 AM.jpeg",
+    ],
   });
 
   console.log("🎉 Seed complete.");

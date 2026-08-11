@@ -647,6 +647,38 @@ model Newsletter {
   @@index([publishedAt])
 }
 
+/// A set of photographs from one alumni event, managed from `/admin/gallery`.
+model GalleryAlbum {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  title       String
+  /// When the event happened — albums are listed newest first.
+  eventDate   DateTime?
+  location    String?
+  /// Unpublished albums are invisible to the public page while being prepared.
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  photos GalleryPhoto[]
+
+  @@index([isPublished, eventDate])
+}
+
+model GalleryPhoto {
+  id        String   @id @default(uuid())
+  albumId   String
+  /// Storage key, or a path under `public/` for photos that predate uploads.
+  imageKey  String
+  /// Position within the album; ties break on `createdAt`.
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  album GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId, sortOrder])
+}
+
 model SupportMessage {
   id         String    @id @default(uuid())
   name       String

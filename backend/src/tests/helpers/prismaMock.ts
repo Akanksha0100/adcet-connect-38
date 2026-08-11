@@ -53,6 +53,8 @@ const MODELS = [
   "notification",
   "newsItem",
   "newsletter",
+  "galleryAlbum",
+  "galleryPhoto",
   "supportMessage",
   "siteSection",
   "workExperience",

@@ -52,6 +52,7 @@ import SettingsPage from "./pages/admin/SettingsPage";
 import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
 import ChaptersAdminPage from "./pages/admin/ChaptersAdminPage";
 import NewsroomPage from "./pages/admin/NewsroomPage";
+import GalleryAdminPage from "./pages/admin/GalleryAdminPage";
 import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
 import AccountStatusGate from "./components/AccountStatusGate";
@@ -141,6 +142,7 @@ const App = () => (
                   <Route path="geomap" element={<AdminGeoMapPage />} />
                   <Route path="reports" element={<ReportsPage />} />
                   <Route path="newsroom" element={<NewsroomPage />} />
+                  <Route path="gallery" element={<GalleryAdminPage />} />
                   <Route path="support" element={<SupportInboxPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

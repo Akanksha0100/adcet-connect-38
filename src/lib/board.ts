@@ -40,6 +40,16 @@ export const BOARD_MEMBERS: BoardMember[] = [
   { name: "Mrs. P. S. Pathak", authority: "Member", designation: "Department Alumni Coordinator, CSE (IoT)", photo: `${dir}/P.S.Pathak.png` },
 ];
 
+/**
+ * The alumni office's point of contact, named on the public Contact page.
+ * Same photograph as his board entry above.
+ */
+export const ALUMNI_CELL_INCHARGE = {
+  name: "Dr. Rahul R. Gaji",
+  designation: "Dean, Alumni Relation and Strategic Partnership",
+  photo: `${dir}/R.R.Gaji.png`,
+};
+
 /** Initials used when a member has no photograph on file. */
 export const initialsOf = (name: string) =>
   name

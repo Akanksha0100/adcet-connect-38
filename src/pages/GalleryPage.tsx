@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { CalendarDays, ChevronLeft, ChevronRight, ImageIcon, MapPin, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays, ChevronLeft, ChevronRight, ImageIcon, Loader2, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
-import { GALLERY_ALBUMS, photoUrl, totalPhotos } from "@/lib/gallery";
+import { albumsQuery, formatEventDate, photoUrl, type GalleryAlbum } from "@/lib/gallery";
 
 interface Selection {
   album: number;
@@ -13,15 +14,21 @@ interface Selection {
 }
 
 export default function GalleryPage() {
+  const { data, isLoading, isError } = useQuery(albumsQuery());
+  const albums: GalleryAlbum[] = useMemo(() => data ?? [], [data]);
   const [selected, setSelected] = useState<Selection | null>(null);
 
-  const step = useCallback((dir: number) => {
-    setSelected((cur) => {
-      if (!cur) return cur;
-      const files = GALLERY_ALBUMS[cur.album].files;
-      return { ...cur, photo: (cur.photo + dir + files.length) % files.length };
-    });
-  }, []);
+  const step = useCallback(
+    (dir: number) => {
+      setSelected((cur) => {
+        if (!cur) return cur;
+        const photos = albums[cur.album]?.photos ?? [];
+        if (photos.length === 0) return cur;
+        return { ...cur, photo: (cur.photo + dir + photos.length) % photos.length };
+      });
+    },
+    [albums],
+  );
 
   // Arrow keys page through the open album; Escape closes the viewer.
   useEffect(() => {
@@ -39,7 +46,7 @@ export default function GalleryPage() {
     };
   }, [selected, step]);
 
-  const album = selected ? GALLERY_ALBUMS[selected.album] : null;
+  const album = selected ? albums[selected.album] : null;
 
   return (
     <PublicLayout title="Gallery">
@@ -49,16 +56,24 @@ export default function GalleryPage() {
       />
 
       <div className="max-w-5xl mx-auto px-6 py-14 space-y-16">
-        {GALLERY_ALBUMS.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
-            <ImageIcon className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Photographs will be published here soon.</p>
+        {isLoading && (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
 
-        {GALLERY_ALBUMS.map((a, ai) => (
+        {!isLoading && (isError || albums.length === 0) && (
+          <div className="rounded-xl border border-dashed border-border bg-muted/20 p-12 text-center">
+            <ImageIcon className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">
+              {isError ? "The gallery is unavailable right now." : "Photographs will be published here soon."}
+            </p>
+          </div>
+        )}
+
+        {albums.map((a, ai) => (
           <motion.section
-            key={a.slug}
+            key={a.id}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -67,33 +82,31 @@ export default function GalleryPage() {
           >
             <h2 className="text-xl sm:text-2xl font-bold mb-2">{a.title}</h2>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mb-5">
-              <span className="flex items-center gap-1.5">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {a.date}
-              </span>
+              {a.eventDate && (
+                <span className="flex items-center gap-1.5">
+                  <CalendarDays className="h-3.5 w-3.5" />
+                  {formatEventDate(a.eventDate)}
+                </span>
+              )}
               {a.location && (
                 <span className="flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5" />
                   {a.location}
                 </span>
               )}
-              {/* <span className="flex items-center gap-1.5">
-                <ImageIcon className="h-3.5 w-3.5" />
-                {a.files.length} photos
-              </span> */}
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {a.files.map((f, pi) => (
+              {a.photos.map((p, pi) => (
                 <button
-                  key={f}
+                  key={p.id}
                   type="button"
                   onClick={() => setSelected({ album: ai, photo: pi })}
                   className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label={`Open photo ${pi + 1} of ${a.title}`}
                 >
                   <img
-                    src={photoUrl(a, f)}
+                    src={photoUrl(p)}
                     alt={`${a.title} — photo ${pi + 1}`}
                     loading="lazy"
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -117,7 +130,7 @@ export default function GalleryPage() {
       </div>
 
       {/* Lightbox */}
-      {album && selected && (
+      {album && selected && album.photos[selected.photo] && (
         <div
           className="fixed inset-0 z-[60] bg-black/90 flex items-center justify-center p-4 sm:p-8"
           role="dialog"
@@ -134,7 +147,7 @@ export default function GalleryPage() {
             <X className="h-5 w-5" />
           </button>
 
-          {album.files.length > 1 && (
+          {album.photos.length > 1 && (
             <>
               <button
                 type="button"
@@ -163,12 +176,14 @@ export default function GalleryPage() {
 
           <figure className="max-w-5xl w-full" onClick={(e) => e.stopPropagation()}>
             <img
-              src={photoUrl(album, album.files[selected.photo])}
+              src={photoUrl(album.photos[selected.photo])}
               alt={`${album.title} — photo ${selected.photo + 1}`}
               className="max-h-[78vh] w-auto mx-auto rounded-lg object-contain"
             />
             <figcaption className="text-center text-xs text-white/70 mt-4">
-              {album.title} · {album.date} — {selected.photo + 1} / {album.files.length}
+              {album.title}
+              {album.eventDate ? ` · ${formatEventDate(album.eventDate)}` : ""} — {selected.photo + 1} /{" "}
+              {album.photos.length}
             </figcaption>
           </figure>
         </div>

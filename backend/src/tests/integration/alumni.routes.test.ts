@@ -47,4 +47,39 @@ describe("/alumni", () => {
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
+
+  it("free text searches names and companies — never department or batch", async () => {
+    prisma.profile.findMany.mockResolvedValueOnce([]);
+    prisma.profile.count.mockResolvedValueOnce(0);
+    await request(app).get("/api/v1/alumni?q=asha%20infosys").set("Authorization", bearer(token));
+
+    const where = (prisma.profile.findMany.mock.calls[0][0] as any).where;
+    // One clause per word, so a full name has to match on both halves.
+    expect(where.AND).toHaveLength(2);
+    for (const clause of where.AND) {
+      const fields = clause.OR.map((o: any) => Object.keys(o.user ?? o)[0]);
+      expect(fields).toEqual(["firstName", "lastName", "currentCompany"]);
+    }
+    expect(JSON.stringify(where.AND)).not.toContain("department");
+    expect(JSON.stringify(where.AND)).not.toContain("graduationYear");
+  });
+
+  it("multi-select filters OR within a filter and AND across them", async () => {
+    prisma.profile.findMany.mockResolvedValueOnce([]);
+    prisma.profile.count.mockResolvedValueOnce(0);
+    await request(app)
+      .get("/api/v1/alumni?departments=Civil%20Engineering,Food%20Technology&graduationYears=2019,2020")
+      .set("Authorization", bearer(token));
+
+    const where = (prisma.profile.findMany.mock.calls[0][0] as any).where;
+    expect(where.department).toEqual({ in: ["Civil Engineering", "Food Technology"] });
+    expect(where.graduationYear).toEqual({ in: [2019, 2020] });
+  });
+
+  it("422 when a graduation year in the multi-select is garbage", async () => {
+    const res = await request(app)
+      .get("/api/v1/alumni?graduationYears=2019,nope")
+      .set("Authorization", bearer(token));
+    expect(res.status).toBe(422);
+  });
 });

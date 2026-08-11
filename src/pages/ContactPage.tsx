@@ -4,6 +4,7 @@ import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
 import SocialLinks from "@/components/public/SocialLinks";
 import { CONTACT } from "@/lib/site";
+import { ALUMNI_CELL_INCHARGE } from "@/lib/board";
 
 const fade = {
   initial: { opacity: 0, y: 12 },
@@ -17,6 +18,31 @@ export default function ContactPage() {
       <PageHero title="Contact Us" subtitle="ADCET Alumni Cell, Ashta" />
 
       <div className="max-w-5xl mx-auto px-6 py-14 space-y-16">
+        {/* Who to ask for — the alumni office is one person, so name them. */}
+        <motion.section {...fade}>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2">Alumni Cell In-charge</h2>
+          <div className="w-14 h-0.5 bg-primary/50 mb-6" />
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 border border-border rounded-xl p-6 bg-muted/20">
+            <img
+              src={ALUMNI_CELL_INCHARGE.photo}
+              alt={ALUMNI_CELL_INCHARGE.name}
+              loading="lazy"
+              className="w-28 h-32 rounded-lg object-cover object-top ring-1 ring-border shrink-0"
+            />
+            <div className="text-center sm:text-left">
+              <p className="text-lg font-semibold text-foreground">{ALUMNI_CELL_INCHARGE.name}</p>
+              <p className="text-sm text-primary mt-0.5">{ALUMNI_CELL_INCHARGE.designation}</p>
+              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+                For alumni registrations, chapter activity, reunions and institutional partnerships, write to{" "}
+                <a href={`mailto:${CONTACT.email}`} className="text-primary hover:underline">
+                  {CONTACT.email}
+                </a>{" "}
+                or call the numbers below.
+              </p>
+            </div>
+          </div>
+        </motion.section>
+
         <motion.section {...fade}>
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Get in Touch</h2>
           <div className="w-14 h-0.5 bg-primary/50 mb-6" />
