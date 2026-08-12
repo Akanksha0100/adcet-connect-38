@@ -12,6 +12,32 @@
  * several ways ("Bangalore"/"Bengaluru", "Gurgaon"/"Gurugram"); every alias
  * resolves to the same canonical entry and therefore the same map point.
  */
+/**
+ * Decimal places kept on stored coordinates. Three ≈ 110 m, far coarser than a
+ * street address and far finer than anything the map renders. Every writer of a
+ * `GeoLocation` row goes through `roundCoord`, so the precision floor holds
+ * whichever path created the row.
+ */
+export const GEO_PRECISION = 3;
+
+export const roundCoord = (n: number) => Number(n.toFixed(GEO_PRECISION));
+
+/**
+ * Lower-case, strip everything but letters and digits: "New Delhi" → "newdelhi".
+ *
+ * Lives here rather than in `lib/geocode.ts` so that `prisma/seed-admin.ts` can
+ * key a `GeoLocation` row without importing the app's env-validating modules —
+ * this file deliberately has no imports at all.
+ */
+export const normaliseKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Stable identity for a place. Country is part of the key so "Birmingham, UK"
+ * and a future "Birmingham, US" never collapse into one point.
+ */
+export const locationSlug = (city: string, country: string) =>
+  `${normaliseKey(city)}|${normaliseKey(country)}`;
+
 export interface GazetteerEntry {
   /** Display name used for the `GeoLocation` row and the map popup. */
   city: string;

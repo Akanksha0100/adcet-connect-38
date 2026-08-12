@@ -23,25 +23,18 @@ import { GeoSource } from "@prisma/client";
 import { prisma } from "./prisma.js";
 import { logger } from "./logger.js";
 import { env } from "../config/env.js";
-import { GAZETTEER, GazetteerEntry } from "../config/gazetteer.js";
+import {
+  GAZETTEER,
+  GazetteerEntry,
+  normaliseKey,
+  locationSlug,
+  roundCoord,
+} from "../config/gazetteer.js";
 
-/**
- * Decimal places kept on stored coordinates. Three ≈ 110 m, far coarser than a
- * street address and far finer than anything the map renders.
- */
-export const GEO_PRECISION = 3;
-
-export const roundCoord = (n: number) => Number(n.toFixed(GEO_PRECISION));
-
-/** Lower-case, strip everything but letters and digits: "New Delhi" → "newdelhi". */
-export const normaliseKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-/**
- * Stable identity for a place. Country is part of the key so "Birmingham, UK"
- * and a future "Birmingham, US" never collapse into one point.
- */
-export const locationSlug = (city: string, country: string) =>
-  `${normaliseKey(city)}|${normaliseKey(country)}`;
+// Defined in `config/gazetteer.ts` (which imports nothing, so the production
+// bootstrap script can use them too) and re-exported here as part of this
+// module's public surface.
+export { normaliseKey, locationSlug, roundCoord, GEO_PRECISION } from "../config/gazetteer.js";
 
 const gazetteerIndex = new Map<string, GazetteerEntry>();
 for (const entry of GAZETTEER) {
