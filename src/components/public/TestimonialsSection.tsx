@@ -1,24 +1,42 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
-import { TESTIMONIALS, initialsOfName } from "@/lib/testimonials";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
+import { TESTIMONIALS } from "@/lib/testimonials";
+import TestimonialCard from "./TestimonialCard";
 
+/** Cards now show an excerpt, so they can rotate rather sooner than the full quotes did. */
 const INTERVAL_MS = 8000;
 
+/**
+ * Horizontal slide: the incoming quote enters from the side you are heading
+ * towards and the outgoing one leaves the opposite way, so going back reads as
+ * going back. `direction` is +1 for next, -1 for previous.
+ */
+const SLIDE = {
+  enter: (direction: number) => ({ opacity: 0, x: direction > 0 ? 56 : -56 }),
+  center: { opacity: 1, x: 0 },
+  exit: (direction: number) => ({ opacity: 0, x: direction > 0 ? -56 : 56 }),
+};
+
 export default function TestimonialsSection() {
-  const [index, setIndex] = useState(0);
+  const [[index, direction], setSlide] = useState<[number, number]>([0, 1]);
   const count = TESTIMONIALS.length;
+
+  const go = useCallback(
+    (dir: number) => setSlide(([i]) => [(i + dir + count) % count, dir]),
+    [count],
+  );
 
   useEffect(() => {
     if (count <= 1) return;
-    const t = setInterval(() => setIndex((i) => (i + 1) % count), INTERVAL_MS);
+    const t = setInterval(() => go(1), INTERVAL_MS);
     return () => clearInterval(t);
-  }, [count]);
+  }, [count, go]);
 
   if (count === 0) return null;
 
   const t = TESTIMONIALS[index % count];
-  const go = (dir: number) => setIndex((i) => (i + dir + count) % count);
 
   return (
     <section className="py-16 px-6 bg-muted/30 border-y border-border">
@@ -30,36 +48,22 @@ export default function TestimonialsSection() {
         </div>
 
         <div className="relative">
-          <AnimatePresence mode="wait">
-            <motion.blockquote
-              key={index}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.35 }}
-              className="bg-card border border-border rounded-2xl px-6 sm:px-10 py-9 text-center shadow-sm"
-            >
-              <Quote className="h-7 w-7 text-primary/25 mx-auto mb-5" />
-              <p className="text-base sm:text-lg text-foreground italic leading-relaxed">"{t.quote}"</p>
-
-              <div className="flex items-center justify-center gap-3 mt-7">
-                {t.photo ? (
-                  <img src={t.photo} alt={t.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-border" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
-                    {initialsOfName(t.name)}
-                  </div>
-                )}
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t.role}
-                    {t.batch ? ` · ${t.batch}` : ""}
-                  </p>
-                </div>
-              </div>
-            </motion.blockquote>
-          </AnimatePresence>
+          {/* Clipped so the slide-in never widens the page on narrow screens. */}
+          <div className="overflow-x-clip">
+            <AnimatePresence mode="wait" custom={direction} initial={false}>
+              <motion.div
+                key={index}
+                custom={direction}
+                variants={SLIDE}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.35, ease: "easeInOut" }}
+              >
+                <TestimonialCard testimonial={t} />
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           {count > 1 && (
             <>
@@ -87,7 +91,7 @@ export default function TestimonialsSection() {
               <button
                 key={`${item.name}-${i}`}
                 aria-label={`Show testimonial ${i + 1}`}
-                onClick={() => setIndex(i)}
+                onClick={() => setSlide(([current]) => [i, i >= current ? 1 : -1])}
                 className={`h-2 rounded-full transition-all ${
                   i === index % count ? "w-6 bg-primary" : "w-2 bg-border hover:bg-muted-foreground/40"
                 }`}
@@ -95,6 +99,15 @@ export default function TestimonialsSection() {
             ))}
           </div>
         )}
+
+        <div className="text-center mt-8">
+          <Link
+            to="/testimonials"
+            className="text-sm font-medium text-primary hover:underline underline-offset-4"
+          >
+            Read all {count} testimonials
+          </Link>
+        </div>
       </div>
     </section>
   );

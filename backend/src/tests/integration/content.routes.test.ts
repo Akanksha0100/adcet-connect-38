@@ -75,29 +75,37 @@ describe("News", () => {
   });
 });
 
-describe("Resources", () => {
-  it("200 public list", async () => {
-    prisma.resourceItem.findMany.mockResolvedValueOnce([]);
-    prisma.resourceItem.count.mockResolvedValueOnce(0);
-    const res = await request(app).get("/api/v1/content/resources");
+describe("Newsletters", () => {
+  it("200 public list — visitors read editions without a session", async () => {
+    prisma.newsletter.findMany.mockResolvedValueOnce([]);
+    prisma.newsletter.count.mockResolvedValueOnce(0);
+    const res = await request(app).get("/api/v1/content/newsletters");
     expect(res.status).toBe(200);
   });
 
   it("403 non-admin create", async () => {
     const res = await request(app)
-      .post("/api/v1/content/resources")
+      .post("/api/v1/content/newsletters")
       .set("Authorization", bearer(userToken))
-      .send({ title: "Guide", body: "Some guide body" });
+      .send({ title: "Synergy", fileKey: "newsletter/a/b.pdf" });
     expect(res.status).toBe(403);
   });
 
   it("201 admin create", async () => {
-    prisma.resourceItem.create.mockResolvedValueOnce({ id: "r1" } as any);
+    prisma.newsletter.create.mockResolvedValueOnce({ id: "nl1" } as any);
     const res = await request(app)
-      .post("/api/v1/content/resources")
+      .post("/api/v1/content/newsletters")
       .set("Authorization", bearer(adminToken))
-      .send({ title: "Guide", body: "Some guide body" });
+      .send({ title: "Synergy", fileKey: "newsletter/a/b.pdf", coverKey: "newsletter-cover/a/b.png" });
     expect(res.status).toBe(201);
+  });
+
+  it("422 admin create without the PDF key", async () => {
+    const res = await request(app)
+      .post("/api/v1/content/newsletters")
+      .set("Authorization", bearer(adminToken))
+      .send({ title: "Synergy" });
+    expect(res.status).toBe(422);
   });
 });
 

@@ -52,7 +52,9 @@ const MODELS = [
   "auditLog",
   "notification",
   "newsItem",
-  "resourceItem",
+  "newsletter",
+  "galleryAlbum",
+  "galleryPhoto",
   "supportMessage",
   "siteSection",
   "workExperience",
@@ -66,6 +68,7 @@ const MODELS = [
   "postReport",
   "appSetting",
   "postQuotaUsage",
+  "geoLocation",
 ] as const;
 
 export type MockedPrisma = {

@@ -50,7 +50,7 @@ const dir = "/EsteemedAlumni";
 const AERO = "Aeronautical Engineering";
 
 export const ESTEEMED_ALUMNI: EsteemedAlumnus[] = [
-  { name: "Abhijeet Desai", position: "", batch: "2003", photo: `${dir}/AbhijeetDesai2003.png`, category: null },
+  { name: "Abhijeet Desai", position: "", batch: "2005", photo: `${dir}/AbhijeetDesai2003.png`, category: null },
   { name: "Ajit Metkari", position: "", department: AERO, photo: `${dir}/AjitMetkariAero.png`, category: null },
   { name: "Akshata Mali", position: "", department: AERO, photo: `${dir}/AkshataMaliAero.png`, category: null },
   { name: "Bharat Lohar", position: "", department: AERO, photo: `${dir}/BharatLoharAero.png`, category: null },

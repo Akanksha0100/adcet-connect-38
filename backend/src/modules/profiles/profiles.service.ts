@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma.js";
 import { Prisma } from "@prisma/client";
 import { NotFound } from "../../lib/errors.js";
+import { resolveProfileLocation } from "../../lib/geocode.js";
 
 const profileInclude = {
   experiences: { orderBy: { startDate: "desc" as const } },
@@ -24,8 +25,36 @@ export const getProfileByUserId = async (userId: string) => {
   return profile;
 };
 
-export const updateMyProfile = (userId: string, data: Record<string, unknown>) =>
-  prisma.profile.upsert({ where: { userId }, update: data, create: { userId, ...data } });
+/**
+ * Re-place the profile on the alumni map whenever the edit touches where the
+ * alumnus lives.
+ *
+ * Only the offline gazetteer is consulted (`allowRemote` stays false), so a
+ * profile save is a couple of indexed queries and never waits on an outbound
+ * geocoder. A city the gazetteer doesn't know resolves to `null` and is picked
+ * up by the nightly backfill instead — the alumnus is briefly unplaced, which
+ * is much better than a slow or failing save.
+ */
+const withResolvedLocation = async (userId: string, data: Record<string, unknown>) => {
+  if (!("city" in data) && !("country" in data)) return data;
+
+  const current =
+    "country" in data
+      ? null
+      : await prisma.profile.findUnique({ where: { userId }, select: { country: true } });
+  const country = "country" in data ? (data.country as string | null) : current?.country ?? null;
+
+  return { ...data, locationId: await resolveProfileLocation(data.city as string | null, country) };
+};
+
+export const updateMyProfile = async (userId: string, data: Record<string, unknown>) => {
+  const withLocation = await withResolvedLocation(userId, data);
+  return prisma.profile.upsert({
+    where: { userId },
+    update: withLocation,
+    create: { userId, ...withLocation },
+  });
+};
 
 export const addExperience = async (userId: string, data: Record<string, unknown>) => {
   const profile = await prisma.profile.findUnique({ where: { userId } });

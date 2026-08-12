@@ -60,3 +60,101 @@ describe("geo.service — cityCompanyBreakdown", () => {
     expect(await svc.cityCompanyBreakdown()).toEqual([]);
   });
 });
+
+describe("geo.service — alumniMap", () => {
+  /** Two cities' worth of alumni, plus one profile the geocoder hasn't placed. */
+  const stubMapData = () => {
+    prismaMock.profile.groupBy.mockResolvedValueOnce([
+      { locationId: "loc-pune", _count: { _all: 12 } },
+      { locationId: "loc-london", _count: { _all: 3 } },
+      // A `null` bucket can't appear given the query's filter, but the mapping
+      // must survive one rather than emitting a point with no coordinates.
+      { locationId: null, _count: { _all: 99 } },
+    ]);
+    prismaMock.profile.count
+      .mockResolvedValueOnce(20) // total approved
+      .mockResolvedValueOnce(5); // approved with a city we couldn't place
+    prismaMock.geoLocation.findMany.mockResolvedValueOnce([
+      { id: "loc-london", city: "London", state: null, country: "United Kingdom", lat: 51.507, lng: -0.128 },
+      { id: "loc-pune", city: "Pune", state: "Maharashtra", country: "India", lat: 18.52, lng: 73.857 },
+    ]);
+  };
+
+  it("joins headcounts to coordinates and sorts busiest first", async () => {
+    stubMapData();
+    const out = await svc.alumniMap();
+
+    expect(out.points).toEqual([
+      { id: "loc-pune", city: "Pune", state: "Maharashtra", country: "India", lat: 18.52, lng: 73.857, count: 12 },
+      { id: "loc-london", city: "London", state: null, country: "United Kingdom", lat: 51.507, lng: -0.128, count: 3 },
+    ]);
+  });
+
+  it("rolls counts up by country and reports what is and isn't placed", async () => {
+    stubMapData();
+    const out = await svc.alumniMap();
+
+    expect(out.countries).toEqual([
+      { country: "India", count: 12 },
+      { country: "United Kingdom", count: 3 },
+    ]);
+    expect(out.totals).toEqual({ alumni: 20, placed: 15, unplaced: 5, cities: 2, countries: 2 });
+  });
+
+  it("never exposes anything finer than a city", async () => {
+    stubMapData();
+    const out = await svc.alumniMap();
+
+    // Anything identifying an individual would have to arrive as an extra key.
+    for (const point of out.points) {
+      expect(Object.keys(point).sort()).toEqual(
+        ["city", "count", "country", "id", "lat", "lng", "state"],
+      );
+    }
+  });
+
+  it("skips the location lookup entirely when nobody is placed", async () => {
+    prismaMock.profile.groupBy.mockResolvedValueOnce([]);
+    prismaMock.profile.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+
+    const out = await svc.alumniMap();
+
+    expect(out.points).toEqual([]);
+    expect(out.totals.cities).toBe(0);
+    expect(prismaMock.geoLocation.findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("geo.service — alumniMapCached", () => {
+  beforeEach(() => svc.invalidateMapCache());
+
+  const stubOnce = (count: number) => {
+    prismaMock.profile.groupBy.mockResolvedValueOnce([{ locationId: "loc-1", _count: { _all: count } }]);
+    prismaMock.profile.count.mockResolvedValueOnce(count).mockResolvedValueOnce(0);
+    prismaMock.geoLocation.findMany.mockResolvedValueOnce([
+      { id: "loc-1", city: "Pune", state: "Maharashtra", country: "India", lat: 18.52, lng: 73.857 },
+    ]);
+  };
+
+  it("aggregates once and serves the rest from memory", async () => {
+    stubOnce(7);
+
+    const first = await svc.alumniMapCached();
+    const second = await svc.alumniMapCached();
+
+    expect(second).toBe(first);
+    expect(prismaMock.profile.groupBy).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-aggregates after the backfill invalidates the cache", async () => {
+    stubOnce(7);
+    await svc.alumniMapCached();
+
+    svc.invalidateMapCache();
+    stubOnce(9);
+    const refreshed = await svc.alumniMapCached();
+
+    expect(refreshed.points[0].count).toBe(9);
+    expect(prismaMock.profile.groupBy).toHaveBeenCalledTimes(2);
+  });
+});

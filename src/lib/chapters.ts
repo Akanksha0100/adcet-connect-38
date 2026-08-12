@@ -24,8 +24,26 @@ export interface Chapter {
   memberCount: number;
 }
 
-/** Gradient used for chapters an admin created without picking an accent. */
+/** Gradient behind the chapter name when no city photograph exists. */
 export const DEFAULT_CHAPTER_ACCENT = "from-slate-500 to-slate-400";
+
+/**
+ * City photographs in `public/Chapters/`, keyed by chapter slug and by city so
+ * either spelling resolves ("bangalore" the slug, "Bengaluru" the file).
+ * A chapter with no photograph falls back to its `accent` gradient.
+ */
+const CHAPTER_IMAGES: Record<string, string> = {
+  pune: "/Chapters/Pune.png",
+  mumbai: "/Chapters/Mumbai.png",
+  bangalore: "/Chapters/Bengaluru.png",
+  bengaluru: "/Chapters/Bengaluru.png",
+};
+
+export const chapterImage = (c: Pick<Chapter, "slug" | "city">): string | undefined => {
+  const keys = [c.slug, c.city].filter(Boolean).map((k) => k!.toLowerCase().trim());
+  for (const k of keys) if (CHAPTER_IMAGES[k]) return CHAPTER_IMAGES[k];
+  return undefined;
+};
 
 /** Mirrors `DEFAULT_CHAPTERS` in `backend/src/config/constants.ts`. */
 export const FALLBACK_CHAPTERS: Chapter[] = [

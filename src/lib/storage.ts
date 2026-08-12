@@ -52,3 +52,16 @@ export const storageUrl = (key?: string | null) => {
   if (CLOUDINARY_CLOUD_NAME) return cloudinaryUrl(key, CLOUDINARY_CLOUD_NAME);
   return `${STORAGE_BASE}/${key}`;
 };
+
+/**
+ * Like `storageUrl`, but passes through values that are already browsable:
+ * an absolute URL, or a path under the frontend's own `public/` directory.
+ *
+ * Content that predates admin uploads (the first newsletter editions) is
+ * seeded with `public/` paths, so a single column holds both kinds of value.
+ */
+export const assetUrl = (keyOrPath?: string | null) => {
+  if (!keyOrPath) return undefined;
+  if (/^(https?:)?\/\//.test(keyOrPath) || keyOrPath.startsWith("/")) return encodeURI(keyOrPath);
+  return storageUrl(keyOrPath);
+};

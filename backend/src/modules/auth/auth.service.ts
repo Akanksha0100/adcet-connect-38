@@ -18,6 +18,7 @@ import { logger } from "../../lib/logger.js";
 import { env } from "../../config/env.js";
 import { admissionYearFor, type AppRoleName } from "../../config/constants.js";
 import { isProfileComplete } from "../../lib/profileCompletion.js";
+import { resolveProfileLocation } from "../../lib/geocode.js";
 import type { CompleteProfileInput, LoginInput, RegisterInput } from "./auth.validators.js";
 import type { OAuthProfile } from "./providers/index.js";
 
@@ -180,6 +181,9 @@ export const register = async (input: RegisterInput) => {
             websiteUrl: input.websiteUrl || undefined,
             phone: input.phone,
             city: input.city,
+            // Places the new alumnus on the map straight away when the city is
+            // a known one; unknown cities are resolved by the backfill job.
+            locationId: await resolveProfileLocation(input.city, null),
             bio: input.bio || undefined,
             currentCompany: input.currentCompany,
             currentRole: input.currentRole,
@@ -274,6 +278,7 @@ export const completeProfile = async (userId: string, input: CompleteProfileInpu
     birthMonth: input.birthMonth,
     phone: input.phone,
     city: input.city,
+    locationId: await resolveProfileLocation(input.city, null),
     currentCompany: input.currentCompany,
     currentRole: input.currentRole,
     linkedinUrl: input.linkedinUrl,

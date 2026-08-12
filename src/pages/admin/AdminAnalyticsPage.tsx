@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { DEPARTMENTS } from "@/lib/departments";
+import { DEGREES } from "@/lib/degrees";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,8 +51,8 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#e67e22", "#8e44ad
 /* --------------------------- alumni export helpers ------------------------ */
 const alumniExportRows = (rows: AlumniRow[]) =>
   rows.map((r) => ({
-    Name: `${r.user.firstName} ${r.user.lastName}`, Email: r.user.email, Branch: r.department ?? "",
-    Degree: r.degree ?? "", Year: r.graduationYear ?? "", Chapter: r.chapter?.name ?? "", Company: r.currentCompany ?? "",
+    Name: `${r.user.firstName} ${r.user.lastName}`, Email: r.user.email, Department: r.department ?? "",
+    Degree: r.degree ?? "", "Passing Year": r.graduationYear ?? "", Chapter: r.chapter?.name ?? "", Company: r.currentCompany ?? "",
     Role: r.currentRole ?? "", Location: [r.city, r.country].filter(Boolean).join(", "), Skills: r.skills?.join("; ") ?? "",
   }));
 const downloadText = (filename: string, mime: string, content: string) => {
@@ -161,13 +162,13 @@ const AdminAnalyticsPage = () => {
 
   const kpis = [
     { label: "Total Alumni", value: k?.totalAlumni, icon: GraduationCap },
-    { label: "New Registrations", value: k?.newRegistrations, icon: UserPlus },
+    { label: "New Sign-ups", value: k?.newRegistrations, icon: UserPlus },
     { label: "Events", value: k?.events, icon: Calendar },
-    { label: "Event RSVPs", value: k?.totalRsvps, icon: CalendarCheck },
-    { label: "Jobs", value: k?.jobs, icon: Briefcase },
+    { label: "Event Attendees", value: k?.totalRsvps, icon: CalendarCheck },
+    { label: "Job Posts", value: k?.jobs, icon: Briefcase },
     { label: "Achievements", value: k?.achievements, icon: Trophy },
-    { label: "Donations", value: k?.donationsReceived, icon: Users },
-    { label: "Donation Amount", value: k?.donationAmount, icon: IndianRupee, money: true },
+    { label: "Donations Received", value: k?.donationsReceived, icon: Users },
+    { label: "Money Raised", value: k?.donationAmount, icon: IndianRupee, money: true },
   ];
 
   const alumniRows = alumni.data?.items ?? [];
@@ -189,7 +190,7 @@ const AdminAnalyticsPage = () => {
       <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-          <p className="text-muted-foreground text-sm mt-1">Platform insights, trends, and distributions.</p>
+          <p className="text-muted-foreground text-sm mt-1">How the alumni network is growing and how people are using it.</p>
         </div>
         <Button variant="outline" size="sm" className="gap-1.5" onClick={exportDashboardPdf}>
           <FileDown className="h-3.5 w-3.5" /> Export dashboard (PDF)
@@ -244,7 +245,7 @@ const AdminAnalyticsPage = () => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Registrations trend */}
-          <ChartCard chartRef={setRef("registrations")} title="New Registrations" subtitle="Sign-ups per month" onExport={() => exportPng("registrations", "registrations")}>
+          <ChartCard chartRef={setRef("registrations")} title="New Sign-ups" subtitle="New alumni joining each month" onExport={() => exportPng("registrations", "registrations")}>
             {(t?.registrations.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={t?.registrations}>
@@ -265,7 +266,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Activity trend */}
-          <ChartCard chartRef={setRef("activity")} title="Activity Over Time" subtitle="Events, jobs & achievements per month" onExport={() => exportPng("activity", "activity")}>
+          <ChartCard chartRef={setRef("activity")} title="Activity Over Time" subtitle="Events, job posts and achievements each month" onExport={() => exportPng("activity", "activity")}>
             {activity.length === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={activity}>
@@ -283,7 +284,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Donations trend */}
-          <ChartCard chartRef={setRef("donations")} title="Donations Received" subtitle="Amount collected per month" onExport={() => exportPng("donations", "donations")}>
+          <ChartCard chartRef={setRef("donations")} title="Donations Received" subtitle="Money collected each month" onExport={() => exportPng("donations", "donations")}>
             {(t?.donations.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={t?.donations}>
@@ -328,7 +329,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Donation status pie */}
-          <ChartCard chartRef={setRef("donationStatus")} title="Donation Status" onExport={() => exportPng("donationStatus", "donation-status")}>
+          <ChartCard chartRef={setRef("donationStatus")} title="Donations by Status" onExport={() => exportPng("donationStatus", "donation-status")}>
             {(d?.donationStatus.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -342,7 +343,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Job status pie */}
-          <ChartCard chartRef={setRef("jobStatus")} title="Job Status" onExport={() => exportPng("jobStatus", "job-status")}>
+          <ChartCard chartRef={setRef("jobStatus")} title="Job Posts by Status" onExport={() => exportPng("jobStatus", "job-status")}>
             {(d?.jobStatus.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -356,7 +357,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Event status pie */}
-          <ChartCard chartRef={setRef("eventStatus")} title="Event Status" onExport={() => exportPng("eventStatus", "event-status")}>
+          <ChartCard chartRef={setRef("eventStatus")} title="Events by Status" onExport={() => exportPng("eventStatus", "event-status")}>
             {(d?.eventStatus.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -370,7 +371,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Top companies */}
-          <ChartCard chartRef={setRef("topCompanies")} title="Top Companies" subtitle="Where alumni work" onExport={() => exportPng("topCompanies", "top-companies")}>
+          <ChartCard chartRef={setRef("topCompanies")} title="Top Companies" subtitle="Where most alumni work" onExport={() => exportPng("topCompanies", "top-companies")}>
             {(d?.topCompanies.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={d?.topCompanies} layout="vertical" margin={{ left: 20 }}>
@@ -385,7 +386,7 @@ const AdminAnalyticsPage = () => {
           </ChartCard>
 
           {/* Top cities */}
-          <ChartCard chartRef={setRef("topCities")} title="Top Cities" subtitle="Where alumni live" onExport={() => exportPng("topCities", "top-cities")}>
+          <ChartCard chartRef={setRef("topCities")} title="Top Cities" subtitle="Where most alumni live" onExport={() => exportPng("topCities", "top-cities")}>
             {(d?.topCities.length ?? 0) === 0 ? <EmptyChart /> : (
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={d?.topCities} layout="vertical" margin={{ left: 20 }}>
@@ -421,18 +422,19 @@ const AdminAnalyticsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-8 gap-3">
           <div className="relative xl:col-span-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search alumni" className="pl-9" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
+            <Input placeholder="Search by name" className="pl-9" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
           </div>
           <Input placeholder="Company" value={filters.company} onChange={(e) => setFilters((f) => ({ ...f, company: e.target.value }))} />
           <Input placeholder="Location" value={filters.location} onChange={(e) => setFilters((f) => ({ ...f, location: e.target.value }))} />
-          <Input placeholder="Branch" value={filters.branch} onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))} />
-          <Input placeholder="Year" type="number" value={filters.graduationYear} onChange={(e) => setFilters((f) => ({ ...f, graduationYear: e.target.value }))} />
+          <Input placeholder="Department" value={filters.branch} onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))} />
+          <Input placeholder="Passing year" type="number" value={filters.graduationYear} onChange={(e) => setFilters((f) => ({ ...f, graduationYear: e.target.value }))} />
           <Select value={filters.degree} onValueChange={(degree) => setFilters((f) => ({ ...f, degree }))}>
             <SelectTrigger><SelectValue placeholder="Degree" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Degrees</SelectItem>
-              <SelectItem value="BE">BE</SelectItem>
-              <SelectItem value="ME">ME</SelectItem>
+              {DEGREES.map((d) => (
+                <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Input placeholder="Skill" value={filters.skill} onChange={(e) => setFilters((f) => ({ ...f, skill: e.target.value }))} />

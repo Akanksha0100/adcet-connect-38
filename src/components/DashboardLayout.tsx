@@ -20,7 +20,6 @@ import ThemeSwitcher from "@/components/ThemeSwitcher";
 const mainNav = [
   { label: "Home", path: "/dashboard" },
   { label: "Feed", path: "/dashboard/feed" },
-  { label: "About Us", path: "/dashboard/about" },
   { label: "Events", path: "/dashboard/events" },
   { label: "Jobs", path: "/dashboard/jobs" },
   { label: "Donation", path: "/dashboard/donations" },
@@ -28,11 +27,8 @@ const mainNav = [
 ];
 
 const moreItems = [
-  { label: "Support", path: "/dashboard/support" },
-  { label: "Contact", path: "/dashboard/contact" },
   { label: "News", path: "/dashboard/news" },
-  { label: "Mentorship", path: "/dashboard/mentorship" },
-  { label: "Resources", path: "/dashboard/resources" },
+  { label: "Support", path: "/dashboard/support" },
 ];
 
 const sidebarItems = [

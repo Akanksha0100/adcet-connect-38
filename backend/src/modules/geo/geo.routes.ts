@@ -9,8 +9,10 @@ export const geoRouter = Router();
 // Public — mounted before the auth guard so the landing-page alumni map can
 // render for visitors. Returns aggregated city headcounts only.
 geoRouter.get("/public/cities", asyncHandler(ctrl.publicCities));
+geoRouter.get("/public/map", asyncHandler(ctrl.alumniMap));
 
 geoRouter.use(requireAuth, requireApproved);
+geoRouter.get("/map", asyncHandler(ctrl.alumniMap));
 geoRouter.get("/cities", asyncHandler(ctrl.cities));
 geoRouter.get("/companies", asyncHandler(ctrl.companies));
 geoRouter.get("/breakdown", asyncHandler(ctrl.cityCompanyBreakdown));

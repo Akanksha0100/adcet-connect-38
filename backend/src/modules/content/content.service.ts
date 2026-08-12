@@ -11,9 +11,23 @@ export const listNews = async (q: PaginationQuery) => {
   ]);
   return { items, pagination: paginationMeta(total, q) };
 };
-export const createNews = (data: { title: string; body: string; link?: string }) =>
-  prisma.newsItem.create({ data });
-export const updateNews = async (id: string, data: { title?: string; body?: string; link?: string | null }) => {
+export const createNews = (data: {
+  title: string;
+  body: string;
+  link?: string;
+  tag?: string;
+  publishedAt?: Date;
+}) => prisma.newsItem.create({ data });
+export const updateNews = async (
+  id: string,
+  data: {
+    title?: string;
+    body?: string;
+    link?: string | null;
+    tag?: string | null;
+    publishedAt?: Date;
+  },
+) => {
   const existing = await prisma.newsItem.findUnique({ where: { id } });
   if (!existing) throw NotFound();
   return prisma.newsItem.update({ where: { id }, data });
@@ -22,26 +36,37 @@ export const deleteNews = async (id: string) => {
   await prisma.newsItem.delete({ where: { id } }).catch(() => undefined);
 };
 
-/* ----------------------------- Resources ----------------------------- */
-export const listResources = async (q: PaginationQuery) => {
+/* ----------------------------- Newsletters ----------------------------- */
+export const listNewsletters = async (q: PaginationQuery) => {
   const [items, total] = await Promise.all([
-    prisma.resourceItem.findMany({ orderBy: { createdAt: "desc" }, ...paginate(q) }),
-    prisma.resourceItem.count(),
+    prisma.newsletter.findMany({ orderBy: { publishedAt: "desc" }, ...paginate(q) }),
+    prisma.newsletter.count(),
   ]);
   return { items, pagination: paginationMeta(total, q) };
 };
-export const createResource = (data: { title: string; body: string; link?: string; category?: string }) =>
-  prisma.resourceItem.create({ data });
-export const updateResource = async (
+export const createNewsletter = (data: {
+  title: string;
+  description?: string;
+  fileKey: string;
+  coverKey?: string;
+  publishedAt?: Date;
+}) => prisma.newsletter.create({ data });
+export const updateNewsletter = async (
   id: string,
-  data: { title?: string; body?: string; link?: string | null; category?: string | null },
+  data: {
+    title?: string;
+    description?: string | null;
+    fileKey?: string;
+    coverKey?: string | null;
+    publishedAt?: Date;
+  },
 ) => {
-  const existing = await prisma.resourceItem.findUnique({ where: { id } });
+  const existing = await prisma.newsletter.findUnique({ where: { id } });
   if (!existing) throw NotFound();
-  return prisma.resourceItem.update({ where: { id }, data });
+  return prisma.newsletter.update({ where: { id }, data });
 };
-export const deleteResource = async (id: string) => {
-  await prisma.resourceItem.delete({ where: { id } }).catch(() => undefined);
+export const deleteNewsletter = async (id: string) => {
+  await prisma.newsletter.delete({ where: { id } }).catch(() => undefined);
 };
 
 /* ----------------------------- Support inbox ----------------------------- */

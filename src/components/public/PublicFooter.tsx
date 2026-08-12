@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import SocialLinks from "@/components/public/SocialLinks";
-import { CONTACT, NEWSLETTERS, PUBLIC_NAV } from "@/lib/site";
+import { CONTACT, PUBLIC_NAV } from "@/lib/site";
 
 export default function PublicFooter() {
   const [email, setEmail] = useState("");
@@ -71,18 +71,16 @@ export default function PublicFooter() {
           </ul>
         </div>
 
-        {/* Newsletters */}
+        {/* Newsletter — editions live on their own page; this column just subscribes. */}
         <div>
-          <h4 className="font-semibold text-sm mb-4">Newsletters</h4>
-          <ul className="space-y-2.5 text-xs text-muted-foreground">
-            {NEWSLETTERS.map((n) => (
-              <li key={n.href}>
-                <a href={n.href} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
-                  {n.title} ↗
-                </a>
-              </li>
-            ))}
-          </ul>
+          <h4 className="font-semibold text-sm mb-4">Newsletter</h4>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Every edition of the alumni newsletter is on the{" "}
+            <Link to="/newsletters" className="text-primary hover:underline">
+              Newsletters
+            </Link>{" "}
+            page.
+          </p>
 
           <h4 className="font-semibold text-sm mt-6 mb-3">Subscribe</h4>
           <form onSubmit={subscribe} className="flex gap-2">

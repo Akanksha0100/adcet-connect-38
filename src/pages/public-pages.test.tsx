@@ -36,7 +36,7 @@ describe("public pages", () => {
     expect(screen.getByRole("heading", { name: "ADCET Alumni Portal" })).toBeInTheDocument();
     // Matched loosely so copy tweaks like "11,256+" don't break the smoke test.
     expect(screen.getByText(/11,256/)).toBeInTheDocument();
-    expect(screen.getByText(/^28\+?$/)).toBeInTheDocument();
+    expect(screen.getByText(/^26\+?$/)).toBeInTheDocument();
   });
 
   it("renders every board member and the alumni total on the about page", () => {

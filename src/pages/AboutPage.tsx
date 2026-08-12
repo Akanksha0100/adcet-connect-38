@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Compass, Download, FileText, Target } from "lucide-react";
+import { Compass, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
 import { ALUMNI_CELL, ALUMNI_NETWORK_MESSAGE } from "@/lib/public-content";
 import { BOARD_MEMBERS, initialsOf } from "@/lib/board";
 import { ALUMNI_COUNT, ALUMNI_COUNT_YEARS, TOTAL_ALUMNI } from "@/lib/alumni-count";
-import { NEWSLETTERS, CONTACT } from "@/lib/site";
+import { CONTACT } from "@/lib/site";
 
 const fade = {
   initial: { opacity: 0, y: 12 },
@@ -169,38 +169,6 @@ export default function AboutPage() {
                 </tr>
               </tfoot>
             </table>
-          </div>
-        </motion.section>
-
-        {/* Newsletters */}
-        <motion.section {...fade} id="newsletters" className="scroll-mt-24">
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">Alumni Newsletters</h2>
-          <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
-            The Alumni Cell publishes a periodic newsletter carrying alumni news, chapter activities, campus updates
-            and achievements. Read past editions below.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {NEWSLETTERS.map((n) => (
-              <a
-                key={n.href}
-                href={n.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-4 border border-border rounded-xl p-5 bg-card hover:border-primary/40 hover:shadow-md transition-all group"
-              >
-                <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                    {n.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">PDF · Opens in a new tab</p>
-                </div>
-                <Download className="h-4 w-4 text-muted-foreground shrink-0" />
-              </a>
-            ))}
           </div>
         </motion.section>
 

@@ -17,16 +17,16 @@ const dir = "/AlumniAssociation";
 export const BOARD_MEMBERS: BoardMember[] = [
   { name: "Adv. Rajendra Dange", authority: "President", designation: "Secretary, SDSS, Urun-Ishwarpur", photo: `${dir}/RajendraDange.png` },
   { name: "Dr. L. Y. Waghmode", authority: "Vice-President", designation: "Director, ADCET, Ashta", photo: `${dir}/L.Y.Waghmode.png` },
-  { name: "Dr. R. R. Gaji", authority: "Secretary", designation: "Dean, Alumni Relations and Strategic Partnership", photo: `${dir}/R.R.Gaji.png` },
   { name: "Dr. S. B. Hivarekar", authority: "Member", designation: "Dean, Faculty and Student Development", photo: `${dir}/S.B.Hivarekar.png` },
   { name: "Dr. Gopinath S.", authority: "Member", designation: "Dean, Academics", photo: `${dir}/S.Gopinath.png` },
   { name: "Dr. P. D. Kulkarni", authority: "Member", designation: "Dean, International Collaborations", photo: `${dir}/P.D.Kulkarni.png` },
+  { name: "Dr. R. R. Gaji", authority: "Secretary", designation: "Dean, Alumni Relations and Strategic Partnership", photo: `${dir}/R.R.Gaji.png` },
   { name: "Mr. Sandip Magdum", authority: "Member", designation: "Dean, Industry Partnership and Campus Placement", photo: `${dir}/S.Magdum.png` },
   { name: "Mr. Vallabh Joshi", authority: "Member", designation: "Alumni Representative, Mechanical Engineering", photo: `${dir}/V.Joshi.png` },
   { name: "Mr. Sagar Anturkar", authority: "Member", designation: "Alumni Representative, Electronics and Telecommunication", photo: `${dir}/S.Anturkar.png` },
   { name: "Mr. Vikram Gharge", authority: "Member", designation: "Alumni Representative, Information Technology", photo: `${dir}/V.Gharage.png` },
   { name: "Ms. Anuprit D. Jadhav", authority: "Member", designation: "Alumni Representative, Computer Science Engineering", photo: `${dir}/A.D.Jadhav.png` },
-  { name: "Mr. Vishal Patil", authority: "Member", designation: "Alumni Representative, Civil Engineering", photo: null },
+  { name: "Mr. Pratik Patil", authority: "Member", designation: "Alumni Representative, Civil Engineering", photo: `${dir}/P.Patil.png` },
   { name: "Mr. Amir Khan", authority: "Member", designation: "Alumni Representative, Electrical Engineering", photo: `${dir}/AmirKhan.png` },
   { name: "Mr. Ganesh Malgunde", authority: "Member", designation: "Alumni Representative, Aeronautical Engineering", photo: `${dir}/G.Malgunde.png` },
   { name: "Mr. Prathamesh Dhapate", authority: "Member", designation: "Alumni Representative, Food Technology", photo: `${dir}/P.Dhapate.png` },
@@ -39,6 +39,16 @@ export const BOARD_MEMBERS: BoardMember[] = [
   { name: "Mrs. S. P. Nalavade", authority: "Member", designation: "Department Alumni Coordinator, AI & DS", photo: `${dir}/S.P.Nalavade.png` },
   { name: "Mrs. P. S. Pathak", authority: "Member", designation: "Department Alumni Coordinator, CSE (IoT)", photo: `${dir}/P.S.Pathak.png` },
 ];
+
+/**
+ * The alumni office's point of contact, named on the public Contact page.
+ * Same photograph as his board entry above.
+ */
+export const ALUMNI_CELL_INCHARGE = {
+  name: "Dr. Rahul R. Gaji",
+  designation: "Dean, Alumni Relation and Strategic Partnership",
+  photo: `${dir}/R.R.Gaji.png`,
+};
 
 /** Initials used when a member has no photograph on file. */
 export const initialsOf = (name: string) =>

@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { prisma } from "./lib/prisma.js";
 import { startEventReminderCron } from "./jobs/eventReminders.js";
+import { startGeoBackfillCron } from "./jobs/geoBackfill.js";
 
 const app = buildApp();
 
@@ -19,10 +20,13 @@ const server = app.listen(env.PORT, () => {
 
 // Start background jobs
 const stopEventReminders = startEventReminderCron();
+// Places alumni whose city the offline gazetteer didn't recognise.
+const stopGeoBackfill = startGeoBackfillCron();
 
 const shutdown = async (signal: string) => {
   logger.info({ signal }, "Shutting down...");
   stopEventReminders();
+  stopGeoBackfill();
   server.close(async () => {
     await prisma.$disconnect().catch(() => undefined);
     process.exit(0);

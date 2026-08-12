@@ -18,6 +18,7 @@ import { notificationsRouter } from "../modules/notifications/notifications.rout
 import { uploadsRouter } from "../modules/uploads/uploads.routes.js";
 import { adminRouter } from "../modules/admin/admin.routes.js";
 import { contentRouter } from "../modules/content/content.routes.js";
+import { galleryRouter } from "../modules/gallery/gallery.routes.js";
 import { feedRouter } from "../modules/feed/feed.routes.js";
 
 export const apiRouter = Router();
@@ -39,6 +40,7 @@ apiRouter.use("/notifications", notificationsRouter);
 apiRouter.use("/uploads", uploadsRouter);
 apiRouter.use("/admin", adminRouter);
 apiRouter.use("/content", contentRouter);
+apiRouter.use("/gallery", galleryRouter);
 apiRouter.use("/feed", feedRouter);
 
 // Assistant chatbot — placeholder until a real LLM/agent is wired up.

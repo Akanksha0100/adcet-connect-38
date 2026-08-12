@@ -40,13 +40,43 @@ describe("modules/content/service — News", () => {
   });
 });
 
-describe("modules/content/service — Resources", () => {
-  it("createResource forwards link + category", async () => {
-    prismaMock.resourceItem.create.mockResolvedValueOnce({});
-    await svc.createResource({ title: "T", body: "B", link: "https://x", category: "Docs" });
-    expect(prismaMock.resourceItem.create).toHaveBeenCalledWith({
-      data: { title: "T", body: "B", link: "https://x", category: "Docs" },
+describe("modules/content/service — Newsletters", () => {
+  it("listNewsletters puts the newest edition first", async () => {
+    prismaMock.newsletter.findMany.mockResolvedValueOnce([{ id: "nl-1" }]);
+    prismaMock.newsletter.count.mockResolvedValueOnce(1);
+    const out = await svc.listNewsletters({ page: 1, pageSize: 10 } as any);
+    expect(out.items).toHaveLength(1);
+    expect(prismaMock.newsletter.findMany.mock.calls[0][0]).toMatchObject({
+      orderBy: { publishedAt: "desc" },
     });
+  });
+
+  it("createNewsletter stores the PDF key alongside its rendered cover", async () => {
+    prismaMock.newsletter.create.mockResolvedValueOnce({});
+    await svc.createNewsletter({
+      title: "Synergy — 3rd Edition",
+      fileKey: "newsletter/a/b.pdf",
+      coverKey: "newsletter-cover/a/b-cover.png",
+    });
+    expect(prismaMock.newsletter.create).toHaveBeenCalledWith({
+      data: {
+        title: "Synergy — 3rd Edition",
+        fileKey: "newsletter/a/b.pdf",
+        coverKey: "newsletter-cover/a/b-cover.png",
+      },
+    });
+  });
+
+  it("updateNewsletter: 404 when the edition is missing", async () => {
+    prismaMock.newsletter.findUnique.mockResolvedValueOnce(null);
+    await expect(svc.updateNewsletter("missing", { title: "x" })).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it("deleteNewsletter swallows missing-row errors", async () => {
+    prismaMock.newsletter.delete.mockRejectedValueOnce(new Error("nope"));
+    await expect(svc.deleteNewsletter("missing")).resolves.toBeUndefined();
   });
 });
 

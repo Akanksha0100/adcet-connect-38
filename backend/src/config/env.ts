@@ -95,6 +95,18 @@ const schema = z.object({
   // Public org details printed on receipts.
   ORG_NAME: z.string().default("Annasaheb Dange College of Engineering & Technology, Ashta"),
   ORG_ADDRESS: z.string().default("Ashta, Dist. Sangli, Maharashtra 416301"),
+
+  // === Geocoding (alumni map) ===
+  // Only reached by the backfill job, and only for cities the offline gazetteer
+  // in `config/gazetteer.ts` doesn't already know. Set GEOCODER=none to keep the
+  // deployment entirely offline — the map then shows gazetteer cities only.
+  GEOCODER: z.enum(["none", "nominatim"]).default("nominatim"),
+  GEOCODER_BASE_URL: z.string().default("https://nominatim.openstreetmap.org"),
+  /** Nominatim's usage policy requires a contactable identifier here. */
+  GEOCODER_USER_AGENT: z.string().default("ADCET-Alumni-Portal (alumni@adcet.in)"),
+  /** Nominatim allows one request per second; the extra 100 ms is slack for clock jitter. */
+  GEOCODER_MIN_INTERVAL_MS: z.coerce.number().default(1100),
+  GEOCODER_TIMEOUT_MS: z.coerce.number().default(8000),
 }).superRefine((v, ctx) => {
   // Fail fast at boot rather than on the first upload attempt.
   if (v.STORAGE_DRIVER === "cloudinary" && !resolveCloudinary(v)) {

@@ -555,15 +555,45 @@
   font-size: 1rem;
 }
 
-/* Neutralise the library's default cluster chrome — we supply our own icon. */
-.leaflet-container .marker-cluster,
-.leaflet-container .marker-cluster div {
-  background: transparent;
-}
-
 .leaflet-container {
   background: hsl(var(--muted));
   font-family: inherit;
+}
+
+.leaflet-tooltip {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 14px hsl(0 0% 0% / 0.15);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: hsl(var(--border));
+}
+
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border-bottom-color: hsl(var(--border));
+}
+
+.leaflet-bar a:hover {
+  background: hsl(var(--muted));
+}
+
+.leaflet-control-attribution {
+  background: hsl(var(--card) / 0.85) !important;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.625rem;
+}
+
+.leaflet-control-attribution a {
+  color: hsl(var(--primary));
 }
 
 .leaflet-popup-content-wrapper,

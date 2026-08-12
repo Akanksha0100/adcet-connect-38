@@ -1,10 +1,9 @@
 /**
  * Alumni testimonials shown on the landing page.
  *
- * PLACEHOLDER CONTENT — the entries below carry deliberately generic names so
- * they are obvious until the Alumni Cell supplies real quotes. Replace `name`,
- * `role`, `batch` and `quote`, and drop a portrait into `public/Testimonials/`
- * and reference it as `photo` (optional — initials are used when absent).
+ * Quotes are reproduced verbatim as supplied by the Alumni Cell — edit them only
+ * with the alumnus' consent. Portraits live in `public/Testimonials/` and are
+ * referenced as `photo` (optional — initials are used when absent).
  */
 export interface Testimonial {
   name: string;
@@ -14,29 +13,60 @@ export interface Testimonial {
   photo?: string;
 }
 
+const dir = "/Testimonials";
+
 export const TESTIMONIALS: Testimonial[] = [
   {
-    name: "Alumnus Name",
-    role: "Designation, Organisation",
-    batch: "Batch of 20XX",
+    name: "Ganeshprasad Nikam",
+    role: "Principal Lead, Forbes Marshall",
+    batch: "Batch of 2003",
+    photo: `${dir}/GaneshprasadNikam.png`,
     quote:
-      "The years at ADCET gave me more than a degree — the labs, the project reviews and the faculty who stayed back after hours built the way I approach problems today.",
+      "ADCET played a vital role in shaping my engineering career by providing a strong academic foundation and practical exposure. The guidance of dedicated faculty, hands-on learning, and opportunities to work on real-world projects helped me develop the technical and professional skills required in the industry. The values and confidence I gained during my time at ADCET continue to support my growth as a professional. I am proud to be associated with my alma mater and look forward to contributing through mentoring, industry interaction, and opportunities for students.",
   },
   {
-    name: "Alumnus Name",
-    role: "Designation, Organisation",
-    batch: "Batch of 20XX",
+    name: "Sagar Anturkar",
+    role: "Director, Verolt",
+    batch: "Batch of 2005",
+    photo: `${dir}/SagarAnturkar.png`,
     quote:
-      "Coming from a small town, ADCET was where I learnt to speak up, lead a team and take an idea from a sketch to a working prototype. That confidence has carried through my entire career.",
+      "The entrepreneurial mindset I developed at ADCET inspired me to establish my own business. The encouragement to think creatively and solve practical problems has been instrumental in my journey as an entrepreneur. I am always happy to support students through mentoring and career guidance.",
   },
   {
-    name: "Alumnus Name",
-    role: "Designation, Organisation",
-    batch: "Batch of 20XX",
+    name: "Abhijeet Desai",
+    role: "Associate General Manager, HCL Tech, USA",
+    batch: "Batch of 2005",
+    photo: `${dir}/AbhijeetDesai.png`,
     quote:
-      "What stays with me is the culture — seniors helping juniors, faculty treating us as colleagues, and a campus that expected us to be useful to society, not just employable.",
+      "My journey at ADCET laid a strong foundation for my professional career. The institute provided an excellent learning environment, dedicated faculty, and opportunities to develop both technical expertise and leadership skills. The knowledge, discipline, and confidence I gained at ADCET have been instrumental in my journey to an international leadership role. I am proud to be an alumnus of ADCET and remain committed to supporting the institute by mentoring students, sharing industry insights, and contributing to internship and placement initiatives for future engineers.",
+  },
+  {
+    name: "Vikas Gaikwad",
+    role: "Director, Mastercard",
+    batch: "Batch of 2005",
+    photo: `${dir}/VikasGaikwad.png`,
+    quote:
+      "ADCET has been the cornerstone of my professional journey, providing me with a strong technical foundation and the confidence to take on global challenges. The institute's dedicated faculty, practical learning approach, and emphasis on innovation helped shape my problem-solving and leadership abilities. The values and experiences gained at ADCET have played a significant role in my career growth. It is a matter of pride to remain connected with my alma mater, and I look forward to supporting students through mentoring, career guidance, internships, and industry collaboration.",
   },
 ];
+
+/**
+ * Trim a quote down to a card-sized excerpt.
+ *
+ * The carousel shows every testimonial in a fixed-height card, so the quote is
+ * cut at a word boundary and closed with a literal ellipsis rather than a CSS
+ * line clamp — the card must be the same size whatever the viewport width, and
+ * the full text lives on `/testimonials`.
+ */
+export const EXCERPT_LENGTH = 230;
+
+export const excerptOf = (quote: string, max = EXCERPT_LENGTH) => {
+  if (quote.length <= max) return { text: quote, truncated: false };
+  const cut = quote.slice(0, max);
+  const lastSpace = cut.lastIndexOf(" ");
+  const body = (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,.;:]+$/, "");
+  return { text: `${body}...`, truncated: true };
+};
 
 export const initialsOfName = (name: string) =>
   name

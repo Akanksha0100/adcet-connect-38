@@ -14,6 +14,8 @@ export const DEPARTMENTS = [
   "Internet of Things and Cyber Security(CSE)",
   "Robotics and Artificial Intelligence",
   "Electronics and Telecommunication Engineering",
+  "Automobile Engineering",
+  "Mechanical and Automation Engineering",
 ] as const;
 
 export type DepartmentName = (typeof DEPARTMENTS)[number];

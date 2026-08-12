@@ -18,7 +18,10 @@ export type UploadScope =
   | "event-attachment"
   | "job-attachment"
   | "email-attachment"
-  | "post";
+  | "post"
+  | "newsletter"
+  | "newsletter-cover"
+  | "gallery";
 
 export type PresignResult = {
   uploadUrl: string;

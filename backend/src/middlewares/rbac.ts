@@ -18,6 +18,9 @@ export const requireRoles =
 
 export const requireAdmin = requireRoles("ADMIN");
 
+/** True when the caller is a signed-in admin. Use with `optionalAuth` routes. */
+export const isAdmin = (req: Request) => !!req.auth?.roles.includes("ADMIN");
+
 /** True when the caller owns the resource OR is an admin. */
 export const isOwnerOrAdmin = (req: Request, ownerId: string) =>
   !!req.auth && (req.auth.sub === ownerId || req.auth.roles.includes("ADMIN"));

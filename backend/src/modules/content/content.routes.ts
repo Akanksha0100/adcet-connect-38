@@ -8,8 +8,8 @@ import {
   listQuery,
   newsInputSchema,
   newsUpdateSchema,
-  resourceInputSchema,
-  resourceUpdateSchema,
+  newsletterInputSchema,
+  newsletterUpdateSchema,
   sectionUpsertSchema,
   supportInputSchema,
 } from "./content.validators.js";
@@ -22,11 +22,11 @@ contentRouter.post("/news", requireAuth, requireAdmin, validate(newsInputSchema)
 contentRouter.patch("/news/:id", requireAuth, requireAdmin, validate(newsUpdateSchema), asyncHandler(ctrl.updateNews));
 contentRouter.delete("/news/:id", requireAuth, requireAdmin, asyncHandler(ctrl.deleteNews));
 
-/* Resources — public read, admin write */
-contentRouter.get("/resources", validate(listQuery, "query"), asyncHandler(ctrl.listResources));
-contentRouter.post("/resources", requireAuth, requireAdmin, validate(resourceInputSchema), asyncHandler(ctrl.createResource));
-contentRouter.patch("/resources/:id", requireAuth, requireAdmin, validate(resourceUpdateSchema), asyncHandler(ctrl.updateResource));
-contentRouter.delete("/resources/:id", requireAuth, requireAdmin, asyncHandler(ctrl.deleteResource));
+/* Newsletters — public read, admin write */
+contentRouter.get("/newsletters", validate(listQuery, "query"), asyncHandler(ctrl.listNewsletters));
+contentRouter.post("/newsletters", requireAuth, requireAdmin, validate(newsletterInputSchema), asyncHandler(ctrl.createNewsletter));
+contentRouter.patch("/newsletters/:id", requireAuth, requireAdmin, validate(newsletterUpdateSchema), asyncHandler(ctrl.updateNewsletter));
+contentRouter.delete("/newsletters/:id", requireAuth, requireAdmin, asyncHandler(ctrl.deleteNewsletter));
 
 /* Support — public submit, admin manage */
 contentRouter.post("/support", optionalAuth, validate(supportInputSchema), asyncHandler(ctrl.submitSupport));

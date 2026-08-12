@@ -1,41 +1,68 @@
 /**
  * Photo gallery albums.
  *
- * To add photos: drop the image files into `public/gallery/<folder>/`, then add
- * the file names to the matching album's `files` array (or add a new album
- * entry). File names are URL-encoded automatically, so spaces are fine.
+ * Albums and photos are managed from `/admin/gallery` and live in the database.
+ * Photo keys are storage keys for anything uploaded through the admin page, or
+ * a `public/` path for the albums that shipped with the site — `assetUrl()`
+ * resolves both, so the public page never needs to know which is which.
  */
-export interface GalleryAlbum {
-  slug: string;
-  title: string;
-  date: string;
-  location?: string;
-  /** Folder under `public/gallery/`. */
-  folder: string;
-  files: string[];
+import { api } from "@/lib/api";
+import { assetUrl } from "@/lib/storage";
+
+export interface GalleryPhoto {
+  id: string;
+  imageKey: string;
+  sortOrder: number;
 }
 
-export const GALLERY_ALBUMS: GalleryAlbum[] = [
-  {
-    slug: "pune-chapter-march-2025",
-    title: "Pune Chapter Meet",
-    date: "1 March 2025",
-    location: "COEP, Pune",
-    folder: "PuneChapter1March2025",
-    files: ["1.png", "COEPPune.png", "2.JPG", "3.JPG", "4.jpeg", "5.jpeg", "6.jpeg"],
-  },
-  {
-    slug: "pune-chapter-sep-2025",
-    title: "Pune Chapter Meet",
-    date: "29 September 2025",
-    location: "Pune",
-    folder: "PuneChapter29Sep2025",
-    files: ["20250928_113711AMByGPSMapCamera.jpg", "WhatsApp Image 2026-07-14 at 11.02.48 AM.jpeg"],
-  },
-];
+export interface GalleryAlbum {
+  id: string;
+  slug: string;
+  title: string;
+  eventDate: string | null;
+  location: string | null;
+  isPublished: boolean;
+  photos: GalleryPhoto[];
+}
 
-/** Public URL for a photo in an album. */
-export const photoUrl = (album: GalleryAlbum, file: string) =>
-  encodeURI(`/gallery/${album.folder}/${file}`);
+/** Public URL for a photo. */
+export const photoUrl = (photo: GalleryPhoto) => assetUrl(photo.imageKey);
 
-export const totalPhotos = GALLERY_ALBUMS.reduce((n, a) => n + a.files.length, 0);
+/** "1 March 2025" — how the alumni office writes event dates. */
+export const formatEventDate = (iso: string | null) =>
+  iso
+    ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+    : "";
+
+export const albumsQuery = (opts: { includeUnpublished?: boolean } = {}) => ({
+  queryKey: ["gallery", "albums", opts.includeUnpublished ?? false] as const,
+  queryFn: () =>
+    api
+      .get<{ items: GalleryAlbum[] }>(
+        "/gallery/albums",
+        opts.includeUnpublished ? { includeUnpublished: true } : undefined,
+      )
+      .then((r) => r.items),
+});
+
+/* --------------------------------- admin --------------------------------- */
+
+export const createAlbum = (data: {
+  title: string;
+  eventDate?: string;
+  location?: string;
+  isPublished?: boolean;
+}) => api.post<GalleryAlbum>("/gallery/albums", data);
+
+export const updateAlbum = (
+  id: string,
+  data: { title?: string; eventDate?: string | null; location?: string | null; isPublished?: boolean },
+) => api.patch<GalleryAlbum>(`/gallery/albums/${id}`, data);
+
+export const deleteAlbum = (id: string) => api.delete(`/gallery/albums/${id}`);
+
+/** Photos are uploaded to storage first; this records the resulting keys. */
+export const addPhotos = (albumId: string, imageKeys: string[]) =>
+  api.post<GalleryAlbum>(`/gallery/albums/${albumId}/photos`, { imageKeys });
+
+export const deletePhoto = (photoId: string) => api.delete(`/gallery/photos/${photoId}`);

@@ -9,9 +9,11 @@ import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import NewsPage from "./pages/NewsPage";
+import NewslettersPage from "./pages/NewslettersPage";
 import EsteemedAlumniPage from "./pages/EsteemedAlumniPage";
 import GalleryPage from "./pages/GalleryPage";
 import AlumniMapPage from "./pages/AlumniMapPage";
+import TestimonialsPage from "./pages/TestimonialsPage";
 import SupportPage from "./pages/SupportPage";
 import DashboardLayout from "./components/DashboardLayout";
 import DashboardHome from "./pages/DashboardHome";
@@ -50,7 +52,8 @@ import ReportsPage from "./pages/admin/ReportsPage";
 import SettingsPage from "./pages/admin/SettingsPage";
 import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
 import ChaptersAdminPage from "./pages/admin/ChaptersAdminPage";
-import SiteContentPage from "./pages/admin/SiteContentPage";
+import NewsroomPage from "./pages/admin/NewsroomPage";
+import GalleryAdminPage from "./pages/admin/GalleryAdminPage";
 import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
 import AccountStatusGate from "./components/AccountStatusGate";
@@ -80,9 +83,12 @@ const App = () => (
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/news" element={<NewsPage />} />
+              <Route path="/newsletters" element={<NewslettersPage />} />
               <Route path="/esteemed-alumni" element={<EsteemedAlumniPage />} />
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/alumni-map" element={<AlumniMapPage />} />
+              {/* Reached only from the landing-page carousel — deliberately not in the nav. */}
+              <Route path="/testimonials" element={<TestimonialsPage />} />
               <Route path="/support" element={<SupportPage />} />
               <Route path="/achievements/:id" element={<AchievementDetailPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -116,12 +122,8 @@ const App = () => (
                     <Route path="geomap" element={<GeoMapPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
-                    <Route path="about" element={<StaticContentPage contentKey="about" />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />
-                    <Route path="contact" element={<StaticContentPage contentKey="contact" />} />
                     <Route path="news" element={<StaticContentPage contentKey="news" />} />
-                    <Route path="mentorship" element={<StaticContentPage contentKey="mentorship" />} />
-                    <Route path="resources" element={<StaticContentPage contentKey="resources" />} />
                     <Route path="status" element={<AccountStatusPage />} />
                   </Route>
                 </Route>
@@ -142,7 +144,8 @@ const App = () => (
                   <Route path="analytics" element={<AdminAnalyticsPage />} />
                   <Route path="geomap" element={<AdminGeoMapPage />} />
                   <Route path="reports" element={<ReportsPage />} />
-                  <Route path="site-content" element={<SiteContentPage />} />
+                  <Route path="newsroom" element={<NewsroomPage />} />
+                  <Route path="gallery" element={<GalleryAdminPage />} />
                   <Route path="support" element={<SupportInboxPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

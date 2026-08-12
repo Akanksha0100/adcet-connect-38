@@ -57,9 +57,28 @@ describe("modules/alumni/service — search where-builder", () => {
     expect(where.graduationYear).toEqual({ gte: 2010, lte: 2020 });
   });
 
-  it("free-text search builds 4-way OR clause", async () => {
+  it("free-text search covers first name, last name and company — nothing else", async () => {
     const where = await callWith({ q: "alice" });
-    expect(where.OR).toHaveLength(4);
+    expect(where.AND).toHaveLength(1);
+    expect(where.AND[0].OR).toEqual([
+      { user: { firstName: { contains: "alice", mode: "insensitive" } } },
+      { user: { lastName: { contains: "alice", mode: "insensitive" } } },
+      { currentCompany: { contains: "alice", mode: "insensitive" } },
+    ]);
+  });
+
+  it("every word in a full name must match, so surnames narrow the result", async () => {
+    const where = await callWith({ q: "alice kulkarni" });
+    expect(where.AND).toHaveLength(2);
+  });
+
+  it("multi-select department and batch filters use an IN clause", async () => {
+    const where = await callWith({
+      departments: ["Civil Engineering", "Food Technology"],
+      graduationYears: [2019, 2020],
+    });
+    expect(where.department).toEqual({ in: ["Civil Engineering", "Food Technology"] });
+    expect(where.graduationYear).toEqual({ in: [2019, 2020] });
   });
 
   it("returns paginated shape", async () => {

@@ -67,16 +67,16 @@ interface ReportDef {
 }
 
 const REPORTS: ReportDef[] = [
-  { value: "users", label: "All Users", description: "Every account with role, status, department & contact.", group: "People", icon: Users, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
-  { value: "alumni", label: "Alumni Directory", description: "Approved alumni with employment & city.", group: "People", icon: GraduationCap, department: true, chapter: true },
-  { value: "pending-approvals", label: "Pending Approvals", description: "Accounts awaiting admin verification.", group: "People", icon: UserCheck, date: true },
-  { value: "events", label: "Events", description: "Events with organizer, RSVPs & status.", group: "Engagement", icon: Calendar, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
-  { value: "event-rsvps", label: "Event RSVPs", description: "Every RSVP with attendee & response.", group: "Engagement", icon: CalendarCheck, date: true },
-  { value: "jobs", label: "Jobs", description: "Postings with poster, applications & status.", group: "Engagement", icon: Briefcase, statuses: APPROVAL_STATUSES, department: true, date: true },
-  { value: "job-applications", label: "Job Applications", description: "Applicants per job with profile snapshot.", group: "Engagement", icon: FileText, date: true },
-  { value: "achievements", label: "Achievements", description: "Submitted achievements with author & category.", group: "Engagement", icon: Trophy, statuses: APPROVAL_STATUSES, date: true },
-  { value: "donations", label: "Donations (Detailed)", description: "Each transaction with donor, method & receipt.", group: "Finance", icon: IndianRupee, statuses: DONATION_STATUSES, date: true },
-  { value: "donations-summary", label: "Donations (Monthly)", description: "Received donations totalled by month.", group: "Finance", icon: TrendingUp, date: true },
+  { value: "users", label: "All Users", description: "Every account with its role, status, department and contact details.", group: "People", icon: Users, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
+  { value: "alumni", label: "Alumni Directory", description: "Approved alumni with where they work and live.", group: "People", icon: GraduationCap, department: true, chapter: true },
+  { value: "pending-approvals", label: "Pending Approvals", description: "Accounts still waiting to be approved.", group: "People", icon: UserCheck, date: true },
+  { value: "events", label: "Events", description: "Events with who organised them and how many are attending.", group: "Engagement", icon: Calendar, statuses: APPROVAL_STATUSES, department: true, chapter: true, date: true },
+  { value: "event-rsvps", label: "Event Attendance", description: "Who replied to each event invitation, and what they said.", group: "Engagement", icon: CalendarCheck, date: true },
+  { value: "jobs", label: "Jobs", description: "Job posts with who posted them and how many applied.", group: "Engagement", icon: Briefcase, statuses: APPROVAL_STATUSES, department: true, date: true },
+  { value: "job-applications", label: "Job Applications", description: "Who applied to each job, with their profile details.", group: "Engagement", icon: FileText, date: true },
+  { value: "achievements", label: "Achievements", description: "Achievements submitted by alumni, with author and category.", group: "Engagement", icon: Trophy, statuses: APPROVAL_STATUSES, date: true },
+  { value: "donations", label: "Donations (Detailed)", description: "Every donation with the donor, payment method and receipt.", group: "Finance", icon: IndianRupee, statuses: DONATION_STATUSES, date: true },
+  { value: "donations-summary", label: "Donations (Monthly)", description: "Money received, totalled month by month.", group: "Finance", icon: TrendingUp, date: true },
 ];
 
 const GROUPS: ReportDef["group"][] = ["People", "Engagement", "Finance"];

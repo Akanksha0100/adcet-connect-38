@@ -175,6 +175,12 @@ Open http://localhost:8080 and sign in.
 Each user owns different content (jobs, events, achievements, donations,
 RSVPs) so all admin and user views render with realistic data out of the box.
 
+The table above is `npm run seed` — **local development only**. On a deployed
+server `npm run seed:admin` runs instead, which creates no demo content: the
+admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD`, plus `alice@adcet.in` and
+`priya@adcet.in` as APPROVED alumni when `DEMO_PASSWORD` is set (leave it empty
+to skip them). Both share that one password, and it is never the admin's.
+
 ## Environment Variables
 
 Two env files at the project root for the frontend, two in `backend/`.

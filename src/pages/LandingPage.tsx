@@ -16,7 +16,7 @@ import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 
 const stats = [
-  { value: "28+", label: "Years of Excellence" },
+  { value: "26+", label: "Years of Excellence" },
   { value: "11,256+", label: "Total Alumni" },
   { value: "12+", label: "Departments" },
   { value: "3+", label: "Alumni Chapters" },

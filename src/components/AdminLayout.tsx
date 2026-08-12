@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut, X,
-  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag, Building2
+  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag, Building2, Images
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -60,7 +60,8 @@ const AdminLayout = () => {
     { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
     { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },
     { label: "Analytics", path: "/admin/analytics", icon: BarChart3, badge: undefined },
-    { label: "Site Content", path: "/admin/site-content", icon: FileText, badge: undefined },
+    { label: "Newsroom", path: "/admin/newsroom", icon: FileText, badge: undefined },
+    { label: "Gallery", path: "/admin/gallery", icon: Images, badge: undefined },
     { label: "Support Inbox", path: "/admin/support", icon: MessageSquare, badge: undefined },
     { label: "Settings", path: "/admin/settings", icon: Settings, badge: undefined },
   ];

@@ -1,7 +1,7 @@
 /**
  * Wraps protected dashboard routes and redirects PENDING/REJECTED users to
- * a status screen for any path that is not in the allow-list (profile, about,
- * support, news, contact and the status screen itself).
+ * a status screen for any path that is not in the allow-list (profile,
+ * support, news and the status screen itself).
  */
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,10 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const ALLOWED_PATHS = [
   "/dashboard/status",
   "/dashboard/profile",
-  "/dashboard/about",
   "/dashboard/support",
   "/dashboard/news",
-  "/dashboard/contact",
 ];
 
 export const AccountStatusGate = () => {
