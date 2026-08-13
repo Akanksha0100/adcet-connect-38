@@ -35,7 +35,11 @@ const shape = <T extends { _count: { members: number } }>(c: T) => {
 export const list = async (opts: { includeInactive?: boolean } = {}) => {
   const items = await prisma.chapter.findMany({
     where: opts.includeInactive ? {} : { isActive: true },
-    orderBy: [{ isActive: "desc" }, { name: "asc" }],
+    // `sortOrder` is the alumni office's chosen order (Pune, Mumbai, Bangalore,
+    // Global); name breaks ties among chapters created later, which all share
+    // the default. Every surface — public, member and admin — reads this one
+    // list, so none of them re-sorts.
+    orderBy: [{ isActive: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
     include: memberCountInclude,
   });
   return { items: items.map(shape) };
@@ -467,8 +471,21 @@ export const removeMember = async (actorId: string, chapterId: string, userId: s
   return { userId, chapterId: null };
 };
 
-/** Approved alumni belonging to a chapter — powers the admin member list. */
-export const listMembers = async (chapterId: string, q: PaginationQuery) => {
+/**
+ * Approved alumni belonging to a chapter.
+ *
+ * Read by two audiences with different entitlements. Admins manage membership
+ * and need to reach people, so they get the email address; ordinary members are
+ * browsing, so they don't — that matches the alumni directory, which likewise
+ * never returns an email. The caller passes `includeEmail`, and the column is
+ * left out of the query entirely rather than selected and stripped afterwards,
+ * so an address can't leak through a later refactor that forgets to strip it.
+ */
+export const listMembers = async (
+  chapterId: string,
+  q: PaginationQuery,
+  { includeEmail = false }: { includeEmail?: boolean } = {},
+) => {
   const chapter = await prisma.chapter.findUnique({ where: { id: chapterId } });
   if (!chapter) throw NotFound("Chapter not found");
 
@@ -486,7 +503,7 @@ export const listMembers = async (chapterId: string, q: PaginationQuery) => {
         city: true,
         currentCompany: true,
         currentRole: true,
-        user: { select: { firstName: true, lastName: true, email: true } },
+        user: { select: { firstName: true, lastName: true, email: includeEmail } },
       },
       orderBy: [{ graduationYear: "desc" }, { user: { lastName: "asc" } }],
       ...paginate(q),

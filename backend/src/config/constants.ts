@@ -119,6 +119,7 @@ export const DEFAULT_CHAPTERS = [
     name: "Pune Chapter",
     city: "Pune",
     accent: "from-orange-500 to-amber-400",
+    sortOrder: 1,
     blurb:
       "Our largest regional community — IT, automotive and manufacturing professionals who meet through reunions, tech talks and referral drives.",
   },
@@ -127,6 +128,7 @@ export const DEFAULT_CHAPTERS = [
     name: "Mumbai Chapter",
     city: "Mumbai",
     accent: "from-cyan-500 to-sky-400",
+    sortOrder: 2,
     blurb:
       "Alumni across finance, infrastructure, consulting and media in the MMR, connecting juniors to opportunities in the country's commercial capital.",
   },
@@ -135,8 +137,20 @@ export const DEFAULT_CHAPTERS = [
     name: "Bangalore Chapter",
     city: "Bangalore",
     accent: "from-emerald-500 to-lime-400",
+    sortOrder: 3,
     blurb:
       "Engineers, founders and researchers in India's technology hub, driving mentorship, internships and startup collaboration for ADCET students.",
+  },
+  {
+    // Not a city — the catch-all for alumni outside the three regional hubs,
+    // which is why `city` is null and the card shows no location line.
+    slug: "global",
+    name: "Global Chapter",
+    city: null,
+    accent: "from-indigo-500 to-violet-400",
+    sortOrder: 4,
+    blurb:
+      "ADCET alumni working and studying outside India — from the Gulf and Europe to North America, Australia and East Asia — keeping the network reachable across time zones.",
   },
 ] as const;
 

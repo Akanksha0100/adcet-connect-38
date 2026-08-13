@@ -10,6 +10,29 @@ export const FOUNDER = {
   quote: "Dream boldly, work sincerely, and carry forward the legacy of service and excellence.",
 };
 
+/**
+ * The society's office bearers, shown side by side under the founder — the
+ * Secretary on the left, the Joint Secretary on the right, in that order.
+ */
+export const LEADERSHIP = [
+  {
+    name: "Adv. Rajendra R. Dange",
+    role: "Secretary",
+    org: "Annasaheb Dange College of Engineering",
+    photo: "/RajendraDange.png",
+    quote:
+      "Lead with purpose, serve with commitment, and strengthen the bond of our alumni community.",
+  },
+  {
+    name: "Hon. Vishwanath R. Dange",
+    role: "Joint Secretary",
+    org: "Sant Dnyaneshwar Shikshan Sanstha (SDSS), Islampur",
+    photo: "/VishwanathDange.png",
+    quote:
+      "Connect with passion, support with dedication, and build a stronger alumni community.",
+  },
+];
+
 export const DIRECTOR = {
   name: "Dr. L. Y. Waghmode",
   role: "Director, ADCET, Ashta",

@@ -186,15 +186,26 @@ const upsertUser = async (u: SeedUser) => {
 /**
  * Ensure the default chapters exist. Only the slug is a stable key — an
  * existing chapter's name/blurb/isActive are left alone so admin edits are
- * never clobbered by a re-seed.
+ * never clobbered by a re-seed. `sortOrder` is the one exception: it is a
+ * fixed editorial order rather than an admin-owned field, so it is repaired.
  */
 const upsertChapters = async () => {
   const bySlug = new Map<string, string>();
   for (const c of DEFAULT_CHAPTERS) {
     const row = await prisma.chapter.upsert({
       where: { slug: c.slug },
-      update: {},
-      create: { slug: c.slug, name: c.name, city: c.city, accent: c.accent, blurb: c.blurb },
+      // `sortOrder` is updated even on an existing row: it is the alumni
+      // office's fixed display order, not something an admin edits, so a
+      // re-seed should repair it rather than preserve a stale value.
+      update: { sortOrder: c.sortOrder },
+      create: {
+        slug: c.slug,
+        name: c.name,
+        city: c.city,
+        accent: c.accent,
+        blurb: c.blurb,
+        sortOrder: c.sortOrder,
+      },
     });
     bySlug.set(row.slug, row.id);
   }

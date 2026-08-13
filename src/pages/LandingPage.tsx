@@ -11,15 +11,17 @@ import BoardStrip from "@/components/public/BoardStrip";
 import ChaptersSection from "@/components/public/ChaptersSection";
 import EsteemedStrip from "@/components/public/EsteemedStrip";
 import TestimonialsSection from "@/components/public/TestimonialsSection";
-import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
+import LeadershipRow from "@/components/public/LeadershipRow";
+import AlumniNetworkMessage from "@/components/public/AlumniNetworkMessage";
+import { DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 
 const stats = [
-  { value: "26+", label: "Years of Excellence" },
-  { value: "11,256+", label: "Total Alumni" },
-  { value: "12+", label: "Departments" },
-  { value: "3+", label: "Alumni Chapters" },
+  { value: "26", label: "Years of Excellence" },
+  { value: "11,256", label: "Total Alumni" },
+  { value: "12", label: "Departments" },
+  { value: "4", label: "Alumni Chapters" },
 ];
 
 
@@ -205,21 +207,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Welcome message from the alumni office */}
-      <section className="py-16 px-6 bg-background border-y border-border">
-        <div className="max-w-3xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">{ALUMNI_NETWORK_MESSAGE.title}</h2>
-            <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-8" />
-            <div className="space-y-4 text-sm sm:text-[15px] text-muted-foreground leading-relaxed text-justify">
-              {ALUMNI_NETWORK_MESSAGE.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
-            </div>
-            <p className="text-center text-base font-medium text-foreground mt-8">
-              {ALUMNI_NETWORK_MESSAGE.closing}
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      {/* Secretary and Joint Secretary, side by side */}
+      <LeadershipRow />
 
       {/* Director's message */}
       <section className="py-16 px-6 bg-card">
@@ -248,6 +237,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Welcome message from the alumni office — collapsed behind "Read more" */}
+      <AlumniNetworkMessage />
 
       {/* Alumni Association Board */}
       <BoardStrip />

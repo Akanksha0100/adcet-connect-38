@@ -37,6 +37,8 @@ const CHAPTER_IMAGES: Record<string, string> = {
   mumbai: "/Chapters/Mumbai.png",
   bangalore: "/Chapters/Bengaluru.png",
   bengaluru: "/Chapters/Bengaluru.png",
+  // The Global chapter has no city, so only its slug can resolve the image.
+  global: "/Chapters/Global.png",
 };
 
 export const chapterImage = (c: Pick<Chapter, "slug" | "city">): string | undefined => {
@@ -80,6 +82,18 @@ export const FALLBACK_CHAPTERS: Chapter[] = [
     isActive: true,
     memberCount: 0,
   },
+  {
+    id: "global",
+    slug: "global",
+    name: "Global Chapter",
+    // Not a city — the card simply omits its location line.
+    city: null,
+    blurb:
+      "ADCET alumni working and studying outside India — from the Gulf and Europe to North America, Australia and East Asia — keeping the network reachable across time zones.",
+    accent: "from-indigo-500 to-violet-400",
+    isActive: true,
+    memberCount: 0,
+  },
 ];
 
 export type ChapterInvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
@@ -103,7 +117,11 @@ export interface ChapterMember {
   city?: string | null;
   currentCompany?: string | null;
   currentRole?: string | null;
-  user: { firstName: string; lastName: string; email: string };
+  /**
+   * `email` is present for admins only — the API omits it for ordinary
+   * members, matching the alumni directory, which never returns one either.
+   */
+  user: { firstName: string; lastName: string; email?: string };
 }
 
 /** Active chapters. Admins may pass `includeInactive` to see archived ones. */
@@ -113,19 +131,26 @@ export const fetchChapters = (opts: { includeInactive?: boolean } = {}) =>
     .then((r) => r.items);
 
 /*
- * There are deliberately no member-facing helpers here (my chapter, my
- * invitations, respond-to-invitation). Chapters are administered entirely by
- * the alumni office and never surfaced to alumni in the portal; an invitation
- * is answered from the signed one-click links in its email, which hit the
- * public `GET /chapters/invitations/email-respond` endpoint with no session.
- * The corresponding API routes still exist and are still tested — only the
- * frontend entry points are gone.
+ * What members get is **reading**, and nothing else: the portal's Chapters page
+ * lists chapters and their rosters, both through the shared helpers below.
+ *
+ * There are deliberately still no join / invite / respond helpers here.
+ * Membership is granted by an admin's invitation and accepted from the signed
+ * one-click links in its email (the public
+ * `GET /chapters/invitations/email-respond` endpoint, no session), so nothing
+ * in the portal can change which chapter anyone belongs to.
  */
 
-/* --------------------------------- admin --------------------------------- */
+/* ---------------------- shared: members and admins ----------------------- */
 
+/**
+ * A chapter's roster. Readable by any approved member; the API decides what
+ * each caller sees, withholding email addresses from non-admins.
+ */
 export const fetchChapterMembers = (chapterId: string) =>
   api.get<{ items: ChapterMember[] }>(`/chapters/${chapterId}/members`, { pageSize: 100 }).then((r) => r.items);
+
+/* --------------------------------- admin --------------------------------- */
 
 export const fetchChapterInvitations = (chapterId: string) =>
   api
