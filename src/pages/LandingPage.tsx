@@ -185,8 +185,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Founder */}
-      <section className="py-16 px-6 bg-muted/40">
+      {/* Founder — closed off with a rule so it doesn't read as one block
+          with the office bearers below it. */}
+      <section className="py-16 px-6 bg-muted/40 border-b border-border">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.2fr] gap-8 md:gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
             <img
