@@ -166,7 +166,7 @@ export default function LandingPage() {
               <Link to="/register">Join the Alumni Network <ArrowRight className="h-4 w-4" /></Link>
             </Button>
             <Button size="lg" variant="outline" className="border-white/40 bg-white/5 text-white hover:bg-white/15 hover:text-white backdrop-blur-sm" asChild>
-              <Link to="/about">Explore ADCET</Link>
+              <Link to="https://adcet.ac.in">Explore ADCET</Link>
             </Button>
           </div>
           <SocialLinks tone="light" className="justify-center mt-9" />

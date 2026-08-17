@@ -1,28 +1,35 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Building2, GraduationCap, MapPin, Users } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertCircle, ArrowLeft, Building2, Check, GraduationCap, Loader2, Mail, MapPin, Users, X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { toast } from "@/hooks/use-toast";
 import {
   DEFAULT_CHAPTER_ACCENT,
   chapterImage,
   fetchChapterMembers,
   fetchChapters,
+  fetchMyChapterInvitations,
+  respondToChapterInvitation,
   type Chapter,
 } from "@/lib/chapters";
 
 /**
- * Chapters, for members — **read-only by design**.
+ * Chapters, for members.
  *
- * Alumni see the same chapters and rosters the alumni office sees, and can do
- * nothing else with them. There is no join button, no invite form and no way to
- * leave: membership is granted by an admin's invitation and accepted from the
- * one-click links in its email, so this page never changes who belongs where.
- * The API enforces that too — every mutating chapter route is admin-only, and
- * member emails are withheld from non-admins.
+ * Alumni see the same chapters and rosters the alumni office sees, and the one
+ * thing they can change here is their own answer to an invitation addressed to
+ * them: there is no join button, no invite form and no way to leave. Membership
+ * still starts with an admin's invitation — this page only offers the same
+ * Accept / Decline the invitation email does, for the common case where the
+ * email never arrives or was cleared away. The API enforces the rest: every
+ * other chapter route is admin-only, responding is checked against the
+ * invitation's own `userId`, and member emails are withheld from non-admins.
  */
 
 const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName} ${u.lastName}`.trim();
@@ -31,7 +38,7 @@ const fullName = (u: { firstName: string; lastName: string }) => `${u.firstName}
 /*  Roster for one chapter                                                    */
 /* -------------------------------------------------------------------------- */
 const ChapterMembers = ({ chapter, onBack }: { chapter: Chapter; onBack: () => void }) => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ["chapters", "members", chapter.id],
     queryFn: () => fetchChapterMembers(chapter.id),
   });
@@ -58,6 +65,19 @@ const ChapterMembers = ({ chapter, onBack }: { chapter: Chapter; onBack: () => v
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-xl" />
           ))}
+        </div>
+      ) : error ? (
+        /* A failed request must never read as an empty chapter — say so, and
+           offer the retry, rather than showing "No members yet". */
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <AlertCircle className="h-5 w-5 text-destructive mx-auto mb-2" />
+          <p className="text-sm font-medium text-foreground">Couldn't load this roster</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {error instanceof Error ? error.message : "Something went wrong."}
+          </p>
+          <Button variant="outline" size="sm" className="mt-4" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Try again"}
+          </Button>
         </div>
       ) : members.length === 0 ? (
         <EmptyState
@@ -110,6 +130,100 @@ const ChapterMembers = ({ chapter, onBack }: { chapter: Chapter; onBack: () => v
 };
 
 /* -------------------------------------------------------------------------- */
+/*  Invitations addressed to me                                               */
+/* -------------------------------------------------------------------------- */
+/**
+ * Pending invitations, answerable here.
+ *
+ * The endpoint returns only this alumnus' PENDING invitations, so the panel
+ * disappears once each one is answered — and renders nothing at all for the
+ * many members who have none. Answering invalidates the whole `["chapters"]`
+ * key: accepting changes a roster and a member count, and notifications carry
+ * the invitation too.
+ */
+const MyInvitations = () => {
+  const qc = useQueryClient();
+  const { data } = useQuery({
+    queryKey: ["chapters", "invitations", "me"],
+    queryFn: fetchMyChapterInvitations,
+  });
+  const invitations = data ?? [];
+
+  const respond = useMutation({
+    mutationFn: ({ id, response }: { id: string; response: "ACCEPT" | "DECLINE" }) =>
+      respondToChapterInvitation(id, response),
+    onSuccess: (_res, { response }) => {
+      toast(
+        response === "ACCEPT"
+          ? { title: "You're in", description: "You now appear on this chapter's roster." }
+          : { title: "Invitation declined", description: "The alumni office can invite you again later." },
+      );
+      qc.invalidateQueries({ queryKey: ["chapters"] });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (err) =>
+      toast({
+        title: "Couldn't save your answer",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      }),
+  });
+  const busy = (id: string) => respond.isPending && respond.variables?.id === id;
+
+  if (invitations.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {invitations.map((inv) => (
+        <motion.div
+          key={inv.id}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-primary/30 bg-primary/5 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-4"
+        >
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Mail className="h-4 w-4 text-primary shrink-0" />
+              You're invited to the {inv.chapter.name}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Invited by {`${inv.invitedBy.firstName} ${inv.invitedBy.lastName}`.trim()}. Accepting moves you
+              out of any chapter you're already in — you can belong to one at a time.
+            </p>
+            {inv.message && (
+              <p className="text-xs text-foreground/80 italic mt-2 border-l-2 border-primary/30 pl-3">
+                "{inv.message}"
+              </p>
+            )}
+          </div>
+          <div className="flex gap-2 shrink-0">
+            <Button
+              size="sm"
+              className="gap-1.5"
+              disabled={respond.isPending}
+              onClick={() => respond.mutate({ id: inv.id, response: "ACCEPT" })}
+            >
+              {busy(inv.id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5"
+              disabled={respond.isPending}
+              onClick={() => respond.mutate({ id: inv.id, response: "DECLINE" })}
+            >
+              <X className="h-4 w-4" />
+              Decline
+            </Button>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+/* -------------------------------------------------------------------------- */
 /*  Chapter grid                                                              */
 /* -------------------------------------------------------------------------- */
 const ChaptersPage = () => {
@@ -135,9 +249,11 @@ const ChaptersPage = () => {
         <h1 className="text-2xl font-bold text-foreground">Chapters</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Regional ADCET communities. Open one to see who's in it — the alumni office manages
-          membership and will invite you by email.
+          membership and will invite you when there's a chapter for you.
         </p>
       </div>
+
+      <MyInvitations />
 
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

@@ -100,5 +100,7 @@ describe("public CTAs point at the right form", () => {
     for (const name of [/Join the Alumni Network/, /Get Started/]) {
       expect(screen.getByRole("link", { name })).toHaveAttribute("href", "/register");
     }
-  });
+    // Mounting the whole landing page takes ~5s in jsdom — right on Vitest's
+    // default limit, so this one test says how long it may take.
+  }, 20000);
 });

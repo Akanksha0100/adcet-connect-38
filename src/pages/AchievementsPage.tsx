@@ -47,7 +47,7 @@ const initialsOf = (u?: { firstName?: string; lastName?: string }) =>
  */
 const AchievementCard = ({ a, showStatus }: { a: Achievement; showStatus?: boolean }) => (
   <div className="card-elevated overflow-hidden flex flex-col h-full hover:-translate-y-0.5 hover:shadow-lg transition-all">
-    <Link to={`/achievements/${a.id}`} className="block">
+    <Link to={`/dashboard/achievements/${a.id}`} className="block">
       <AchievementCardMedia item={a} />
     </Link>
 
@@ -73,7 +73,7 @@ const AchievementCard = ({ a, showStatus }: { a: Achievement; showStatus?: boole
         )}
       </div>
 
-      <Link to={`/achievements/${a.id}`} className="block">
+      <Link to={`/dashboard/achievements/${a.id}`} className="block">
         <h3 className="font-semibold text-foreground text-sm hover:underline line-clamp-2">{a.title}</h3>
       </Link>
       {/* Fixed line count keeps every card in a row the same height. */}

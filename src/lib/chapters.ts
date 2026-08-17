@@ -131,15 +131,28 @@ export const fetchChapters = (opts: { includeInactive?: boolean } = {}) =>
     .then((r) => r.items);
 
 /*
- * What members get is **reading**, and nothing else: the portal's Chapters page
- * lists chapters and their rosters, both through the shared helpers below.
+ * What members get is reading, plus answering an invitation addressed to them:
+ * the portal's Chapters page lists chapters and their rosters, and shows the
+ * invitations the alumni office has sent *them* with Accept / Decline.
  *
- * There are deliberately still no join / invite / respond helpers here.
- * Membership is granted by an admin's invitation and accepted from the signed
- * one-click links in its email (the public
- * `GET /chapters/invitations/email-respond` endpoint, no session), so nothing
- * in the portal can change which chapter anyone belongs to.
+ * There is still deliberately no join or invite helper here. Only an admin can
+ * issue an invitation, so an alumnus can put themselves in a chapter only when
+ * the office has already asked them — the emailed one-click links (the public
+ * `GET /chapters/invitations/email-respond` endpoint, no session) and the two
+ * helpers below are the same decision taken through different doors, and both
+ * land on the same service.
  */
+
+/** Invitations awaiting this alumnus' answer. */
+export const fetchMyChapterInvitations = () =>
+  api.get<{ items: ChapterInvitation[] }>("/chapters/invitations/me").then((r) => r.items);
+
+/**
+ * Answer one. Accepting makes them a member and moves them out of any chapter
+ * they already belong to — membership is a single field, one chapter at a time.
+ */
+export const respondToChapterInvitation = (invitationId: string, response: "ACCEPT" | "DECLINE") =>
+  api.post<ChapterInvitation>(`/chapters/invitations/${invitationId}/respond`, { response });
 
 /* ---------------------- shared: members and admins ----------------------- */
 

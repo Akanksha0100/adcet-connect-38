@@ -25,9 +25,27 @@ const MEMBERS = [
   },
 ];
 
+const INVITATION = {
+  id: "inv-1",
+  chapterId: "c-blr",
+  userId: "u9",
+  status: "PENDING" as const,
+  message: "We'd love to have you at the next Bengaluru meetup.",
+  createdAt: "2026-08-17T09:59:13.427Z",
+  respondedAt: null,
+  chapter: { id: "c-blr", slug: "bangalore", name: "Bangalore Chapter", city: "Bangalore", blurb: null, accent: null, isActive: true },
+  invitedBy: { firstName: "Asha", lastName: "Rao" },
+};
+
 const apiGet = vi.fn();
+const apiPost = vi.fn();
 vi.mock("@/lib/api", () => ({
-  api: { get: (...a: unknown[]) => apiGet(...a), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+  api: {
+    get: (...a: unknown[]) => apiGet(...a),
+    post: (...a: unknown[]) => apiPost(...a),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  },
   apiUrl: (p: string) => p,
   tokenStore: { get: () => null, set: vi.fn(), clear: vi.fn() },
 }));
@@ -36,12 +54,24 @@ const ChaptersPage = (await import("./ChaptersPage")).default;
 
 beforeEach(() => {
   apiGet.mockReset();
+  apiPost.mockReset();
+  apiPost.mockResolvedValue({ ...INVITATION, status: "ACCEPTED" });
   apiGet.mockImplementation((path: string) => {
     if (path === "/chapters") return Promise.resolve({ items: CHAPTERS });
+    if (path === "/chapters/invitations/me") return Promise.resolve({ items: [] });
     if (path.endsWith("/members")) return Promise.resolve({ items: MEMBERS });
     return Promise.resolve({ items: [] });
   });
 });
+
+/** Make the one pending invitation visible for a test that needs it. */
+const withInvitation = () =>
+  apiGet.mockImplementation((path: string) => {
+    if (path === "/chapters") return Promise.resolve({ items: CHAPTERS });
+    if (path === "/chapters/invitations/me") return Promise.resolve({ items: [INVITATION] });
+    if (path.endsWith("/members")) return Promise.resolve({ items: MEMBERS });
+    return Promise.resolve({ items: [] });
+  });
 
 const renderPage = () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -95,6 +125,58 @@ describe("ChaptersPage", () => {
     for (const label of [/join/i, /invite/i, /create chapter/i, /edit/i, /delete/i, /remove/i, /archive/i]) {
       expect(screen.queryByRole("button", { name: label })).not.toBeInTheDocument();
     }
+  });
+
+  it("shows no invitation panel when the office hasn't invited you", async () => {
+    renderPage();
+    await screen.findByText("Pune Chapter");
+
+    expect(apiGet).toHaveBeenCalledWith("/chapters/invitations/me");
+    expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+  });
+
+  it("lets you accept an invitation addressed to you", async () => {
+    withInvitation();
+    renderPage();
+
+    await screen.findByText(/You're invited to the Bangalore Chapter/);
+    expect(screen.getByText(/Invited by Asha Rao/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
+
+    await waitFor(() =>
+      expect(apiPost).toHaveBeenCalledWith("/chapters/invitations/inv-1/respond", { response: "ACCEPT" }),
+    );
+  });
+
+  it("declines through the same endpoint", async () => {
+    withInvitation();
+    renderPage();
+    await screen.findByText(/You're invited to the Bangalore Chapter/);
+
+    fireEvent.click(screen.getByRole("button", { name: /decline/i }));
+
+    await waitFor(() =>
+      expect(apiPost).toHaveBeenCalledWith("/chapters/invitations/inv-1/respond", { response: "DECLINE" }),
+    );
+  });
+
+  it("says a roster failed to load instead of showing it as empty", async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === "/chapters") return Promise.resolve({ items: CHAPTERS });
+      if (path === "/chapters/invitations/me") return Promise.resolve({ items: [] });
+      if (path.endsWith("/members")) return Promise.reject(new Error("Account pending approval"));
+      return Promise.resolve({ items: [] });
+    });
+    renderPage();
+    await screen.findByText("Pune Chapter");
+
+    fireEvent.click(screen.getByRole("button", { name: /Pune Chapter/ }));
+
+    await screen.findByText("Couldn't load this roster");
+    expect(screen.getByText("Account pending approval")).toBeInTheDocument();
+    // The failure must not be indistinguishable from a chapter with no members.
+    expect(screen.queryByText("No members yet")).not.toBeInTheDocument();
   });
 
   it("does not ask for archived chapters", async () => {

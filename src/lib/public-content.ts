@@ -4,8 +4,8 @@
  */
 
 export const FOUNDER = {
-  name: "Hon. Shri. Annasaheb Dange",
-  role: "Founder, ADCET — Sant Dnyaneshwar Shikshan Sanstha (SDSS), Islampur",
+  name: "Hon. Dr. Annasaheb Dange",
+  role: "Founder Chairman, Sant Dnyaneshwar Shikshan Sanstha (SDSS), Urun Ishwarpur",
   photo: "/AnnasabeDange.png",
   quote: "Dream boldly, work sincerely, and carry forward the legacy of service and excellence.",
 };
@@ -18,7 +18,7 @@ export const LEADERSHIP = [
   {
     name: "Hon.Adv. Rajendra R. Dange",
     role: "Secretary",
-    org: "Annasaheb Dange College of Engineering & Technology, Ashta.",
+    org: "Sant Dnyaneshwar Shikshan Sanstha (SDSS), Urun Ishwarpur",
     photo: "/RajendraDange.png",
     quote:
       "Lead with purpose, serve with commitment, and strengthen the bond of our alumni community.",
@@ -26,7 +26,7 @@ export const LEADERSHIP = [
   {
     name: "Hon. Vishwanath R. Dange",
     role: "Joint Secretary",
-    org: "Sant Dnyaneshwar Shikshan Sanstha (SDSS), Islampur",
+    org: "Sant Dnyaneshwar Shikshan Sanstha (SDSS), Urun Ishwarpur",
     photo: "/VishwanathDange.png",
     quote:
       "Connect with passion, support with dedication, and build a stronger alumni community.",

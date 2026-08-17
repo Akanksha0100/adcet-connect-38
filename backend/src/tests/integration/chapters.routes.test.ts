@@ -1,10 +1,11 @@
 /**
  * Chapter route entitlements.
  *
- * The portal gained a **read-only** Chapters page for members, so the member
- * roster opened up from admin-only to any approved member. These tests pin the
- * boundary that change created: members may look, only admins may touch, and
- * email addresses stay on the admin side of the line.
+ * The portal gained a Chapters page for members, so the member roster opened up
+ * from admin-only to any approved member. These tests pin the boundary that
+ * change created: members may look, may answer an invitation addressed to them,
+ * and may touch nothing else — and email addresses stay on the admin side of
+ * the line.
  */
 import { jest } from "@jest/globals";
 import request from "supertest";
@@ -89,9 +90,57 @@ describe("chapters stay read-only for members", () => {
       .set("Authorization", bearer(memberToken))
       .send(body);
 
-    // Looking is allowed; changing anything is not — membership is granted by
-    // an admin's invitation and accepted from its email, never from the portal.
+    // Looking is allowed, and so is answering an invitation addressed to them
+    // (below) — nothing else. A member cannot create a chapter, invite anybody
+    // or put themselves in one uninvited.
     expect(res.status).toBe(403);
+  });
+});
+
+/**
+ * The one write a member does own: their own answer to an invitation. The
+ * portal's Chapters page posts here, and the emailed one-click links reach the
+ * same service — so an invitation is answerable even when the mail never lands.
+ */
+describe("POST /chapters/invitations/:id/respond", () => {
+  const invitation = {
+    id: "inv-1",
+    chapterId: "c1",
+    userId: "member-1",
+    status: "PENDING",
+    chapter: { ...CHAPTER, city: null, blurb: null, accent: null },
+    invitedBy: { firstName: "Asha", lastName: "Rao" },
+  };
+
+  beforeEach(() => {
+    prisma.chapterInvitation.findUnique.mockResolvedValue(invitation as any);
+    prisma.chapterInvitation.update.mockResolvedValue({ ...invitation, status: "ACCEPTED" } as any);
+    prisma.profile.upsert.mockResolvedValue({} as any);
+  });
+
+  it("lets the invitee accept, which makes them a member", async () => {
+    const res = await request(app)
+      .post("/api/v1/chapters/invitations/inv-1/respond")
+      .set("Authorization", bearer(memberToken))
+      .send({ response: "ACCEPT" });
+
+    expect(res.status).toBe(200);
+    // Membership is a single field on the profile — accepting sets it.
+    expect(prisma.profile.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "member-1" }, update: { chapterId: "c1" } }),
+    );
+  });
+
+  it("403s somebody answering another person's invitation", async () => {
+    prisma.chapterInvitation.findUnique.mockResolvedValue({ ...invitation, userId: "someone-else" } as any);
+
+    const res = await request(app)
+      .post("/api/v1/chapters/invitations/inv-1/respond")
+      .set("Authorization", bearer(memberToken))
+      .send({ response: "ACCEPT" });
+
+    expect(res.status).toBe(403);
+    expect(prisma.profile.upsert).not.toHaveBeenCalled();
   });
 });
 

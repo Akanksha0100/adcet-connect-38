@@ -1,137 +1,71 @@
 import { motion } from "framer-motion";
-import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Trophy, Calendar, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Loader2, Trophy } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { storageUrl } from "@/lib/storage";
+import AchievementArticle, { type AchievementArticleData } from "@/components/AchievementArticle";
 
-interface PublicAchievement {
-  id: string;
-  title: string;
-  description: string;
-  category?: string | null;
-  occurredOn?: string | null;
-  imageKey?: string | null;
-  attachmentKey?: string | null;
-  link?: string | null;
-  createdAt: string;
-  user?: { firstName?: string; lastName?: string } | null;
-}
-
+/**
+ * One achievement, in the portal — the sibling of `EventDetailPage` and
+ * `JobDetailPage`.
+ *
+ * It renders *inside* `DashboardLayout`, so it is a plain content block with no
+ * header or chrome of its own: the topbar, sidebar and theme come from the
+ * layout, exactly like every other `/dashboard/*` page. The public
+ * `PublicAchievementPage` is the shareable twin for visitors with no session.
+ *
+ * Two details worth keeping:
+ *  - It reads the **authenticated** `/achievements/:id`, not the public one, so
+ *    an author opening their own submission from "My Submissions" sees it while
+ *    it is still pending instead of a "not found".
+ *  - Back goes back through history, falling back to the achievements list when
+ *    there is nowhere to return to (a deep link, or a fresh reload). It must
+ *    never point at the public landing page — that walks a signed-in reader out
+ *    of the portal, which is what this page used to do.
+ */
 export default function AchievementDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["achievement", "public", id],
-    queryFn: () => api.get<PublicAchievement>(`/achievements/public/${id}`),
+    queryKey: ["achievement", id],
+    queryFn: () => api.get<AchievementArticleData>(`/achievements/${id}`),
     enabled: !!id,
   });
 
-  const authorName = data?.user
-    ? `${data.user.firstName ?? ""} ${data.user.lastName ?? ""}`.trim() || "Alumnus"
-    : "Alumnus";
-  const imageUrl = storageUrl(data?.imageKey);
-  const attachmentUrl = storageUrl(data?.attachmentKey);
+  /** `history.state.idx` is React Router's position in its own stack. */
+  const goBack = () => {
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate("/dashboard/achievements");
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-50 h-14 border-b border-border bg-card/95 backdrop-blur flex items-center px-6 gap-3">
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.jpeg" alt="ADCET" className="w-8 h-8 rounded-lg object-cover" />
-          <span className="font-bold text-sm hidden sm:block">ADCET Alumni Portal</span>
-        </Link>
-        <div className="ml-auto flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild><Link to="/login">Sign In</Link></Button>
-          <Button size="sm" asChild><Link to="/register">Join Network</Link></Button>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-3xl mx-auto">
+      <Button variant="ghost" size="sm" className="gap-2 -ml-2" onClick={goBack}>
+        <ArrowLeft className="h-4 w-4" /> Back
+      </Button>
+
+      {isLoading && (
+        <div className="flex items-center justify-center py-20 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
         </div>
-      </header>
+      )}
 
-      <main className="flex-1 py-10 px-6">
-        <div className="max-w-3xl mx-auto">
-          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
-            <ArrowLeft className="h-4 w-4" /> Back to home
-          </Link>
-
-          {isLoading && (
-            <div className="flex items-center justify-center py-20 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-            </div>
-          )}
-
-          {isError && (
-            <div className="text-center py-20">
-              <Trophy className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
-              <h1 className="text-xl font-bold">Achievement not found</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                This achievement may have been removed or is not published.
-              </p>
-              <Button className="mt-6" asChild><Link to="/">Go home</Link></Button>
-            </div>
-          )}
-
-          {data && (
-            <motion.article
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card-elevated overflow-hidden"
-            >
-              {imageUrl ? (
-                <img src={imageUrl} alt={data.title} className="w-full max-h-96 object-cover" />
-              ) : (
-                <div className="h-40 bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center text-6xl">
-                  🏆
-                </div>
-              )}
-              <div className="p-6 sm:p-8 space-y-5">
-                <div className="space-y-2">
-                  {data.category && <Badge variant="secondary" className="text-xs">{data.category}</Badge>}
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{data.title}</h1>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Trophy className="h-4 w-4" /> {authorName}
-                    </span>
-                    {data.occurredOn && (
-                      <span className="inline-flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4" /> {new Date(data.occurredOn).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <p className="text-sm sm:text-base text-foreground/90 leading-relaxed whitespace-pre-line">
-                  {data.description}
-                </p>
-
-                <div className="flex flex-wrap gap-3 pt-2">
-                  {data.link && (
-                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={data.link} target="_blank" rel="noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" /> Related link
-                      </a>
-                    </Button>
-                  )}
-                  {attachmentUrl && (
-                    <Button variant="outline" size="sm" className="gap-1.5" asChild>
-                      <a href={attachmentUrl} target="_blank" rel="noreferrer">
-                        <FileText className="h-3.5 w-3.5" /> View certificate / document
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </motion.article>
-          )}
-
-          <div className="text-center mt-10 p-6 rounded-xl bg-muted/40">
-            <p className="text-sm text-muted-foreground mb-3">
-              Are you an ADCET alumnus? Join the network to share your achievements.
-            </p>
-            <Button asChild><Link to="/register">Join the Alumni Network</Link></Button>
-          </div>
+      {isError && (
+        <div className="text-center py-20">
+          <Trophy className="h-10 w-10 text-muted-foreground/40 mx-auto mb-4" />
+          <h1 className="text-xl font-bold">Achievement not found</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            It may have been removed by its author or the alumni office.
+          </p>
+          <Button variant="outline" className="mt-6" onClick={() => navigate("/dashboard/achievements")}>
+            All achievements
+          </Button>
         </div>
-      </main>
-    </div>
+      )}
+
+      {data && <AchievementArticle item={data} />}
+    </motion.div>
   );
 }

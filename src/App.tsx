@@ -35,6 +35,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
 import AchievementDetailPage from "./pages/AchievementDetailPage";
+import PublicAchievementPage from "./pages/PublicAchievementPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -91,7 +92,10 @@ const App = () => (
               {/* Reached only from the landing-page carousel — deliberately not in the nav. */}
               <Route path="/testimonials" element={<TestimonialsPage />} />
               <Route path="/support" element={<SupportPage />} />
-              <Route path="/achievements/:id" element={<AchievementDetailPage />} />
+              {/* The shareable link, for readers with no session. Members open
+                  /dashboard/achievements/:id instead, which keeps the portal
+                  shell — see PublicAchievementPage. */}
+              <Route path="/achievements/:id" element={<PublicAchievementPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
@@ -119,6 +123,7 @@ const App = () => (
                     <Route path="notifications/:id" element={<NotificationPage />} />
                     <Route path="profile" element={<ProfilePage />} />
                     <Route path="achievements" element={<AchievementsPage />} />
+                    <Route path="achievements/:id" element={<AchievementDetailPage />} />
                     <Route path="donations" element={<DonationsPage />} />
                     <Route path="geomap" element={<GeoMapPage />} />
                     {/* Read-only: alumni browse chapters and rosters, nothing more. */}

@@ -27,24 +27,34 @@ const renderIn = (ui: React.ReactElement) => {
 };
 
 describe("LeadershipRow", () => {
+  // Names and organisations are copy the alumni office revises, so read them
+  // from LEADERSHIP rather than repeating the strings here — what this pins is
+  // the *order* and the pairing, not the wording.
+  const [secretary, jointSecretary] = LEADERSHIP;
+
   it("shows the Secretary first and the Joint Secretary second", () => {
     const { container } = renderIn(<LeadershipRow />);
     const figures = container.querySelectorAll("figure");
 
     expect(figures).toHaveLength(2);
-    expect(within(figures[0] as HTMLElement).getByText("Adv. Rajendra R. Dange")).toBeInTheDocument();
+    expect(within(figures[0] as HTMLElement).getByText(secretary.name)).toBeInTheDocument();
     expect(within(figures[0] as HTMLElement).getByText("Secretary,")).toBeInTheDocument();
-    expect(within(figures[1] as HTMLElement).getByText("Hon. Vishwanath R. Dange")).toBeInTheDocument();
+    expect(within(figures[1] as HTMLElement).getByText(jointSecretary.name)).toBeInTheDocument();
     expect(within(figures[1] as HTMLElement).getByText("Joint Secretary,")).toBeInTheDocument();
   });
 
   it("renders each portrait and message", () => {
-    renderIn(<LeadershipRow />);
-    for (const p of LEADERSHIP) {
-      expect(screen.getByRole("img", { name: p.name })).toHaveAttribute("src", p.photo);
-      expect(screen.getByText(`"${p.quote}"`)).toBeInTheDocument();
-      expect(screen.getByText(p.org)).toBeInTheDocument();
-    }
+    const { container } = renderIn(<LeadershipRow />);
+    const figures = [...container.querySelectorAll("figure")] as HTMLElement[];
+
+    LEADERSHIP.forEach((p, i) => {
+      // Scoped per card: the two office bearers may share an organisation, so a
+      // page-wide getByText(p.org) would find two nodes and throw.
+      const card = within(figures[i]);
+      expect(card.getByRole("img", { name: p.name })).toHaveAttribute("src", p.photo);
+      expect(card.getByText(`"${p.quote}"`)).toBeInTheDocument();
+      expect(card.getByText(p.org)).toBeInTheDocument();
+    });
   });
 
   it("leads with the message and signs off with the name, like the founder above", () => {

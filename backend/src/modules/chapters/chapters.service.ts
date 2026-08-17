@@ -363,12 +363,12 @@ export const sendInvitationEmail = async (input: Awaited<ReturnType<typeof invit
   await notify(recipient.id, {
     type: "chapter.invitation",
     title: `You're invited to join the ${invitation.chapter.name}`,
-    // There is no user-facing Chapters page — the portal shows chapters to
-    // admins only — so the body points at the emailed one-click links, which
-    // are the sole way an alumnus responds.
+    // Two doors lead to the same answer: the emailed one-click links below and
+    // the portal's Chapters page, which lists this invitation with Accept /
+    // Decline. Name both — an email that never arrives must not strand them.
     body: currentChapterName
-      ? `${invitedByName} invited you to the ${invitation.chapter.name}. Check your email to accept or decline — accepting will move you out of the ${currentChapterName}.`
-      : `${invitedByName} invited you to the ${invitation.chapter.name}. Check your email to accept or decline.`,
+      ? `${invitedByName} invited you to the ${invitation.chapter.name}. Accept or decline from your email or the Chapters page — accepting will move you out of the ${currentChapterName}.`
+      : `${invitedByName} invited you to the ${invitation.chapter.name}. Accept or decline from your email or the Chapters page in the portal.`,
     data: { chapterId: invitation.chapterId, invitationId: invitation.id },
   });
 
