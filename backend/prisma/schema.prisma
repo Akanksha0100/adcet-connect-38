@@ -294,6 +294,15 @@ model Chapter {
   accent      String?
   city        String?
   isActive    Boolean  @default(true)
+
+  /// Display position, ascending — the alumni office wants Pune, Mumbai,
+  /// Bangalore, Global rather than alphabetical order. Sorting lives here
+  /// rather than in each page so the public landing page, the member-facing
+  /// list and the admin list all agree without repeating the rule. Chapters
+  /// created later default to 100 and fall in after the seeded four, then
+  /// alphabetically among themselves.
+  sortOrder   Int      @default(100)
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -302,6 +311,7 @@ model Chapter {
   invitations ChapterInvitation[]
 
   @@index([isActive])
+  @@index([sortOrder])
 }
 
 enum ChapterInvitationStatus {

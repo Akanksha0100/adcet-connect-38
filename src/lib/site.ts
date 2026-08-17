@@ -28,7 +28,7 @@ export const CONTACT = {
   society: "Sant Dnyaneshwar Shikshan Sanstha's",
   address: "Ashta, Taluka Walwa, Dist. Sangli, Maharashtra 416 301",
   mapsUrl: "https://maps.google.com/?q=Annasaheb+Dange+College+of+Engineering+and+Technology+Ashta",
-  phones: ["8208536470", "9960819047"],
+  phones: ["8208536470"],
   email: "alumni@adcet.in",
   /** Shown only in the footer — general queries go to the alumni office. */
   directorEmail: "director@adcet.in",

@@ -22,17 +22,17 @@ export default function ContactPage() {
         <motion.section {...fade}>
           <h2 className="text-xl sm:text-2xl font-bold mb-2">Alumni Cell In-charge</h2>
           <div className="w-14 h-0.5 bg-primary/50 mb-6" />
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 border border-border rounded-xl p-6 bg-muted/20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-7 border border-border rounded-xl p-6 sm:p-8 bg-muted/20">
             <img
               src={ALUMNI_CELL_INCHARGE.photo}
               alt={ALUMNI_CELL_INCHARGE.name}
               loading="lazy"
-              className="w-28 h-32 rounded-lg object-cover object-top ring-1 ring-border shrink-0"
+              className="w-40 h-48 sm:w-44 sm:h-52 rounded-lg object-cover object-top ring-1 ring-border shrink-0"
             />
             <div className="text-center sm:text-left">
-              <p className="text-lg font-semibold text-foreground">{ALUMNI_CELL_INCHARGE.name}</p>
-              <p className="text-sm text-primary mt-0.5">{ALUMNI_CELL_INCHARGE.designation}</p>
-              <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
+              <p className="text-xl sm:text-2xl font-semibold text-foreground">{ALUMNI_CELL_INCHARGE.name}</p>
+              <p className="text-base sm:text-lg text-primary mt-1">{ALUMNI_CELL_INCHARGE.designation}</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-4 leading-relaxed">
                 For alumni registrations, chapter activity, reunions and institutional partnerships, write to{" "}
                 <a href={`mailto:${CONTACT.email}`} className="text-primary hover:underline">
                   {CONTACT.email}

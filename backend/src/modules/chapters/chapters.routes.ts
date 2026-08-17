@@ -51,10 +51,14 @@ chaptersRouter.patch("/:id", requireAuth, requireAdmin, validate(updateChapterSc
 // and points the admin at archiving instead.
 chaptersRouter.delete("/:id", requireAuth, requireAdmin, asyncHandler(ctrl.remove));
 
+// Readable by any approved member, not just admins — the portal has a
+// read-only Chapters page where alumni browse a chapter's roster. Writes below
+// stay admin-only, and the controller withholds email addresses from
+// non-admins, so this grants visibility and nothing else.
 chaptersRouter.get(
   "/:id/members",
   requireAuth,
-  requireAdmin,
+  requireApproved,
   validate(paginationSchema, "query"),
   asyncHandler(ctrl.listMembers),
 );

@@ -11,6 +11,8 @@ import GalleryPage from "./GalleryPage";
 import EsteemedAlumniPage from "./EsteemedAlumniPage";
 import { TOTAL_ALUMNI } from "@/lib/alumni-count";
 import { BOARD_MEMBERS } from "@/lib/board";
+import { CONTACT } from "@/lib/site";
+import { ESTEEMED_ALUMNI, ESTEEMED_CATEGORIES } from "@/lib/esteemed";
 
 // The landing page pulls featured achievements; keep the smoke test offline.
 vi.mock("@/lib/api", () => ({
@@ -53,9 +55,13 @@ describe("public pages", () => {
   it("shows the alumni office contact details and not the director's mail", () => {
     renderPage(<ContactPage />);
     expect(screen.getAllByText("alumni@adcet.in").length).toBeGreaterThan(0);
-    // Present in both the page body and the shared footer.
-    expect(screen.getAllByRole("link", { name: "8208536470" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "9960819047" }).length).toBeGreaterThan(0);
+    // Derived from CONTACT rather than hardcoded — the office adds and drops
+    // numbers, and that shouldn't fail a test about *which* address is shown.
+    // Each number appears in both the page body and the shared footer.
+    expect(CONTACT.phones.length).toBeGreaterThan(0);
+    for (const phone of CONTACT.phones) {
+      expect(screen.getAllByRole("link", { name: phone }).length).toBeGreaterThan(0);
+    }
     // The director's address belongs in the footer only, not in page content.
     expect(screen.queryByText(/General Enquiry/i)).not.toBeInTheDocument();
     expect(screen.getAllByText("director@adcet.in")).toHaveLength(1);
@@ -69,6 +75,13 @@ describe("public pages", () => {
     expect(screen.getAllByRole("heading", { name: "Gallery" }).length).toBeGreaterThan(0);
 
     renderPage(<EsteemedAlumniPage />);
-    expect(screen.getByRole("heading", { name: "All Esteemed Alumni" })).toBeInTheDocument();
+    // The page is the three categories and nothing else — every alumnus is in
+    // exactly one, so there is no "All Esteemed Alumni" roll repeating them.
+    for (const cat of ESTEEMED_CATEGORIES) {
+      expect(screen.getByRole("heading", { name: cat.title })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("heading", { name: /all esteemed alumni/i })).not.toBeInTheDocument();
+    // Every tile carries the batch under the portrait, alongside the name.
+    expect(screen.getAllByText(/^Batch of \d{4}$/).length).toBe(ESTEEMED_ALUMNI.length);
   });
 });

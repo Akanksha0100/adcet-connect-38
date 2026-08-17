@@ -30,6 +30,7 @@ import ProfilePage from "./pages/ProfilePage";
 import AchievementsPage from "./pages/AchievementsPage";
 import DonationsPage from "./pages/DonationsPage";
 import GeoMapPage from "./pages/GeoMapPage";
+import ChaptersPage from "./pages/ChaptersPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
@@ -120,6 +121,8 @@ const App = () => (
                     <Route path="achievements" element={<AchievementsPage />} />
                     <Route path="donations" element={<DonationsPage />} />
                     <Route path="geomap" element={<GeoMapPage />} />
+                    {/* Read-only: alumni browse chapters and rosters, nothing more. */}
+                    <Route path="chapters" element={<ChaptersPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />

@@ -350,4 +350,39 @@ describe("modules/chapters/service — members list", () => {
       user: { status: "APPROVED", roles: { some: { role: "ALUMNI" } } },
     });
   });
+
+  const selectUser = async (opts?: { includeEmail?: boolean }) => {
+    prismaMock.chapter.findUnique.mockResolvedValue(chapterRow());
+    prismaMock.profile.findMany.mockResolvedValue([]);
+    prismaMock.profile.count.mockResolvedValue(0);
+    await svc.listMembers("c1", { page: 1, pageSize: 20 } as any, opts);
+    return (prismaMock.profile.findMany.mock.calls.at(-1)![0] as any).select.user.select;
+  };
+
+  it("withholds member emails by default — the member-facing roster", async () => {
+    // The portal's read-only Chapters page shows this list to every approved
+    // member, and the alumni directory never exposes an email either.
+    expect(await selectUser()).toEqual({ firstName: true, lastName: true, email: false });
+  });
+
+  it("gives admins the email, since they manage membership", async () => {
+    expect(await selectUser({ includeEmail: true })).toEqual({
+      firstName: true,
+      lastName: true,
+      email: true,
+    });
+  });
+});
+
+describe("modules/chapters/service — ordering", () => {
+  it("orders by the alumni office's sortOrder, not alphabetically", async () => {
+    await svc.list();
+    // Alphabetical would put Bangalore first; the office wants Pune, Mumbai,
+    // Bangalore, Global, which is what sortOrder encodes.
+    expect((prismaMock.chapter.findMany.mock.calls.at(-1)![0] as any).orderBy).toEqual([
+      { isActive: "desc" },
+      { sortOrder: "asc" },
+      { name: "asc" },
+    ]);
+  });
 });

@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { isAdmin } from "../../middlewares/rbac.js";
 import * as service from "./chapters.service.js";
 
 /** Public list. Archived chapters are only ever revealed to admins. */
@@ -25,11 +26,17 @@ export const remove = async (req: Request, res: Response) => {
   res.status(204).end();
 };
 
+/**
+ * Members of a chapter. Any approved member may read the list; only an admin
+ * gets the email column, so the entitlement is re-derived from the session here
+ * rather than trusted from the request.
+ */
 export const listMembers = async (req: Request, res: Response) =>
   res.json(
     await service.listMembers(
       req.params.id,
       req.query as unknown as Parameters<typeof service.listMembers>[1],
+      { includeEmail: isAdmin(req) },
     ),
   );
 

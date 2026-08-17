@@ -11,15 +11,17 @@ import BoardStrip from "@/components/public/BoardStrip";
 import ChaptersSection from "@/components/public/ChaptersSection";
 import EsteemedStrip from "@/components/public/EsteemedStrip";
 import TestimonialsSection from "@/components/public/TestimonialsSection";
-import { ALUMNI_NETWORK_MESSAGE, DIRECTOR, FOUNDER } from "@/lib/public-content";
+import LeadershipRow from "@/components/public/LeadershipRow";
+import AlumniNetworkMessage from "@/components/public/AlumniNetworkMessage";
+import { DIRECTOR, FOUNDER } from "@/lib/public-content";
 import { api } from "@/lib/api";
 import { storageUrl } from "@/lib/storage";
 
 const stats = [
-  { value: "26+", label: "Years of Excellence" },
-  { value: "11,256+", label: "Total Alumni" },
-  { value: "12+", label: "Departments" },
-  { value: "3+", label: "Alumni Chapters" },
+  { value: "26", label: "Years of Excellence" },
+  { value: "11,256", label: "Total Alumni" },
+  { value: "12", label: "Departments" },
+  { value: "4", label: "Alumni Chapters" },
 ];
 
 
@@ -151,7 +153,7 @@ export default function LandingPage() {
             <img src="/logo.jpeg" alt="ADCET" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 leading-tight drop-shadow">ADCET Alumni Portal</h1>
-          <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology</p>
+          <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology, Ashta.</p>
           <p className="text-white/70 text-sm mb-2">Established 1999</p>
           {/* <p className="text-white/80 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p> */}
           <div className="flex flex-wrap justify-center gap-2 text-xs text-white/80 mb-9">
@@ -183,8 +185,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Founder */}
-      <section className="py-16 px-6 bg-muted/40">
+      {/* Founder — closed off with a rule so it doesn't read as one block
+          with the office bearers below it. */}
+      <section className="py-16 px-6 bg-muted/40 border-b border-border">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_1.2fr] gap-8 md:gap-12 items-center">
           <motion.div initial={{ opacity: 0, x: -16 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
             <img
@@ -205,21 +208,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Welcome message from the alumni office */}
-      <section className="py-16 px-6 bg-background border-y border-border">
-        <div className="max-w-3xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">{ALUMNI_NETWORK_MESSAGE.title}</h2>
-            <div className="w-16 h-0.5 bg-primary/50 mx-auto mb-8" />
-            <div className="space-y-4 text-sm sm:text-[15px] text-muted-foreground leading-relaxed text-justify">
-              {ALUMNI_NETWORK_MESSAGE.paragraphs.map((p, i) => <p key={i}>{p}</p>)}
-            </div>
-            <p className="text-center text-base font-medium text-foreground mt-8">
-              {ALUMNI_NETWORK_MESSAGE.closing}
-            </p>
-          </motion.div>
-        </div>
-      </section>
+      {/* Secretary and Joint Secretary, side by side */}
+      <LeadershipRow />
 
       {/* Director's message */}
       <section className="py-16 px-6 bg-card">
@@ -248,6 +238,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Welcome message from the alumni office — collapsed behind "Read more" */}
+      <AlumniNetworkMessage />
 
       {/* Alumni Association Board */}
       <BoardStrip />
