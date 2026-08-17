@@ -71,6 +71,7 @@ coverage
 *.sln
 *.suo
 *.ntvs*
+OPTIMIZATION.md
 
 docs
 .env

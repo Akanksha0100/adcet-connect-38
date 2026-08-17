@@ -12,6 +12,7 @@ import EsteemedAlumniPage from "./EsteemedAlumniPage";
 import { TOTAL_ALUMNI } from "@/lib/alumni-count";
 import { BOARD_MEMBERS } from "@/lib/board";
 import { CONTACT } from "@/lib/site";
+import { ESTEEMED_ALUMNI, ESTEEMED_CATEGORIES } from "@/lib/esteemed";
 
 // The landing page pulls featured achievements; keep the smoke test offline.
 vi.mock("@/lib/api", () => ({
@@ -74,6 +75,13 @@ describe("public pages", () => {
     expect(screen.getAllByRole("heading", { name: "Gallery" }).length).toBeGreaterThan(0);
 
     renderPage(<EsteemedAlumniPage />);
-    expect(screen.getByRole("heading", { name: "All Esteemed Alumni" })).toBeInTheDocument();
+    // The page is the three categories and nothing else — every alumnus is in
+    // exactly one, so there is no "All Esteemed Alumni" roll repeating them.
+    for (const cat of ESTEEMED_CATEGORIES) {
+      expect(screen.getByRole("heading", { name: cat.title })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("heading", { name: /all esteemed alumni/i })).not.toBeInTheDocument();
+    // Every tile carries the batch under the portrait, alongside the name.
+    expect(screen.getAllByText(/^Batch of \d{4}$/).length).toBe(ESTEEMED_ALUMNI.length);
   });
 });

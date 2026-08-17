@@ -3,32 +3,44 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
-import {
-  ESTEEMED_ALUMNI,
-  ESTEEMED_CATEGORIES,
-  ESTEEMED_GENERAL_IMAGE,
-  EsteemedAlumnus,
-  subtitleOf,
-} from "@/lib/esteemed";
+import { ESTEEMED_CATEGORIES, EsteemedAlumnus, esteemedByCategory } from "@/lib/esteemed";
 
-function AlumnusCard({ a }: { a: EsteemedAlumnus }) {
+/**
+ * One alumnus: a plain rectangular portrait, centred, with the name, batch and
+ * designation centred beneath it. No card chrome and no circular crop — a
+ * rectangle keeps the whole photograph, and heads sit near the top, so
+ * `object-top` avoids cropping faces.
+ *
+ * `max-w-[9.5rem]` caps the tile so a wide viewport makes the *columns*
+ * roomier rather than the portraits bigger; below that width the tile simply
+ * fills its grid cell.
+ */
+function Alumnus({ a }: { a: EsteemedAlumnus }) {
   return (
-    <motion.div
+    <motion.figure
       initial={{ opacity: 0, y: 10 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="rounded-xl border border-border bg-card p-5 text-center hover:border-primary/40 hover:shadow-md transition-all"
+      className="w-full max-w-[9.5rem] mx-auto text-center"
     >
       <img
         src={a.photo}
         alt={a.name}
         loading="lazy"
-        className="w-24 h-24 sm:w-28 sm:h-28 mx-auto rounded-full object-cover object-top ring-2 ring-border"
+        className="w-full aspect-[3/4] rounded-lg object-cover object-top bg-muted ring-1 ring-border"
       />
-      <p className="mt-4 text-sm font-semibold text-foreground leading-snug">{a.name}</p>
-      {subtitleOf(a) && <p className="text-xs text-muted-foreground mt-1 leading-snug">{subtitleOf(a)}</p>}
-      {a.batch && a.position && <p className="text-[11px] text-muted-foreground/80 mt-1">Batch of {a.batch}</p>}
-    </motion.div>
+      <figcaption className="mt-2.5">
+        <p className="text-[13px] sm:text-sm font-semibold text-foreground leading-snug break-words">
+          {a.name}
+        </p>
+        <p className="text-[11px] sm:text-xs font-medium text-primary mt-1 leading-snug">
+          Batch of {a.batch}
+        </p>
+        <p className="text-[11px] sm:text-xs text-muted-foreground mt-1 leading-snug break-words">
+          {a.position}
+        </p>
+      </figcaption>
+    </motion.figure>
   );
 }
 
@@ -40,26 +52,20 @@ export default function EsteemedAlumniPage() {
         subtitle="Graduates whose achievements in industry, enterprise and public service carry the ADCET name forward."
       />
 
-      {/* Composite board — full width so the individual portraits inside stay legible. */}
-      <section className="bg-background border-b border-border">
-        <img
-          src={ESTEEMED_GENERAL_IMAGE}
-          alt="ADCET esteemed alumni"
-          className="w-full h-auto"
-        />
-      </section>
-
       <div className="max-w-5xl mx-auto px-6 py-14 space-y-16">
+        {/* Every alumnus belongs to exactly one category, so these three
+            sections between them cover the whole roster — there is deliberately
+            no separate "All Esteemed Alumni" roll repeating them. */}
         {ESTEEMED_CATEGORIES.map((cat) => {
-          const members = ESTEEMED_ALUMNI.filter((a) => a.category === cat.id);
+          const members = esteemedByCategory(cat.id);
           return (
             <section key={cat.id} id={cat.id} className="scroll-mt-24">
               <h2 className="text-xl sm:text-2xl font-bold mb-2">{cat.title}</h2>
               <p className="text-sm text-muted-foreground mb-6 max-w-3xl">{cat.description}</p>
               {members.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-4 gap-y-7 sm:gap-x-5 sm:gap-y-8">
                   {members.map((a) => (
-                    <AlumnusCard key={a.name} a={a} />
+                    <Alumnus key={a.name} a={a} />
                   ))}
                 </div>
               ) : (
@@ -72,18 +78,6 @@ export default function EsteemedAlumniPage() {
             </section>
           );
         })}
-
-        <section id="all" className="scroll-mt-24">
-          <h2 className="text-xl sm:text-2xl font-bold mb-2">All Esteemed Alumni</h2>
-          <p className="text-sm text-muted-foreground mb-6 max-w-3xl">
-            Alumni featured by the Alumni Cell across departments and graduating batches.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {ESTEEMED_ALUMNI.map((a) => (
-              <AlumnusCard key={a.name} a={a} />
-            ))}
-          </div>
-        </section>
 
         <section className="rounded-2xl border border-border bg-muted/20 p-8 text-center">
           <h2 className="text-xl font-bold mb-2">Know an Alumnus Who Belongs Here?</h2>

@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import Marquee from "@/components/public/Marquee";
-import { ESTEEMED_ALUMNI, subtitleOf } from "@/lib/esteemed";
+import { ESTEEMED_ALUMNI } from "@/lib/esteemed";
 
-/** Sliding row of esteemed alumni; every card opens the full listing. */
+/**
+ * Sliding row of esteemed alumni; every card opens the full listing.
+ *
+ * Renders the whole roster in its seniority order, so the strip leads with the
+ * most senior alumni and mixes departments on its own — no separate "featured"
+ * list to keep in step.
+ */
 export default function EsteemedStrip() {
   return (
     <section className="py-16 bg-card border-y border-border">
@@ -15,25 +21,26 @@ export default function EsteemedStrip() {
         </p>
       </div>
 
-      <Marquee durationSec={45}>
+      <Marquee durationSec={100}>
         {ESTEEMED_ALUMNI.map((a) => (
           <Link
             key={a.name}
             to="/esteemed-alumni"
-            className="w-[150px] mx-3 shrink-0 text-center group/card"
-            title={`${a.name}${subtitleOf(a) ? ` — ${subtitleOf(a)}` : ""}`}
+            className="w-[200px] mx-4 shrink-0 text-center group/card"
+            title={`${a.name} (Batch of ${a.batch}) — ${a.position}`}
           >
             <img
               src={a.photo}
               alt={a.name}
               loading="lazy"
-              className="w-28 h-28 mx-auto rounded-full object-cover object-top ring-2 ring-border shadow-sm
+              className="w-40 h-40 mx-auto rounded-full object-cover object-top ring-2 ring-border shadow-sm
                 transition-all group-hover/card:ring-primary/50 group-hover/card:shadow-md"
             />
-            <p className="mt-3.5 text-sm font-medium text-foreground leading-snug group-hover/card:text-primary transition-colors">
+            <p className="mt-4 text-sm font-semibold text-foreground leading-snug group-hover/card:text-primary transition-colors">
               {a.name}
             </p>
-            <p className="text-[11px] text-muted-foreground leading-snug mt-0.5 line-clamp-2">{subtitleOf(a)}</p>
+            <p className="text-xs font-medium text-primary leading-snug mt-0.5">Batch of {a.batch}</p>
+            <p className="text-xs text-muted-foreground leading-snug mt-1 line-clamp-2">{a.position}</p>
           </Link>
         ))}
       </Marquee>

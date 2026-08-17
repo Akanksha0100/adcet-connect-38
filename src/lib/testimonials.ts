@@ -30,7 +30,7 @@ export const TESTIMONIALS: Testimonial[] = [
     batch: "Batch of 2005",
     photo: `${dir}/SagarAnturkar.png`,
     quote:
-      "The entrepreneurial mindset I developed at ADCET inspired me to establish my own business. The encouragement to think creatively and solve practical problems has been instrumental in my journey as an entrepreneur. I am always happy to support students through mentoring and career guidance.",
+      "ADCET helped me develop a mindset of thinking beyond the obvious, taking ownership, embracing challenges, learning from failures, adapting to change, and turning ideas into practical solutions. These qualities have been instrumental in navigating the uncertainties of a startup environment and building a sustainable business. The journey has strengthened my belief that success comes from curiosity, resilience, teamwork, continuous learning, and the courage to take calculated risks. I am always happy to give back by mentoring students and supporting them with career guidance and industry insights.",
   },
   {
     name: "Abhijeet Desai",
