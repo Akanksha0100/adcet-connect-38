@@ -10,6 +10,12 @@ import { LEADERSHIP } from "@/lib/public-content";
  * Each card lays out horizontally — portrait left, text right. Stacking them
  * centre-aligned instead leaves a wide empty margin either side of the portrait,
  * because a half-width card is far wider than the picture inside it.
+ *
+ * Within that column the reading order matches the founder's block above:
+ * message first, then the name and office beneath it in the founder's own type
+ * sizes, so the three messages on the landing page read as one treatment. The
+ * caption sits on `mt-auto`, which pins both names to the foot of the row
+ * however long the two messages are.
  */
 export default function LeadershipRow() {
   return (
@@ -33,22 +39,18 @@ export default function LeadershipRow() {
               />
 
               <div className="flex-1 min-w-0 flex flex-col">
-                <figcaption>
-                  <p className="text-base sm:text-lg font-semibold text-foreground leading-snug">
-                    {person.name}
-                  </p>
-                  <p className="text-sm sm:text-base text-primary mt-1">{person.role},</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 leading-snug">
-                    {person.org}
-                  </p>
-                </figcaption>
-
-                <blockquote className="mt-4 pt-4 border-t border-border">
-                  <Quote className="h-5 w-5 text-primary/25 mb-2" aria-hidden />
-                  <p className="text-sm sm:text-[15px] text-foreground/90 italic leading-relaxed">
+                <blockquote>
+                  <Quote className="h-8 w-8 text-primary/30 mb-4" aria-hidden />
+                  <p className="text-lg sm:text-xl text-foreground italic leading-relaxed">
                     "{person.quote}"
                   </p>
                 </blockquote>
+
+                <figcaption className="mt-auto pt-4">
+                  <p className="text-sm font-semibold text-foreground">{person.name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{person.role},</p>
+                  <p className="text-xs text-muted-foreground leading-snug">{person.org}</p>
+                </figcaption>
               </div>
             </motion.figure>
           ))}

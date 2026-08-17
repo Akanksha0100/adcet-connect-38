@@ -153,7 +153,7 @@ export default function LandingPage() {
             <img src="/logo.jpeg" alt="ADCET" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-3 leading-tight drop-shadow">ADCET Alumni Portal</h1>
-          <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology</p>
+          <p className="text-white/90 text-lg mb-1 font-medium">Annasaheb Dange College of Engineering and Technology, Ashta.</p>
           <p className="text-white/70 text-sm mb-2">Established 1999</p>
           {/* <p className="text-white/80 italic text-sm mb-6">ज्ञान ज्योती नमोस्तु ते — Salutations to the Light of Knowledge</p> */}
           <div className="flex flex-wrap justify-center gap-2 text-xs text-white/80 mb-9">

@@ -46,6 +46,16 @@ describe("LeadershipRow", () => {
       expect(screen.getByText(p.org)).toBeInTheDocument();
     }
   });
+
+  it("leads with the message and signs off with the name, like the founder above", () => {
+    renderIn(<LeadershipRow />);
+    for (const p of LEADERSHIP) {
+      const quote = screen.getByText(`"${p.quote}"`);
+      const name = screen.getByText(p.name);
+      // Node.DOCUMENT_POSITION_FOLLOWING: the name comes after the message.
+      expect(quote.compareDocumentPosition(name) & 4).toBeTruthy();
+    }
+  });
 });
 
 describe("AlumniNetworkMessage", () => {
