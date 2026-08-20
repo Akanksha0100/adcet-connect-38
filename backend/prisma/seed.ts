@@ -5,7 +5,7 @@
  *
  * Re-running this script is safe: every record is upserted by a stable key.
  */
-import { PrismaClient, type AppRole, type ApprovalStatus } from "@prisma/client";
+import { PrismaClient, Prisma, type AppRole, type ApprovalStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_CHAPTERS } from "../src/config/constants.js";
 import { runGeoBackfill } from "../src/jobs/geoBackfill.js";
@@ -273,6 +273,20 @@ const upsertAchievement = async (data: {
   });
   if (existing) return existing;
   return prisma.achievement.create({ data });
+};
+
+/**
+ * Idempotent like the rest: one collaboration request per (user, title), so a
+ * re-seed does not pile up duplicate placement drives in the admin inbox.
+ */
+const upsertCollaboration = async (
+  data: Prisma.CollaborationRequestUncheckedCreateInput,
+) => {
+  const existing = await prisma.collaborationRequest.findFirst({
+    where: { userId: data.userId, title: data.title },
+  });
+  if (existing) return existing;
+  return prisma.collaborationRequest.create({ data });
 };
 
 const upsertCampaign = async (data: {
@@ -712,6 +726,42 @@ async function main() {
 
   // Place the seeded alumni on the map. Gazetteer-only, so seeding never
   // depends on the network being up or on Nominatim being reachable.
+  // Alumni Collaboration — one of each kind, both pending, so the admin inbox
+  // has something to act on the first time it is opened in dev.
+  console.log("🤝 Seeding collaboration requests…");
+  await upsertCollaboration({
+    userId: rahul.id,
+    type: "PLACEMENT",
+    title: "EduSpark campus drive 2026",
+    organization: "EduSpark",
+    departments: ["Computer Science and Engineering", "Information Technology"],
+    mode: "ON_CAMPUS",
+    candidatesRequired: 15,
+    jobRole: "Full-stack Engineer (Trainee)",
+    packageLpa: 7.5,
+    driveDate: inDays(45),
+    eligibility: "6.0 CGPA and above, no live backlogs.",
+    description: "Two technical rounds plus an HR round, all on the same day.",
+    contactEmail: "careers@eduspark.example",
+    status: "PENDING",
+  });
+  await upsertCollaboration({
+    userId: priya.id,
+    type: "WORKSHOP",
+    title: "Federated learning, hands on",
+    organization: "IEEE Student Chapter",
+    departments: ["Computer Science and Engineering"],
+    mode: "HYBRID",
+    subject: "Privacy-preserving machine learning",
+    durationValue: 2,
+    durationUnit: "DAYS",
+    startDate: inDays(30),
+    endDate: inDays(31),
+    expectedParticipants: 60,
+    description: "Students should bring laptops with Python 3.11 installed.",
+    status: "PENDING",
+  });
+
   console.log("🗺  Placing alumni on the map…");
   const placed = await runGeoBackfill({ allowRemote: false });
   console.log(`   ${placed.profilesUpdated} profile(s) placed across ${placed.resolved} cit(ies).`);

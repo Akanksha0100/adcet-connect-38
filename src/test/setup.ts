@@ -22,6 +22,17 @@ class MockIntersectionObserver implements IntersectionObserver {
 window.IntersectionObserver = MockIntersectionObserver as unknown as typeof IntersectionObserver;
 globalThis.IntersectionObserver = window.IntersectionObserver;
 
+// Radix primitives that measure themselves (ScrollArea, Select) construct a
+// ResizeObserver on mount, which jsdom does not provide. Nothing in a test
+// depends on the measurements, so an inert stub is enough to let them render.
+class MockResizeObserver implements ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+window.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
+globalThis.ResizeObserver = window.ResizeObserver;
+
 // jsdom has no layout engine, so scrolling is a no-op rather than an error.
 window.scrollTo = () => {};
 Element.prototype.scrollIntoView = () => {};

@@ -159,3 +159,31 @@ describe("/donations (order/verify & admin list)", () => {
     expect(res.status).toBe(200);
   });
 });
+/**
+ * The one donations route with no session in front of it. It must answer
+ * anonymously, cap what an anonymous caller can ask for, and hand back names
+ * and totals only — never an email or a donation id.
+ */
+describe("GET /donations/public/top-donors", () => {
+  beforeEach(() => {
+    prisma.donation.groupBy.mockResolvedValue([{ userId: "u-1", _sum: { amount: 250000 } }] as any);
+    prisma.user.findMany.mockResolvedValue([
+      { id: "u-1", firstName: "Alice", lastName: "Patil", profile: { avatarKey: null, graduationYear: 2020 } },
+    ] as any);
+  });
+
+  it("200s without a token", async () => {
+    const res = await request(app).get("/api/v1/donations/public/top-donors?limit=12");
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toEqual([
+      { id: "u-1", name: "Alice Patil", amount: 250000, avatarKey: null, graduationYear: 2020 },
+    ]);
+    expect(JSON.stringify(res.body)).not.toMatch(/@|email/i);
+  });
+
+  it("422s a limit beyond the cap, so the ledger can't be paged anonymously", async () => {
+    const res = await request(app).get("/api/v1/donations/public/top-donors?limit=500");
+    expect(res.status).toBe(422);
+  });
+});

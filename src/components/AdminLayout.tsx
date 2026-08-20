@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, UserCheck, Calendar, Briefcase, Trophy, Heart, BarChart3,
   AlertTriangle, Settings, Bell, Menu, ChevronLeft, LogOut, X,
-  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag, Building2, Images
+  Search, User, Globe, FileText, MessageSquare, Newspaper, Flag, Building2, Images, Handshake
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -19,13 +19,23 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import NotificationsBell from "@/components/NotificationsBell";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import SidebarNavGroup from "@/components/SidebarNavGroup";
+import { COLLABORATION_KIND_LIST } from "@/lib/collaboration";
 
 interface AdminOverview {
   pendingUsers: number;
   pendingEvents: number;
   pendingJobs: number;
   pendingAchievements: number;
+  pendingPlacements: number;
+  pendingWorkshops: number;
 }
+
+/** Per-kind pending counts for the Alumni Collaboration group's badges. */
+const collaborationPending = (o?: AdminOverview): Record<string, number | undefined> => ({
+  PLACEMENT: o?.pendingPlacements,
+  WORKSHOP: o?.pendingWorkshops,
+});
 
 const AdminLayout = () => {
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
@@ -57,6 +67,13 @@ const AdminLayout = () => {
     { label: "Feed Moderation", path: "/admin/feed", icon: Flag, badge: undefined },
     { label: "Donations", path: "/admin/donations", icon: Heart, badge: undefined },
     { label: "Chapters", path: "/admin/chapters", icon: Building2, badge: undefined },
+    {
+      label: "Alumni Collaboration",
+      path: "/admin/collaboration",
+      icon: Handshake,
+      badge: undefined,
+      group: true,
+    },
     { label: "Reports", path: "/admin/reports", icon: AlertTriangle, badge: undefined },
     { label: "Geo Map", path: "/admin/geomap", icon: Globe, badge: undefined },
     { label: "Analytics", path: "/admin/analytics", icon: BarChart3, badge: undefined },
@@ -74,25 +91,42 @@ const AdminLayout = () => {
     navigate("/login", { replace: true });
   };
 
+  const pending = collaborationPending(overview);
+  const collaborationItems = COLLABORATION_KIND_LIST.map((k) => ({
+    label: k.label,
+    path: `/admin/collaboration/${k.slug}`,
+    badge: fmt(pending[k.type]),
+  }));
+
   const SidebarContent = () => (
     <nav className="p-3 space-y-1">
-      {sidebarItems.map((item) => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          end={item.path === "/admin"}
-          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          activeClassName="bg-primary/10 text-primary font-medium"
-        >
-          <item.icon className="h-4 w-4 flex-shrink-0" />
-          <span className="flex-1">{item.label}</span>
-          {item.badge && (
-            <Badge className="bg-destructive/15 text-destructive border-0 text-[10px] h-5 min-w-[20px] justify-center">
-              {item.badge}
-            </Badge>
-          )}
-        </NavLink>
-      ))}
+      {sidebarItems.map((item) =>
+        (item as { group?: boolean }).group ? (
+          <SidebarNavGroup
+            key={item.path}
+            label={item.label}
+            icon={item.icon}
+            basePath={item.path}
+            items={collaborationItems}
+          />
+        ) : (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === "/admin"}
+            className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            activeClassName="bg-primary/10 text-primary font-medium"
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1">{item.label}</span>
+            {item.badge && (
+              <Badge className="bg-destructive/15 text-destructive border-0 text-[10px] h-5 min-w-[20px] justify-center">
+                {item.badge}
+              </Badge>
+            )}
+          </NavLink>
+        ),
+      )}
     </nav>
   );
 

@@ -34,7 +34,7 @@ export const RATE_LIMITS = {
 export const UPLOAD_SCOPES = [
   "avatar", "banner", "event", "achievement", "receipt", "resume",
   "event-attachment", "job-attachment", "email-attachment", "post",
-  "newsletter", "newsletter-cover", "gallery",
+  "newsletter", "newsletter-cover", "gallery", "collaboration",
 ] as const;
 export type UploadScope = (typeof UPLOAD_SCOPES)[number];
 
@@ -46,6 +46,15 @@ export const FEED_MEDIA = {
   IMAGE_MIME_PREFIX: "image/",
   VIDEO_MIME_PREFIX: "video/",
 } as const;
+
+/**
+ * Alumni Collaboration attachment ceiling — one file per request, 10 MB.
+ *
+ * Bytes go browser -> storage, so nothing on the server sees the file: the
+ * request forms enforce this before presigning. Mirrored by
+ * `COLLABORATION_ATTACHMENT_MAX_BYTES` in `src/lib/collaboration.ts`.
+ */
+export const COLLABORATION_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
 
 /**
  * The official ADCET department names — the single source of truth for every

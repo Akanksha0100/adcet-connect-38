@@ -12,6 +12,7 @@ import {
   donationStatusSchema,
   listCampaignsQuery,
   listDonationsQuery,
+  topDonorsQuery,
 } from "./donations.validators.js";
 
 export const donationsRouter = Router();
@@ -19,6 +20,15 @@ export const donationsRouter = Router();
 // Razorpay webhook — PUBLIC (no auth). Razorpay signs the payload; we verify
 // the HMAC signature in the service. Must be declared before auth-gated routes.
 donationsRouter.post("/webhook", asyncHandler(ctrl.webhook));
+
+// Top donors — PUBLIC (no auth): the honour roll on the landing page. Returns
+// names, lifetime totals and avatars only, for donors who did **not** give
+// anonymously; see `topDonors()` for the three rules that keep it publishable.
+donationsRouter.get(
+  "/public/top-donors",
+  validate(topDonorsQuery, "query"),
+  asyncHandler(ctrl.topDonors),
+);
 
 // Campaigns (public read, admin write)
 donationsRouter.get(

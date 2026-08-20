@@ -24,6 +24,7 @@ tags:
   - { name: Uploads }
   - { name: Admin }
   - { name: Notifications }
+  - { name: Collaboration }
 
 security:
   - bearerAuth: []
@@ -537,6 +538,67 @@ paths:
     parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
     post: { tags: [Notifications], responses: { '204': { description: No Content } } }
 
+  # ---------- ALUMNI COLLABORATION ----------
+  /collaboration:
+    get:
+      tags: [Collaboration]
+      summary: List collaboration requests (a member sees only their own)
+      parameters:
+        - { in: query, name: type, schema: { type: string, enum: [PLACEMENT, WORKSHOP] } }
+        - { in: query, name: status, schema: { $ref: '#/components/schemas/ApprovalStatus' } }
+        - { in: query, name: mine, schema: { type: boolean } }
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: page, schema: { type: integer, default: 1 } }
+        - { in: query, name: pageSize, schema: { type: integer, default: 20 } }
+      responses: { '200': { description: OK } }
+    post:
+      tags: [Collaboration]
+      summary: Submit a placement-drive or workshop offer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/PlacementRequestInput'
+                - $ref: '#/components/schemas/WorkshopRequestInput'
+              discriminator: { propertyName: type }
+      responses: { '201': { description: Created } }
+
+  /collaboration/{id}:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    get:
+      tags: [Collaboration]
+      summary: Read one request (author or admin only)
+      responses: { '200': { description: OK }, '403': { description: Forbidden } }
+    delete:
+      tags: [Collaboration]
+      summary: Withdraw one's own request; only while it is still PENDING
+      responses: { '204': { description: No Content }, '403': { description: Forbidden } }
+
+  /collaboration/{id}/moderate:
+    parameters: [ { in: path, name: id, required: true, schema: { type: string } } ]
+    post:
+      tags: [Collaboration]
+      summary: Admin decision — notifies and emails the requesting alumnus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [APPROVED, REJECTED] }
+                reason: { type: string, description: Shown to the alumnus on rejection }
+      responses: { '200': { description: OK } }
+
+  /collaboration/pending-counts:
+    get:
+      tags: [Collaboration]
+      summary: Admin sidebar badges — pending count per collaboration type
+      responses: { '200': { description: OK } }
+
 # =====================================================================
 components:
   securitySchemes:
@@ -740,6 +802,49 @@ components:
         category: { type: string }
         occurredOn: { type: string, format: date }
         imageKey: { type: string }
+
+    CollaborationCommonInput:
+      type: object
+      properties:
+        title: { type: string }
+        organization: { type: string, description: Company or institute the alumnus represents }
+        departments:
+          type: array
+          items: { type: string }
+          description: Target departments. An empty list means every department.
+        mode: { type: string, enum: [ON_CAMPUS, ONLINE, HYBRID] }
+        description: { type: string }
+        attachmentKey: { type: string, description: Storage key of the single 10 MB attachment }
+        attachmentName: { type: string }
+        contactEmail: { type: string, format: email }
+        contactPhone: { type: string }
+
+    PlacementRequestInput:
+      allOf:
+        - { $ref: '#/components/schemas/CollaborationCommonInput' }
+        - type: object
+          required: [type, title, candidatesRequired, packageLpa, driveDate]
+          properties:
+            type: { type: string, enum: [PLACEMENT] }
+            candidatesRequired: { type: integer, minimum: 1 }
+            jobRole: { type: string }
+            packageLpa: { type: number, description: CTC in lakhs per annum }
+            driveDate: { type: string, format: date }
+            eligibility: { type: string }
+
+    WorkshopRequestInput:
+      allOf:
+        - { $ref: '#/components/schemas/CollaborationCommonInput' }
+        - type: object
+          required: [type, title, subject, durationValue, durationUnit, startDate]
+          properties:
+            type: { type: string, enum: [WORKSHOP] }
+            subject: { type: string }
+            durationValue: { type: integer, minimum: 1 }
+            durationUnit: { type: string, enum: [HOURS, DAYS] }
+            startDate: { type: string, format: date }
+            endDate: { type: string, format: date }
+            expectedParticipants: { type: integer, minimum: 1 }
 
     Achievement:
       allOf:

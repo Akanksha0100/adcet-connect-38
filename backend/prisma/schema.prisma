@@ -117,6 +117,10 @@ model User {
   settingsUpdated        AppSetting[]
   postQuotaUsage         PostQuotaUsage[]
 
+  // Alumni Collaboration (placement drives, workshops, ...)
+  collaborationRequests  CollaborationRequest[] @relation("CollaborationRequester")
+  collaborationReviews   CollaborationRequest[] @relation("CollaborationReviewer")
+
   @@index([status])
 }
 
@@ -844,4 +848,96 @@ model PostReport {
   /// One open report per member per post — re-reporting updates the existing row.
   @@unique([postId, reporterId])
   @@index([status, createdAt])
+}
+
+// =====================================================================
+// ALUMNI COLLABORATION
+// =====================================================================
+
+/// The kind of collaboration an alumnus is offering. Deliberately an enum on a
+/// single table rather than one table per kind: every kind shares the same
+/// submit → pending → admin decision lifecycle, so the admin inbox, the
+/// notifications and the RBAC live in one place, and adding a kind is one
+/// enum value plus its own optional columns.
+enum CollaborationType {
+  PLACEMENT
+  WORKSHOP
+}
+
+/// How the alumnus intends to run the drive / workshop.
+enum CollaborationMode {
+  ON_CAMPUS
+  ONLINE
+  HYBRID
+}
+
+enum DurationUnit {
+  HOURS
+  DAYS
+}
+
+/// An alumnus's offer to collaborate with the college — run a placement drive,
+/// conduct a workshop, and (later) more.
+///
+/// This is a **request board, not a scheduler**: approving one is the alumni
+/// office saying "yes, let's talk", after which they reach the alumnus on the
+/// contact details captured here. Nothing downstream (no event, no job post) is
+/// created automatically.
+///
+/// Columns are shared where the two kinds agree and type-specific where they do
+/// not; `collaboration.validators.ts` is what makes the right subset mandatory
+/// per `type`, via a discriminated union.
+model CollaborationRequest {
+  id              String            @id @default(uuid())
+  userId          String
+  type            CollaborationType
+  status          ApprovalStatus    @default(PENDING)
+  rejectionReason String?
+
+  // ---- shared ----
+  title           String
+  /// Company / institute the alumnus represents.
+  organization    String?
+  /// Target departments. **Empty means every department** — the same meaning
+  /// `Event.departments` and `Job.departments` give an empty array.
+  departments     String[]
+  mode            CollaborationMode?
+  /// Free-text "anything else the office should know".
+  description     String?
+  attachmentKey   String?
+  /// Original file name, so the admin sees "jd-infosys.pdf" and not a storage key.
+  attachmentName  String?
+  contactEmail    String?
+  contactPhone    String?
+
+  // ---- placement only ----
+  candidatesRequired Int?
+  /// Role/designation offered, e.g. "Software Engineer Trainee".
+  jobRole            String?
+  /// CTC in lakhs per annum.
+  packageLpa         Float?
+  driveDate          DateTime?
+  /// CGPA / backlog / batch criteria.
+  eligibility        String?
+
+  // ---- workshop only ----
+  subject              String?
+  durationValue        Int?
+  durationUnit         DurationUnit?
+  startDate            DateTime?
+  endDate              DateTime?
+  expectedParticipants Int?
+
+  reviewedAt   DateTime?
+  reviewedById String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User  @relation("CollaborationRequester", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy User? @relation("CollaborationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  /// The admin inbox reads one type at one status, newest first.
+  @@index([type, status, createdAt])
+  /// The alumnus's own "Actions" panel reads their own requests, newest first.
+  @@index([userId, createdAt])
 }

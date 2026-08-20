@@ -20,6 +20,7 @@ import { adminRouter } from "../modules/admin/admin.routes.js";
 import { contentRouter } from "../modules/content/content.routes.js";
 import { galleryRouter } from "../modules/gallery/gallery.routes.js";
 import { feedRouter } from "../modules/feed/feed.routes.js";
+import { collaborationRouter } from "../modules/collaboration/collaboration.routes.js";
 
 export const apiRouter = Router();
 
@@ -42,6 +43,7 @@ apiRouter.use("/admin", adminRouter);
 apiRouter.use("/content", contentRouter);
 apiRouter.use("/gallery", galleryRouter);
 apiRouter.use("/feed", feedRouter);
+apiRouter.use("/collaboration", collaborationRouter);
 
 // Assistant chatbot — placeholder until a real LLM/agent is wired up.
 apiRouter.post("/assistant/chat", (_req, res) =>

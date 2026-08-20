@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard, User, Users, Briefcase, Calendar, Heart, Trophy, MapPin, BarChart3,
   Bell, ChevronDown, Menu, X, MessageCircle, LogOut, Settings, ChevronLeft, ShieldCheck, Send, Loader2,
-  Home, Info, MoreHorizontal, Newspaper, Network
+  Home, Info, MoreHorizontal, Newspaper, Network, Handshake
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,6 +16,8 @@ import { NavLink } from "@/components/NavLink";
 import { api } from "@/lib/api";
 import NotificationsBell from "@/components/NotificationsBell";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import SidebarNavGroup from "@/components/SidebarNavGroup";
+import { COLLABORATION_KIND_LIST } from "@/lib/collaboration";
 
 const mainNav = [
   { label: "Home", path: "/dashboard" },
@@ -32,6 +34,17 @@ const moreItems = [
   { label: "Support", path: "/dashboard/support" },
 ];
 
+/**
+ * Alumni Collaboration is a *group*, not a link: each kind (placement,
+ * workshop, more later) is its own page, and the sidebar entry expands to them.
+ * The list comes from `COLLABORATION_KIND_LIST`, so adding a kind there adds it
+ * here and to the admin sidebar at the same time.
+ */
+const collaborationItems = COLLABORATION_KIND_LIST.map((k) => ({
+  label: k.label,
+  path: `/dashboard/collaboration/${k.slug}`,
+}));
+
 const sidebarItems = [
   { label: "Feed", path: "/dashboard/feed", icon: Newspaper },
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
@@ -44,6 +57,7 @@ const sidebarItems = [
   { label: "Achievements", path: "/dashboard/achievements", icon: Trophy },
   { label: "Geo Map", path: "/dashboard/geomap", icon: MapPin },
   { label: "Chapters", path: "/dashboard/chapters", icon: Network },
+  { label: "Alumni Collaboration", path: "/dashboard/collaboration", icon: Handshake, group: true },
   { label: "Analytics", path: "/dashboard/analytics", icon: BarChart3 },
   { label: "Notifications", path: "/dashboard/notifications", icon: Bell },
   { label: "Admin Panel", path: "/admin", icon: ShieldCheck, admin: true },
@@ -116,16 +130,26 @@ const DashboardLayout = () => {
   const SidebarContent = () => (
     <nav className="p-3 space-y-1">
       {visibleSidebar.filter(i => !(i as any).admin).map(item => (
-        <NavLink
-          key={item.path}
-          to={item.path}
-          end={item.path === "/dashboard"}
-          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          activeClassName="bg-primary/10 text-primary font-medium"
-        >
-          <item.icon className="h-4 w-4 flex-shrink-0" />
-          <span>{item.label}</span>
-        </NavLink>
+        (item as { group?: boolean }).group ? (
+          <SidebarNavGroup
+            key={item.path}
+            label={item.label}
+            icon={item.icon}
+            basePath={item.path}
+            items={collaborationItems}
+          />
+        ) : (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            end={item.path === "/dashboard"}
+            className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            activeClassName="bg-primary/10 text-primary font-medium"
+          >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            <span>{item.label}</span>
+          </NavLink>
+        )
       ))}
 
       {isAdmin && isApproved && (

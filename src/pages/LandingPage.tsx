@@ -10,6 +10,7 @@ import SocialLinks from "@/components/public/SocialLinks";
 import BoardStrip from "@/components/public/BoardStrip";
 import ChaptersSection from "@/components/public/ChaptersSection";
 import EsteemedStrip from "@/components/public/EsteemedStrip";
+import TopDonorsStrip from "@/components/public/TopDonorsStrip";
 import TestimonialsSection from "@/components/public/TestimonialsSection";
 import LeadershipRow from "@/components/public/LeadershipRow";
 import AlumniNetworkMessage from "@/components/public/AlumniNetworkMessage";
@@ -250,6 +251,9 @@ export default function LandingPage() {
 
       {/* Esteemed alumni */}
       <EsteemedStrip />
+
+      {/* Largest donors — live from the ledger, stepped slide (see the component). */}
+      <TopDonorsStrip />
 
       {/* Alumni Achievements slider (auto-latest approved) */}
       <AchievementsSlider />

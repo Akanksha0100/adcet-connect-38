@@ -886,3 +886,101 @@ export const rsvpConfirmationHtml = (
     </div>
   `,
 );
+
+/* ------------------------- Alumni Collaboration -------------------------- */
+
+export interface CollaborationEmailData {
+  id: string;
+  type: "PLACEMENT" | "WORKSHOP";
+  title: string;
+  organization?: string | null;
+  departments: string[];
+  /** Already-formatted "label → value" rows, built by the service. */
+  rows: { label: string; value: string }[];
+}
+
+const collaborationRow = (label: string, value: string) => `
+  <tr>
+    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #6c757d; font-size: 13px; width: 170px;">${esc(label)}</td>
+    <td style="padding: 10px 0; border-bottom: 1px solid #f0f0f0; color: #2c3e50; font-size: 14px;">${esc(value)}</td>
+  </tr>`;
+
+const collaborationDetails = (c: CollaborationEmailData): string => `
+  <div style="margin: 20px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+      ${collaborationRow("Request", c.title)}
+      ${c.organization ? collaborationRow("Organisation", c.organization) : ""}
+      ${collaborationRow(
+        "Departments",
+        c.departments.length ? c.departments.join(", ") : "All departments",
+      )}
+      ${c.rows.map((r) => collaborationRow(r.label, r.value)).join("")}
+    </table>
+  </div>
+`;
+
+const COLLABORATION_LABEL: Record<CollaborationEmailData["type"], string> = {
+  PLACEMENT: "placement drive",
+  WORKSHOP: "workshop",
+};
+
+const collaborationPath = (type: CollaborationEmailData["type"]) =>
+  type === "PLACEMENT" ? "placement" : "workshop";
+
+/**
+ * Sent to the requesting alumnus once an admin decides on their collaboration
+ * request. Approval is the alumni office saying "yes, let's talk" — it does not
+ * schedule anything, so the copy tells them to expect a follow-up rather than
+ * implying the date is booked.
+ */
+export const collaborationDecisionEmail = (
+  c: CollaborationEmailData,
+  authorName: string,
+  status: "APPROVED" | "REJECTED",
+  reason?: string | null,
+): { subject: string; text: string; html: string } => {
+  const kind = COLLABORATION_LABEL[c.type];
+  const url = `${PORTAL_URL}/dashboard/collaboration/${collaborationPath(c.type)}`;
+  const approved = status === "APPROVED";
+
+  const body = approved
+    ? `
+      <h2>🤝 Your ${esc(kind)} request has been approved</h2>
+      <p>Hi ${esc(authorName)},</p>
+      <p>Thank you for offering to collaborate with ADCET. The alumni office has <strong>approved</strong> your ${esc(kind)} request and will contact you directly to work out the details.</p>
+      ${collaborationDetails(c)}
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="${url}" class="btn btn-primary">View your request →</a>
+      </div>
+    `
+    : `
+      <h2>Your ${esc(kind)} request was not approved</h2>
+      <p>Hi ${esc(authorName)},</p>
+      <p>The alumni office reviewed your ${esc(kind)} request and could not take it forward at this time.</p>
+      ${reason ? `<p style="background:#fdf0ef;border-left:3px solid #c0392b;padding:12px 14px;margin:16px 0;"><strong>Reason:</strong> ${esc(reason)}</p>` : ""}
+      ${collaborationDetails(c)}
+      <p>You are welcome to submit a fresh request with updated details.</p>
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="${url}" class="btn btn-primary">Open Alumni Collaboration →</a>
+      </div>
+    `;
+
+  const text = approved
+    ? `Your ${kind} request has been approved\n\n` +
+      `Hi ${authorName},\n\n` +
+      `The alumni office has approved "${c.title}" and will contact you directly to work out the details.\n\n` +
+      `View it: ${url}\n`
+    : `Your ${kind} request was not approved\n\n` +
+      `Hi ${authorName},\n\n` +
+      `The alumni office could not take "${c.title}" forward at this time.\n` +
+      `${reason ? `Reason: ${reason}\n` : ""}` +
+      `\nYou are welcome to submit a fresh request: ${url}\n`;
+
+  return {
+    subject: approved
+      ? `🤝 Approved: your ${kind} request — ADCET Alumni`
+      : `Update on your ${kind} request — ADCET Alumni`,
+    text,
+    html: wrap(approved ? "Request Approved" : "Request Update", body),
+  };
+};

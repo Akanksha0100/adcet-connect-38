@@ -21,7 +21,8 @@ export type UploadScope =
   | "post"
   | "newsletter"
   | "newsletter-cover"
-  | "gallery";
+  | "gallery"
+  | "collaboration";
 
 export type PresignResult = {
   uploadUrl: string;

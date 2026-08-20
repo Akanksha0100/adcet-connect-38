@@ -22,6 +22,11 @@ export const webhook = async (req: Request, res: Response) => {
   const signature = req.header("x-razorpay-signature");
   res.json(await service.handleWebhook(rawBody, signature));
 };
+/** Public honour roll for the landing page — no session, no donor emails. */
+export const topDonors = async (req: Request, res: Response) => {
+  const { limit } = req.query as unknown as { limit: number };
+  res.json({ items: await service.topDonorsCached(limit) });
+};
 export const listDonations = async (req: Request, res: Response) =>
   res.json(await service.listDonations(req.query as unknown as Parameters<typeof service.listDonations>[0]));
 export const myDonations = async (req: Request, res: Response) =>

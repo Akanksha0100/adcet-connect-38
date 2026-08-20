@@ -50,13 +50,32 @@ export const departmentBreakdown = async () => {
 
 /** Admin-only — unfiltered moderation pipeline counters. */
 export const adminOverview = async () => {
-  const [pendingUsers, pendingEvents, pendingJobs, pendingAchievements] = await Promise.all([
-    prisma.user.count({ where: { status: "PENDING" } }),
-    prisma.event.count({ where: { status: "PENDING" } }),
-    prisma.job.count({ where: { status: "PENDING" } }),
-    prisma.achievement.count({ where: { status: "PENDING" } }),
-  ]);
-  return { pendingUsers, pendingEvents, pendingJobs, pendingAchievements };
+  const [pendingUsers, pendingEvents, pendingJobs, pendingAchievements, pendingCollaboration] =
+    await Promise.all([
+      prisma.user.count({ where: { status: "PENDING" } }),
+      prisma.event.count({ where: { status: "PENDING" } }),
+      prisma.job.count({ where: { status: "PENDING" } }),
+      prisma.achievement.count({ where: { status: "PENDING" } }),
+      // Grouped so the admin sidebar can badge each collaboration type
+      // separately without one query per type.
+      prisma.collaborationRequest.groupBy({
+        by: ["type"],
+        where: { status: "PENDING" },
+        _count: { _all: true },
+      }),
+    ]);
+  const pendingPlacements =
+    pendingCollaboration.find((g) => g.type === "PLACEMENT")?._count._all ?? 0;
+  const pendingWorkshops =
+    pendingCollaboration.find((g) => g.type === "WORKSHOP")?._count._all ?? 0;
+  return {
+    pendingUsers,
+    pendingEvents,
+    pendingJobs,
+    pendingAchievements,
+    pendingPlacements,
+    pendingWorkshops,
+  };
 };
 
 /** Admin-only — filterable alumni list for analytics. */

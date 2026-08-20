@@ -83,17 +83,38 @@ describe("analytics.service — departmentBreakdown", () => {
 });
 
 describe("analytics.service — adminOverview", () => {
-  it("returns the four pending counters in parallel", async () => {
+  it("returns the pending counters in parallel", async () => {
     prismaMock.user.count.mockResolvedValueOnce(1);
     prismaMock.event.count.mockResolvedValueOnce(2);
     prismaMock.job.count.mockResolvedValueOnce(3);
     prismaMock.achievement.count.mockResolvedValueOnce(4);
+    prismaMock.collaborationRequest.groupBy.mockResolvedValueOnce([
+      { type: "PLACEMENT", _count: { _all: 5 } },
+      { type: "WORKSHOP", _count: { _all: 6 } },
+    ]);
     expect(await svc.adminOverview()).toEqual({
       pendingUsers: 1,
       pendingEvents: 2,
       pendingJobs: 3,
       pendingAchievements: 4,
+      pendingPlacements: 5,
+      pendingWorkshops: 6,
     });
+  });
+
+  it("reports zero for a collaboration type with nothing pending", async () => {
+    prismaMock.user.count.mockResolvedValueOnce(0);
+    prismaMock.event.count.mockResolvedValueOnce(0);
+    prismaMock.job.count.mockResolvedValueOnce(0);
+    prismaMock.achievement.count.mockResolvedValueOnce(0);
+    // groupBy returns no row at all for a type with no pending requests, which
+    // must read as 0 rather than leaving the sidebar badge undefined.
+    prismaMock.collaborationRequest.groupBy.mockResolvedValueOnce([
+      { type: "PLACEMENT", _count: { _all: 2 } },
+    ]);
+    const out = await svc.adminOverview();
+    expect(out.pendingPlacements).toBe(2);
+    expect(out.pendingWorkshops).toBe(0);
   });
 });
 describe("analytics.service — adminInsights", () => {

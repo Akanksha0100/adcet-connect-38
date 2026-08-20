@@ -69,6 +69,7 @@ const MODELS = [
   "appSetting",
   "postQuotaUsage",
   "geoLocation",
+  "collaborationRequest",
 ] as const;
 
 export type MockedPrisma = {

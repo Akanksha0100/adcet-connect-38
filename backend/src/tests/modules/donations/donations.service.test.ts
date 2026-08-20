@@ -227,3 +227,80 @@ describe("donations.service — handleWebhook", () => {
     expect(prismaMock.donation.findUnique).not.toHaveBeenCalled();
   });
 });
+/**
+ * The public honour roll. What matters here is what is *left out* — anonymous
+ * gifts, unpaid pledges and unapproved accounts — because the endpoint has no
+ * session behind it and the result lands on the landing page.
+ */
+describe("donations.service — topDonors", () => {
+  beforeEach(() => svc.invalidateTopDonors());
+
+  const groupedRows = [
+    { userId: "u-1", _sum: { amount: 250000 } },
+    { userId: "u-2", _sum: { amount: 90000 } },
+  ];
+  const userRows = [
+    { id: "u-2", firstName: "Bob", lastName: "Kulkarni", profile: { avatarKey: null, graduationYear: 2016 } },
+    { id: "u-1", firstName: "Alice", lastName: "Patil", profile: { avatarKey: "avatar/a.png", graduationYear: 2020 } },
+  ];
+
+  it("counts only received, non-anonymous gifts from approved accounts", async () => {
+    prismaMock.donation.groupBy.mockResolvedValueOnce(groupedRows);
+    prismaMock.user.findMany.mockResolvedValueOnce(userRows);
+
+    await svc.topDonors(12);
+
+    const args: any = prismaMock.donation.groupBy.mock.calls.at(-1)![0];
+    expect(args.where).toMatchObject({
+      status: "RECEIVED",
+      isAnonymous: false,
+      user: { status: "APPROVED" },
+    });
+    expect(args.orderBy).toEqual({ _sum: { amount: "desc" } });
+    expect(args.take).toBe(12);
+  });
+
+  it("keeps the largest-first order even though findMany returns its own", async () => {
+    prismaMock.donation.groupBy.mockResolvedValueOnce(groupedRows);
+    prismaMock.user.findMany.mockResolvedValueOnce(userRows);
+
+    const out = await svc.topDonors(12);
+
+    expect(out.map((d) => [d.name, d.amount])).toEqual([
+      ["Alice Patil", 250000],
+      ["Bob Kulkarni", 90000],
+    ]);
+    // The name and photo come from the account, not the frozen donorName —
+    // that is what makes the roll follow the alumni data.
+    expect(out[0].avatarKey).toBe("avatar/a.png");
+    expect(out[0].graduationYear).toBe(2020);
+  });
+
+  it("drops a donor whose account has since vanished", async () => {
+    prismaMock.donation.groupBy.mockResolvedValueOnce(groupedRows);
+    prismaMock.user.findMany.mockResolvedValueOnce([userRows[1]]);
+
+    const out = await svc.topDonors(12);
+    expect(out.map((d) => d.id)).toEqual(["u-1"]);
+  });
+
+  it("returns nothing, and asks for no users, when nobody has given yet", async () => {
+    prismaMock.donation.groupBy.mockResolvedValueOnce([]);
+
+    expect(await svc.topDonors(12)).toEqual([]);
+    expect(prismaMock.user.findMany).not.toHaveBeenCalled();
+  });
+
+  it("caches per limit, and a settled payment drops the cache", async () => {
+    prismaMock.donation.groupBy.mockResolvedValue(groupedRows);
+    prismaMock.user.findMany.mockResolvedValue(userRows);
+
+    await svc.topDonorsCached(12);
+    await svc.topDonorsCached(12);
+    expect(prismaMock.donation.groupBy).toHaveBeenCalledTimes(1);
+
+    svc.invalidateTopDonors();
+    await svc.topDonorsCached(12);
+    expect(prismaMock.donation.groupBy).toHaveBeenCalledTimes(2);
+  });
+});

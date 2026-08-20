@@ -47,3 +47,8 @@ export const listDonationsQuery = paginationSchema.extend({
   campaignId: z.string().uuid().optional(),
   status: z.enum(["PLEDGED", "RECEIVED", "CANCELLED"]).optional(),
 });
+
+/** Public honour roll. Capped so the anonymous endpoint can't page the ledger. */
+export const topDonorsQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(24).default(12),
+});

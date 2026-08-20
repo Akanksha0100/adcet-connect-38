@@ -189,6 +189,8 @@ const markReceived = (
         note: paymentId ? `Payment ${paymentId}` : null,
       },
     });
+    // Money just landed: the public honour roll may have a new leader.
+    invalidateTopDonors();
     return updated;
   });
 
@@ -377,6 +379,99 @@ export const listDonations = async (
   return { items: cleaned, pagination: paginationMeta(total, q) };
 };
 
+/* -------------------------------------------------------------------------- */
+/*  Top donors — the public honour roll on the landing page                   */
+/* -------------------------------------------------------------------------- */
+
+export interface PublicDonor {
+  /** User id — the list key; nothing else about the account is exposed. */
+  id: string;
+  name: string;
+  /** Lifetime total of their **received** gifts, in rupees. */
+  amount: number;
+  avatarKey: string | null;
+  graduationYear: number | null;
+}
+
+/**
+ * The largest donors, summed per person, for the public landing page.
+ *
+ * Three rules make this safe to publish without a curated list to maintain:
+ *
+ *  1. **`isAnonymous` is the donor's veto.** A gift given anonymously is
+ *     excluded from the sum entirely, so ticking that box on the donation form
+ *     keeps a donor off this wall — and off it retroactively, since the total
+ *     is recomputed from the rows every time.
+ *  2. **Only `RECEIVED` money counts.** A `PLEDGED` row is an unpaid Razorpay
+ *     order anyone can create, so counting it would let a visitor put their own
+ *     name on the landing page for free.
+ *  3. **The name comes from the account, not the donation snapshot.** The
+ *     `donorName` column is frozen at payment time for the receipt; this reads
+ *     `User` and `Profile` live, so a renamed or newly photographed alumnus is
+ *     shown correctly, and a new top gift reorders the list on its own.
+ */
+export const topDonors = async (limit = 12): Promise<PublicDonor[]> => {
+  const grouped = await prisma.donation.groupBy({
+    by: ["userId"],
+    where: {
+      status: "RECEIVED",
+      isAnonymous: false,
+      // Pending and rejected accounts are not published anywhere else either.
+      user: { status: "APPROVED" },
+    },
+    _sum: { amount: true },
+    orderBy: { _sum: { amount: "desc" } },
+    take: limit,
+  });
+  if (grouped.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: grouped.map((g) => g.userId) } },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      profile: { select: { avatarKey: true, graduationYear: true } },
+    },
+  });
+  const byId = new Map(users.map((u) => [u.id, u]));
+
+  // Rebuilt in the grouped order — `findMany` does not preserve it.
+  return grouped.flatMap((g) => {
+    const user = byId.get(g.userId);
+    const amount = g._sum.amount ?? 0;
+    if (!user || amount <= 0) return [];
+    return [{
+      id: user.id,
+      name: `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "ADCET Alumnus",
+      amount,
+      avatarKey: user.profile?.avatarKey ?? null,
+      graduationYear: user.profile?.graduationYear ?? null,
+    }];
+  });
+};
+
+/**
+ * Short-lived cache, keyed by `limit`, in front of `topDonors()`.
+ *
+ * The landing page is the most-hit page on the site and the honour roll changes
+ * only when a payment settles, so a few minutes of staleness is invisible and
+ * keeps a group-by off the hot path. Failures are not cached.
+ */
+const TOP_DONORS_TTL_MS = 5 * 60_000;
+const topDonorsCache = new Map<number, { at: number; data: PublicDonor[] }>();
+
+export const topDonorsCached = async (limit = 12): Promise<PublicDonor[]> => {
+  const hit = topDonorsCache.get(limit);
+  if (hit && Date.now() - hit.at < TOP_DONORS_TTL_MS) return hit.data;
+  const data = await topDonors(limit);
+  topDonorsCache.set(limit, { at: Date.now(), data });
+  return data;
+};
+
+/** Drop the cached roll — called whenever a donation's status changes. */
+export const invalidateTopDonors = () => topDonorsCache.clear();
+
 export const myDonations = (userId: string) =>
   prisma.donation.findMany({
     where: { userId },
@@ -406,5 +501,7 @@ export const updateDonationStatus = (
         note: data.note ?? null,
       },
     });
+    // An admin moving a gift in or out of RECEIVED changes the honour roll.
+    invalidateTopDonors();
     return donation;
   });

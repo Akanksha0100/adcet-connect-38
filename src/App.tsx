@@ -31,6 +31,7 @@ import AchievementsPage from "./pages/AchievementsPage";
 import DonationsPage from "./pages/DonationsPage";
 import GeoMapPage from "./pages/GeoMapPage";
 import ChaptersPage from "./pages/ChaptersPage";
+import CollaborationPage from "./pages/CollaborationPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
 import AlumniDirectoryPage from "./pages/AlumniDirectoryPage";
 import NotFound from "./pages/NotFound";
@@ -56,6 +57,7 @@ import AdminGeoMapPage from "./pages/admin/AdminGeoMapPage";
 import ChaptersAdminPage from "./pages/admin/ChaptersAdminPage";
 import NewsroomPage from "./pages/admin/NewsroomPage";
 import GalleryAdminPage from "./pages/admin/GalleryAdminPage";
+import CollaborationAdminPage from "./pages/admin/CollaborationAdminPage";
 import StaticContentPage from "./pages/StaticContentPage";
 import AccountStatusPage from "./pages/AccountStatusPage";
 import AccountStatusGate from "./components/AccountStatusGate";
@@ -130,6 +132,10 @@ const App = () => (
                     <Route path="chapters" element={<ChaptersPage />} />
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="alumni" element={<AlumniDirectoryPage />} />
+                    {/* Alumni Collaboration — one page per kind, all driven by
+                        COLLABORATION_KINDS in src/lib/collaboration.ts. */}
+                    <Route path="collaboration/placement" element={<CollaborationPage type="PLACEMENT" />} />
+                    <Route path="collaboration/workshop" element={<CollaborationPage type="WORKSHOP" />} />
                     <Route path="support" element={<StaticContentPage contentKey="support" />} />
                     <Route path="news" element={<StaticContentPage contentKey="news" />} />
                     <Route path="status" element={<AccountStatusPage />} />
@@ -154,6 +160,8 @@ const App = () => (
                   <Route path="reports" element={<ReportsPage />} />
                   <Route path="newsroom" element={<NewsroomPage />} />
                   <Route path="gallery" element={<GalleryAdminPage />} />
+                  <Route path="collaboration/placement" element={<CollaborationAdminPage type="PLACEMENT" />} />
+                  <Route path="collaboration/workshop" element={<CollaborationAdminPage type="WORKSHOP" />} />
                   <Route path="support" element={<SupportInboxPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>

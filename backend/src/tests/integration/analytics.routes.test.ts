@@ -67,10 +67,15 @@ describe("/analytics", () => {
     prisma.event.count.mockResolvedValueOnce(1);
     prisma.job.count.mockResolvedValueOnce(0);
     prisma.achievement.count.mockResolvedValueOnce(4);
+    prisma.collaborationRequest.groupBy.mockResolvedValueOnce([
+      { type: "PLACEMENT", _count: { _all: 3 } },
+    ] as any);
     const res = await request(app)
       .get("/api/v1/analytics/admin/overview")
       .set("Authorization", bearer(adminToken));
     expect(res.status).toBe(200);
     expect(res.body.pendingAchievements).toBe(4);
+    expect(res.body.pendingPlacements).toBe(3);
+    expect(res.body.pendingWorkshops).toBe(0);
   });
 });
