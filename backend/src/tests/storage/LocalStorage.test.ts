@@ -63,6 +63,27 @@ describe("LocalStorage", () => {
     expect(existsSync(full)).toBe(false);
   });
 
+  /**
+   * `delete()` used to `path.join(root, key)`, and the key arrives in a request
+   * body — so `../..` walked out of the uploads directory and removed whatever
+   * it landed on. The uploads module refuses such keys first; this is the
+   * adapter's own lock, which no future caller can bypass.
+   */
+  it.each([
+    "../escape.txt",
+    "avatar/u/../../../escape.txt",
+    "../../../../etc/passwd",
+  ])("delete() refuses to touch %s, outside the storage root", async (key) => {
+    const outside = path.join(path.dirname(tmpDir), "escape.txt");
+    writeFileSync(outside, "do not delete me");
+    try {
+      await expect(storage.delete(key)).rejects.toThrow(/outside the storage root/);
+      expect(existsSync(outside)).toBe(true);
+    } finally {
+      rmSync(outside, { force: true });
+    }
+  });
+
   it("presignDownload returns the same publicUrl for the key", async () => {
     const url = await storage.presignDownload("avatar/u/x.png");
     expect(url).toBe("http://example.test/uploads/avatar/u/x.png");

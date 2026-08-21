@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { BadRequest } from "../../lib/errors.js";
+import { isAdmin } from "../../middlewares/rbac.js";
 import * as service from "./uploads.service.js";
+
+/** The identity every key check is made against. */
+const caller = (req: Request): service.Caller => ({ id: req.auth!.sub, isAdmin: isAdmin(req) });
 
 export const presignUpload = async (req: Request, res: Response) =>
   res.json(await service.presignUpload(req.auth!.sub, req.body));
@@ -18,9 +22,9 @@ export const uploadDirect = async (req: Request, res: Response) => {
 };
 
 export const presignDownload = async (req: Request, res: Response) =>
-  res.json({ url: await service.presignDownload(req.body.key) });
+  res.json({ url: await service.presignDownload(caller(req), req.body.key) });
 
 export const remove = async (req: Request, res: Response) => {
-  await service.remove(req.body.key);
+  await service.remove(caller(req), req.body.key);
   res.status(204).end();
 };

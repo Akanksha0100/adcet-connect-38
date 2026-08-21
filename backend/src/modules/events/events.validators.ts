@@ -1,13 +1,14 @@
 import { z } from "zod";
 import { paginationSchema, booleanQueryParam } from "../../lib/pagination.js";
 import { departmentListSchema } from "../../lib/departments.js";
+import { httpUrl } from "../../lib/urls.js";
 
 const eventBase = z.object({
   title: z.string().min(2).max(200),
   description: z.string().min(10).max(20000),
   location: z.string().max(200).optional(),
   isOnline: z.boolean().optional().default(false),
-  meetingUrl: z.string().url().max(500).optional(),
+  meetingUrl: httpUrl(500).optional(),
   startsAt: z.coerce.date(),
   endsAt: z.coerce.date().optional(),
   capacity: z.coerce.number().int().min(1).optional(),

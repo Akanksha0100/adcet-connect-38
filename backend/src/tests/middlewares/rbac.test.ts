@@ -15,7 +15,7 @@ describe("middlewares/rbac", () => {
 
     it("403 when caller has none of the allowed roles", () => {
       const req = buildReq();
-      (req as any).auth = auth(["STUDENT"]);
+      (req as any).auth = auth(["ALUMNI"]);
       const next = buildNext();
       requireRoles("ADMIN")(req, buildRes(), next);
       expect((next.mock.calls[0][0] as ApiError).status).toBe(403);
@@ -23,7 +23,7 @@ describe("middlewares/rbac", () => {
 
     it("passes when at least one role matches", () => {
       const req = buildReq();
-      (req as any).auth = auth(["RECRUITER", "ALUMNI"]);
+      (req as any).auth = auth(["ALUMNI"]);
       const next = buildNext();
       requireRoles("ALUMNI", "ADMIN")(req, buildRes(), next);
       expect(next).toHaveBeenCalledWith();
@@ -62,7 +62,7 @@ describe("middlewares/rbac", () => {
     });
     it("false when caller is neither owner nor admin", () => {
       const req = buildReq();
-      (req as any).auth = auth(["STUDENT"]);
+      (req as any).auth = auth(["ALUMNI"]);
       expect(isOwnerOrAdmin(req, "other")).toBe(false);
     });
   });

@@ -62,7 +62,6 @@ export interface RegisterInput {
   currentCompany: string;
   currentRole: string;
   linkedinUrl: string;
-  role?: "ALUMNI" | "STUDENT" | "RECRUITER";
   githubUrl?: string;
   twitterUrl?: string;
   websiteUrl?: string;

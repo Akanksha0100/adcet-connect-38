@@ -66,6 +66,52 @@ describe("admin.service — generateReport", () => {
     expect(out.csv.split("\n")[0]).toBe("Title,Author,Email,Category,Status,Achieved On,Submitted On");
   });
 
+  /**
+   * CSV formula injection. Names and companies are whatever the member typed at
+   * sign-up, and the person who opens the export is an admin — so a title of
+   * `=cmd|'/c calc'!A1` would be a formula Excel offers to run. Prefixing a
+   * single quote makes the spreadsheet render it as text instead.
+   */
+  it.each([
+    '=HYPERLINK("http://evil.example","Click me")',
+    "+1+1",
+    "-2+3",
+    "@SUM(A1:A9)",
+  ])("CSV: neutralises the formula %s", async (payload) => {
+    prismaMock.achievement.findMany.mockResolvedValueOnce([
+      {
+        title: payload,
+        category: "Award",
+        status: "APPROVED",
+        occurredOn: null,
+        createdAt: new Date("2024-01-01"),
+        user: { firstName: "Bob", lastName: "B", email: "bob@x" },
+      },
+    ] as any);
+    const out = (await svc.generateReport({ type: "achievements", format: "csv" })) as { csv: string };
+    // The quote goes on before the CSV quoting, so a cell that also needs
+    // quoting reads `"'=…` and one that doesn't reads `'=…`.
+    const cell = out.csv.split("\n")[1];
+    expect(cell.startsWith("'") || cell.startsWith("\"'")).toBe(true);
+    // The payload is still readable — it is rendered as text, not executed.
+    expect(out.csv).toContain(payload.replace(/"/g, '""'));
+  });
+
+  it("CSV: leaves an ordinary value untouched", async () => {
+    prismaMock.achievement.findMany.mockResolvedValueOnce([
+      {
+        title: "Won the hackathon",
+        category: "Award",
+        status: "APPROVED",
+        occurredOn: null,
+        createdAt: new Date("2024-01-01"),
+        user: { firstName: "Bob", lastName: "B", email: "bob@x" },
+      },
+    ] as any);
+    const out = (await svc.generateReport({ type: "achievements", format: "csv" })) as { csv: string };
+    expect(out.csv.split("\n")[1].startsWith("Won the hackathon,")).toBe(true);
+  });
+
   it("donations: computes total received in summary", async () => {
     prismaMock.donation.findMany.mockResolvedValueOnce([
       { amount: 5000, status: "RECEIVED", user: null, paidAt: new Date("2024-06-01"), createdAt: new Date("2024-06-01") },
@@ -127,7 +173,7 @@ describe("admin.service — role mutations", () => {
   });
   it("revokeRole forwards to deleteMany", async () => {
     prismaMock.userRole.deleteMany.mockResolvedValueOnce({ count: 1 });
-    await svc.revokeRole("u-1", "ADMIN");
+    await svc.revokeRole("admin-9", "u-1", "ADMIN");
     expect(prismaMock.userRole.deleteMany).toHaveBeenCalledWith({
       where: { userId: "u-1", role: "ADMIN" },
     });

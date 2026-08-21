@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma.js";
 import { Prisma } from "@prisma/client";
-import { Conflict, NotFound } from "../../lib/errors.js";
+import { BadRequest, Conflict, NotFound } from "../../lib/errors.js";
 import { paginate, paginationMeta, type PaginationQuery } from "../../lib/pagination.js";
 import type { AppRoleName } from "../../config/constants.js";
 import { notify } from "../notifications/notifications.service.js";
@@ -135,8 +135,28 @@ export const assignRole = async (userId: string, role: AppRoleName) => {
   }
 };
 
-export const revokeRole = async (userId: string, role: AppRoleName) => {
-  await prisma.userRole.deleteMany({ where: { userId, role } });
+/**
+ * Take a role away.
+ *
+ * Two rules beyond the delete itself:
+ *
+ * 1. An admin may not revoke their own ADMIN role. On a site with a single
+ *    admin that is a one-click lockout with no way back in short of running
+ *    `seed-admin.ts` against the database.
+ * 2. The caller's refresh tokens are dropped along with the role. `req.auth`
+ *    is read from the access token, so a demoted admin would otherwise stay an
+ *    admin until that token expired *and* be able to mint a fresh one from
+ *    their refresh token indefinitely. Deleting the refresh tokens caps the
+ *    window at the access token's TTL.
+ */
+export const revokeRole = async (actorId: string, userId: string, role: AppRoleName) => {
+  if (role === "ADMIN" && actorId === userId) {
+    throw BadRequest("You cannot remove your own admin role");
+  }
+  await prisma.$transaction([
+    prisma.userRole.deleteMany({ where: { userId, role } }),
+    prisma.refreshToken.deleteMany({ where: { userId } }),
+  ]);
 };
 
 export const getAuditLog = async (q: PaginationQuery) => {
@@ -822,12 +842,24 @@ const buildReport = async (
   }
 };
 
-const toCsv = (rows: Record<string, unknown>[]) => {
+/**
+ * Characters that make Excel, LibreOffice and Sheets treat a cell as a formula
+ * rather than text. Every report here mixes staff-entered data with fields any
+ * registrant chose for themselves — a name of `=HYPERLINK("http://evil","Pay
+ * now")` or `=cmd|'/c calc'!A1` is a form submission away — and the person who
+ * opens the export is an admin. Prefixing a single quote is the standard
+ * neutralisation: the spreadsheet shows the literal text and evaluates nothing.
+ */
+const FORMULA_TRIGGERS = /^[=+\-@\t\r]/;
+
+const csvCell = (v: unknown) => {
+  const raw = v === null || v === undefined ? "" : String(v);
+  const s = FORMULA_TRIGGERS.test(raw) ? `'${raw}` : raw;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+export const toCsv = (rows: Record<string, unknown>[]) => {
   if (!rows.length) return "";
   const headers = Object.keys(rows[0]);
-  const escape = (v: unknown) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
+  return [headers.join(","), ...rows.map((r) => headers.map((h) => csvCell(r[h])).join(","))].join("\n");
 };

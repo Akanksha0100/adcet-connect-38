@@ -150,7 +150,9 @@ export const register = async (input: RegisterInput) => {
 
   await consumeRegistrationOtp(input.email, input.otp);
 
-  const role: AppRoleName = input.role ?? "ALUMNI";
+  // Hardcoded, never taken from the request. The only paths to ADMIN are an
+  // existing admin granting it and `seed-admin.ts` bootstrapping the first one.
+  const role: AppRoleName = "ALUMNI";
   const passwordHash = await hashPassword(input.password);
 
   let user;
@@ -161,7 +163,8 @@ export const register = async (input: RegisterInput) => {
         passwordHash,
         firstName: input.firstName,
         lastName: input.lastName,
-        // PENDING until an admin approves. Recruiters & alumni need admin moderation.
+        // PENDING until an admin approves. Proving the email address is not
+        // proof of being an ADCET alumnus — only the office can decide that.
         status: "PENDING",
         // Ownership of the address was just proven via OTP.
         emailVerifiedAt: new Date(),

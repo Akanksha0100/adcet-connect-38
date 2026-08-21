@@ -24,6 +24,7 @@ import { uploadFile } from "@/lib/upload";
 import { assetUrl } from "@/lib/storage";
 import { renderPdfCover } from "@/lib/pdfCover";
 import { formatMonth, newsQuery, newslettersQuery, type NewsItem, type Newsletter } from "@/lib/newsroom";
+import { safeExternalUrl } from "@/lib/urls";
 
 /** `<input type="date">` wants `YYYY-MM-DD`; the API speaks ISO. */
 const toDateInput = (iso?: string) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
@@ -189,7 +190,7 @@ const NewsManager = () => {
               <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
               {n.link && (
                 <a
-                  href={n.link}
+                  href={safeExternalUrl(n.link)}
                   target="_blank"
                   rel="noreferrer"
                   className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"

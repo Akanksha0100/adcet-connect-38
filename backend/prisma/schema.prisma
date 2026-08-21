@@ -14,11 +14,13 @@ datasource db {
 // ENUMS
 // =====================================================================
 
+/// Only two kinds of account exist. STUDENT and RECRUITER were dropped by
+/// migration `drop_student_recruiter_roles`; nothing may reintroduce them —
+/// the role is never accepted from client input, it is assigned by the server
+/// (`ALUMNI` on sign-up) or by an admin through `POST /admin/users/:id/roles`.
 enum AppRole {
   ALUMNI
-  STUDENT
   ADMIN
-  RECRUITER
 }
 
 enum ApprovalStatus {

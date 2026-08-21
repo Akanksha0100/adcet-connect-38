@@ -127,15 +127,15 @@ const USERS: SeedUser[] = [
   },
   {
     email: "sneha@adcet.in",
-    password: "Student@123",
+    password: "Alumni@123",
     firstName: "Sneha",
     lastName: "Kale",
-    role: "STUDENT",
+    role: "ALUMNI",
     status: "APPROVED",
     profile: {
       birthDay: 21,
       birthMonth: 1,
-      bio: "Final-year CSE, GSoC '26 contributor.",
+      bio: "Fresh CSE graduate, GSoC '26 contributor.",
       department: "Computer Science and Engineering",
       degree: "BE",
       admissionYear: 2022,
@@ -145,17 +145,22 @@ const USERS: SeedUser[] = [
     },
   },
   {
-    email: "neha@recruiter.in",
-    password: "Recruit@123",
+    // An alumna who hires — she posts the jobs below. Since STUDENT and
+    // RECRUITER were dropped, everyone who is not the office is an ALUMNI.
+    email: "neha@adcet.in",
+    password: "Alumni@123",
     firstName: "Neha",
     lastName: "Joshi",
-    role: "RECRUITER",
+    role: "ALUMNI",
     status: "APPROVED",
     profile: {
       birthDay: 30,
       birthMonth: 6,
       bio: "Talent acquisition lead at Persistent Systems.",
-      department: null as unknown as string,
+      department: "Computer Science and Engineering",
+      degree: "BE",
+      admissionYear: 2011,
+      graduationYear: 2015,
       city: "Pune",
       country: "India",
       currentCompany: "Persistent Systems",
@@ -381,7 +386,7 @@ async function main() {
   const priya = created["priya@adcet.in"];
   const rahul = created["rahul@adcet.in"];
   const sneha = created["sneha@adcet.in"];
-  const neha = created["neha@recruiter.in"];
+  const neha = created["neha@adcet.in"];
 
   console.log("💼 Seeding jobs…");
   const job1 = await upsertJob("job1", {
@@ -769,8 +774,8 @@ async function main() {
   console.log("🎉 Seed complete.");
   console.log("   Admin:    admin@adcet.in / Admin@12345");
   console.log("   Alumni:   alice@adcet.in / Alumni@123");
-  console.log("   Student:  sneha@adcet.in / Student@123");
-  console.log("   Recruiter:neha@recruiter.in / Recruit@123");
+  console.log("   Alumni:   sneha@adcet.in / Alumni@123");
+  console.log("   Alumni:   neha@adcet.in / Alumni@123");
 }
 
 main()

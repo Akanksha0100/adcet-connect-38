@@ -214,7 +214,8 @@ describe("modules/chapters/service — invitations", () => {
 
   it("rejects inviting a non-alumnus", async () => {
     prismaMock.chapter.findUnique.mockResolvedValue(chapterRow());
-    prismaMock.user.findUnique.mockResolvedValue(alumnus({ roles: [{ role: "STUDENT" }] }));
+    // An admin-only account holds no ALUMNI role, so it cannot be invited.
+    prismaMock.user.findUnique.mockResolvedValue(alumnus({ roles: [{ role: "ADMIN" }] }));
     await expect(svc.invite("admin-1", "c1", "user-1")).rejects.toMatchObject({ status: 400 });
   });
 

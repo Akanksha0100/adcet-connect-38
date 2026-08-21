@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { exportElementPng, exportElementsPdf } from "@/lib/exportChart";
 import BulkEmailDialog from "@/components/BulkEmailDialog";
 import { fetchChapters } from "@/lib/chapters";
+import { toCsv } from "@/lib/csv";
 
 /* --------------------------------- types --------------------------------- */
 interface LabelValue { label: string; value: number }
@@ -60,12 +61,6 @@ const downloadText = (filename: string, mime: string, content: string) => {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
-};
-const toCsv = (rows: Record<string, unknown>[]) => {
-  if (!rows.length) return "";
-  const headers = Object.keys(rows[0]);
-  const esc = (v: unknown) => { const s = v == null ? "" : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  return [headers.join(","), ...rows.map((r) => headers.map((h) => esc(r[h])).join(","))].join("\n");
 };
 const toExcelHtml = (rows: Record<string, unknown>[]) => {
   const headers = rows[0] ? Object.keys(rows[0]) : [];

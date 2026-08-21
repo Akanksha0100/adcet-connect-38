@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import PublicLayout from "@/components/public/PublicLayout";
 import PageHero from "@/components/public/PageHero";
 import { formatMonth, newsQuery } from "@/lib/newsroom";
+import { safeExternalUrl } from "@/lib/urls";
 
 const fade = {
   initial: { opacity: 0, y: 12 },
@@ -66,7 +67,7 @@ export default function NewsPage() {
                 <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{n.body}</p>
                 {n.link && (
                   <a
-                    href={n.link}
+                    href={safeExternalUrl(n.link)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-4"

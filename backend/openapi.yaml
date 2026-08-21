@@ -626,7 +626,7 @@ components:
         message: { type: string }
         details: { type: object, additionalProperties: true }
 
-    AppRole: { type: string, enum: [ALUMNI, STUDENT, ADMIN, RECRUITER] }
+    AppRole: { type: string, enum: [ALUMNI, ADMIN] }
     ApprovalStatus: { type: string, enum: [PENDING, APPROVED, REJECTED] }
     DegreeType: { type: string, enum: [BE, ME, PHD, DIPLOMA] }
     EmploymentType: { type: string, enum: [FULL_TIME, PART_TIME, INTERNSHIP, CONTRACT] }

@@ -13,6 +13,7 @@ import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 import RejectReasonDialog from "@/components/RejectReasonDialog";
 import AchievementCardMedia from "@/components/AchievementCardMedia";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface AchievementItem {
   id: string;
@@ -154,7 +155,7 @@ const AchievementsAdminPage = () => {
                       </span>
                     )}
                     {a.link && (
-                      <a href={a.link} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+                      <a href={safeExternalUrl(a.link)} target="_blank" rel="noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
                         <ExternalLink className="h-3 w-3" /> Link
                       </a>
                     )}

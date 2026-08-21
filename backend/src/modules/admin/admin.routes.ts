@@ -10,6 +10,7 @@ import {
   approvalImportSchema,
   assignRoleSchema,
   reportSchema,
+  roleParamSchema,
   userListQuery,
   userStatusSchema,
   adminMessageSchema,
@@ -53,7 +54,11 @@ adminRouter.post(
   validate(assignRoleSchema),
   asyncHandler(ctrl.assignRole),
 );
-adminRouter.delete("/users/:id/roles/:role", asyncHandler(ctrl.revokeRole));
+adminRouter.delete(
+  "/users/:id/roles/:role",
+  validate(roleParamSchema, "params"),
+  asyncHandler(ctrl.revokeRole),
+);
 adminRouter.post(
   "/users/:id/message",
   validate(adminMessageSchema),

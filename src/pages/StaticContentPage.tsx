@@ -4,6 +4,7 @@ import { ExternalLink, Loader2, Newspaper } from "lucide-react";
 import { DEFAULT_CONTENT, type SiteContentKey } from "@/lib/siteContent";
 import { newsQuery } from "@/lib/newsroom";
 import SupportContactForm from "@/components/SupportContactForm";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface Props {
   contentKey: SiteContentKey;
@@ -49,7 +50,7 @@ const StaticContentPage = ({ contentKey }: Props) => {
                 </p>
                 {n.link && (
                   <a
-                    href={n.link}
+                    href={safeExternalUrl(n.link)}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline"

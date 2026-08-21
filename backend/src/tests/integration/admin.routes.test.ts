@@ -17,6 +17,8 @@ const app = buildApp();
 const userToken = makeToken({ sub: "user-1" });
 const adminToken = makeToken({ sub: "admin-1", roles: ["ADMIN"] });
 
+beforeEach(() => jest.clearAllMocks());
+
 describe("RBAC", () => {
   it("401 anonymous on every admin route", async () => {
     const res = await request(app).get("/api/v1/admin/users");
@@ -238,6 +240,56 @@ describe("/admin/users/:id/roles", () => {
       .delete("/api/v1/admin/users/u1/roles/ADMIN")
       .set("Authorization", bearer(adminToken));
     expect(res.status).toBe(204);
+  });
+
+  /**
+   * Granting and revoking roles is the *only* way an account's privileges can
+   * change, so the whole surface has to stay behind requireAdmin — and the role
+   * itself has to be one of the two that exist, wherever it arrives from.
+   */
+  it("403 when an ordinary member tries to grant themselves ADMIN", async () => {
+    const res = await request(app)
+      .post("/api/v1/admin/users/user-1/roles")
+      .set("Authorization", bearer(userToken))
+      .send({ role: "ADMIN" });
+    expect(res.status).toBe(403);
+    expect(prisma.userRole.create).not.toHaveBeenCalled();
+  });
+
+  it("403 when an ordinary member tries to revoke someone's role", async () => {
+    const res = await request(app)
+      .delete("/api/v1/admin/users/admin-1/roles/ADMIN")
+      .set("Authorization", bearer(userToken));
+    expect(res.status).toBe(403);
+    expect(prisma.userRole.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each(["STUDENT", "RECRUITER", "SUPERADMIN", "alumni"])(
+    "422 assigning the non-existent role %s",
+    async (role) => {
+      const res = await request(app)
+        .post("/api/v1/admin/users/u1/roles")
+        .set("Authorization", bearer(adminToken))
+        .send({ role });
+      expect(res.status).toBe(422);
+      expect(prisma.userRole.create).not.toHaveBeenCalled();
+    },
+  );
+
+  it("422 revoking a role that isn't in the enum, rather than 500ing on Prisma", async () => {
+    const res = await request(app)
+      .delete("/api/v1/admin/users/u1/roles/RECRUITER")
+      .set("Authorization", bearer(adminToken));
+    expect(res.status).toBe(422);
+    expect(prisma.userRole.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("400 when an admin tries to revoke their own ADMIN role — that is a lockout", async () => {
+    const res = await request(app)
+      .delete("/api/v1/admin/users/admin-1/roles/ADMIN")
+      .set("Authorization", bearer(adminToken));
+    expect(res.status).toBe(400);
+    expect(prisma.userRole.deleteMany).not.toHaveBeenCalled();
   });
 });
 

@@ -36,6 +36,7 @@ import { api } from "@/lib/api";
 import { DEPARTMENTS } from "@/lib/departments";
 import { fetchChapters } from "@/lib/chapters";
 import { toast } from "@/hooks/use-toast";
+import { toCsv } from "@/lib/csv";
 
 type Row = Record<string, unknown>;
 
@@ -90,16 +91,6 @@ const downloadText = (filename: string, mime: string, content: string) => {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
-};
-
-const toCsv = (rows: Row[]) => {
-  if (!rows.length) return "";
-  const headers = Object.keys(rows[0]);
-  const escape = (v: unknown) => {
-    const s = v === null || v === undefined ? "" : String(v);
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  return [headers.join(","), ...rows.map((r) => headers.map((h) => escape(r[h])).join(","))].join("\n");
 };
 
 const toExcelHtml = (rows: Row[]) => {

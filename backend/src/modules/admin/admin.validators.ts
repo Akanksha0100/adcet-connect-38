@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ROLE_VALUES } from "../../config/constants.js";
 import { SETTING_KEYS } from "../../lib/settings.js";
 import { paginationSchema } from "../../lib/pagination.js";
 
@@ -8,7 +9,7 @@ const chapterFilter = z.union([z.string().uuid(), z.literal("none")]).optional()
 export const userListQuery = paginationSchema.extend({
   q: z.string().optional(),
   status: z.enum(["PENDING", "APPROVED", "REJECTED"]).optional(),
-  role: z.enum(["ALUMNI", "STUDENT", "ADMIN", "RECRUITER"]).optional(),
+  role: z.enum(ROLE_VALUES).optional(),
   chapterId: chapterFilter,
 });
 
@@ -18,7 +19,17 @@ export const userStatusSchema = z.object({
 });
 
 export const assignRoleSchema = z.object({
-  role: z.enum(["ALUMNI", "STUDENT", "ADMIN", "RECRUITER"]),
+  role: z.enum(ROLE_VALUES),
+});
+
+/**
+ * `DELETE /admin/users/:id/roles/:role`. The role arrives as a path segment,
+ * so it needs validating just like a body would: without this an arbitrary
+ * string reached Prisma's enum column and came back as a 500.
+ */
+export const roleParamSchema = z.object({
+  id: z.string().min(1),
+  role: z.enum(ROLE_VALUES),
 });
 
 export const REPORT_TYPES = [

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { booleanQueryParam, paginationSchema } from "../../lib/pagination.js";
+import { httpUrl } from "../../lib/urls.js";
 
 export const achievementInputSchema = z.object({
   title: z.string().min(2).max(200),
@@ -9,9 +10,12 @@ export const achievementInputSchema = z.object({
   imageKey: z.string().optional(),
   attachmentKey: z.string().optional(),
   // Accept an empty string from the form and treat it as "no link".
+  // `httpUrl` — not `z.string().url()` — because this link is rendered as an
+  // anchor on the public achievement page and in the moderation queue an admin
+  // clicks through; see `lib/urls.ts`.
   link: z.preprocess(
     (v) => (v === "" || v === null ? undefined : v),
-    z.string().url().max(2000).optional(),
+    httpUrl(2000).optional(),
   ),
 });
 

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { api, type AppRole, type ApprovalStatus } from "@/lib/api";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface AdminUserDetail {
   id: string;
@@ -125,28 +126,28 @@ const AdminUserDetailPage = () => {
             <div className="flex gap-2 flex-wrap">
               {data.profile.linkedinUrl && (
                 <Button variant="outline" size="sm" asChild>
-                  <a href={data.profile.linkedinUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                  <a href={safeExternalUrl(data.profile.linkedinUrl)} target="_blank" rel="noreferrer" className="gap-1.5">
                     <Linkedin className="h-3.5 w-3.5" /> LinkedIn
                   </a>
                 </Button>
               )}
               {data.profile.githubUrl && (
                 <Button variant="outline" size="sm" asChild>
-                  <a href={data.profile.githubUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                  <a href={safeExternalUrl(data.profile.githubUrl)} target="_blank" rel="noreferrer" className="gap-1.5">
                     <Github className="h-3.5 w-3.5" /> GitHub
                   </a>
                 </Button>
               )}
               {data.profile.twitterUrl && (
                 <Button variant="outline" size="sm" asChild>
-                  <a href={data.profile.twitterUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                  <a href={safeExternalUrl(data.profile.twitterUrl)} target="_blank" rel="noreferrer" className="gap-1.5">
                     <Twitter className="h-3.5 w-3.5" /> Twitter / X
                   </a>
                 </Button>
               )}
               {data.profile.websiteUrl && (
                 <Button variant="outline" size="sm" asChild>
-                  <a href={data.profile.websiteUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                  <a href={safeExternalUrl(data.profile.websiteUrl)} target="_blank" rel="noreferrer" className="gap-1.5">
                     <Globe className="h-3.5 w-3.5" /> Website
                   </a>
                 </Button>

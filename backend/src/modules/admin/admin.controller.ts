@@ -25,7 +25,8 @@ export const assignRole = async (req: Request, res: Response) =>
   res.status(201).json(await service.assignRole(req.params.id, req.body.role));
 
 export const revokeRole = async (req: Request, res: Response) => {
-  await service.revokeRole(req.params.id, req.params.role as AppRoleName);
+  // `roleParamSchema` has already narrowed :role to a real AppRole.
+  await service.revokeRole(req.auth!.sub, req.params.id, req.params.role as AppRoleName);
   res.status(204).end();
 };
 

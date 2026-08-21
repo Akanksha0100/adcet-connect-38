@@ -3,12 +3,22 @@
  * and referenced across modules without magic strings.
  */
 
+/**
+ * The only two roles that exist. STUDENT and RECRUITER were removed by
+ * migration `drop_student_recruiter_roles`.
+ *
+ * A role is **never** read from client input. Sign-up always creates ALUMNI
+ * (see `auth.service.ts`), SSO does the same, and the only way to hold ADMIN
+ * is for an existing admin to grant it via `POST /admin/users/:id/roles` or for
+ * `seed-admin.ts` to bootstrap the first one.
+ */
 export const ROLES = {
   ALUMNI: "ALUMNI",
-  STUDENT: "STUDENT",
   ADMIN: "ADMIN",
-  RECRUITER: "RECRUITER",
 } as const;
+
+/** Every role name, for validating a role that arrives as a path parameter. */
+export const ROLE_VALUES = ["ALUMNI", "ADMIN"] as const;
 
 export type AppRoleName = (typeof ROLES)[keyof typeof ROLES];
 

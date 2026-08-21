@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { toCsv } from "@/lib/csv";
 
 interface CityBreakdown {
   city: string;
@@ -79,10 +80,7 @@ const AdminGeoMapPage = () => {
   const exportCsv = () => {
     const rows = breakdown.flatMap((c) => c.companies.map((co) => ({ City: c.city, Company: co.company, Alumni: co.count })));
     if (!rows.length) { toast({ title: "Nothing to export" }); return; }
-    const headers = Object.keys(rows[0]);
-    const esc = (v: unknown) => { const s = String(v ?? ""); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-    const csv = [headers.join(","), ...rows.map((r) => headers.map((h) => esc((r as any)[h])).join(","))].join("\n");
-    downloadText("geo-distribution.csv", "text/csv", csv);
+    downloadText("geo-distribution.csv", "text/csv", toCsv(rows));
   };
 
   const stats = [

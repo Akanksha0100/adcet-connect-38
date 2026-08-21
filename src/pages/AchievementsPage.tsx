@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { LoadingGrid } from "@/components/LoadingGrid";
 import { EmptyState } from "@/components/EmptyState";
 import AchievementCardMedia from "@/components/AchievementCardMedia";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface Achievement {
   id: string;
@@ -91,7 +92,7 @@ const AchievementCard = ({ a, showStatus }: { a: Achievement; showStatus?: boole
       {/* Pinned to the bottom so links line up across the row. */}
       <div className="flex flex-wrap items-center gap-3 mt-auto pt-1">
         {a.link && (
-          <a href={a.link} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
+          <a href={safeExternalUrl(a.link)} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
             <ExternalLink className="h-3 w-3" /> Link
           </a>
         )}

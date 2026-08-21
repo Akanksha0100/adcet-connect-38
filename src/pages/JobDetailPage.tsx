@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { api, uploadFile } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface JobDetail {
   id: string;
@@ -174,7 +175,7 @@ const JobDetailPage = () => {
             <ApplyJobDialog jobId={job.id} disabled={job.isClosed || job.status !== "APPROVED"} />
             {job.applyUrl && (
               <Button variant="outline" asChild>
-                <a href={job.applyUrl} target="_blank" rel="noreferrer" className="gap-1.5">
+                <a href={safeExternalUrl(job.applyUrl)} target="_blank" rel="noreferrer" className="gap-1.5">
                   External link <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </Button>

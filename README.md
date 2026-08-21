@@ -48,7 +48,7 @@
 ## Features
 
 - **Authentication & RBAC** — JWT access + refresh tokens, four roles
-  (`ADMIN`, `ALUMNI`, `STUDENT`, `RECRUITER`), roles stored in a separate
+  (`ADMIN`, `ALUMNI`), roles stored in a separate
   table to prevent privilege escalation. Multi-step registration with
   LinkedIn (required), GitHub, Twitter/X, and website URLs.
 - **Alumni Directory** with filters (department, year, company, city).

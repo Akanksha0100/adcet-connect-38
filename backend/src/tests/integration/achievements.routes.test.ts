@@ -17,6 +17,7 @@ const userToken = makeToken({ sub: "user-1" });
 const adminToken = makeToken({ sub: "admin-1", roles: ["ADMIN"] });
 
 beforeEach(() => {
+  jest.clearAllMocks();
   prisma.user.findUnique.mockResolvedValue({ id: "user-1", status: "APPROVED" } as any);
 });
 
@@ -57,6 +58,44 @@ describe("/achievements", () => {
       .post("/api/v1/achievements")
       .set("Authorization", bearer(userToken))
       .send({ title: "Won Hackathon", description: "First place at XYZ" });
+    expect(res.status).toBe(201);
+  });
+
+  /**
+   * Stored XSS. `link` is rendered as an `<a href>` on the public achievement
+   * page and in the admin moderation queue, so a non-http scheme stored here is
+   * script that runs in a reader's — or an admin's — browser. `httpUrl` in
+   * `lib/urls.ts` is what blocks it; `z.string().url()` did not.
+   */
+  it.each([
+    "javascript:alert(document.cookie)",
+    "JavaScript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+  ])("422 create with a %s link, and nothing is written", async (link) => {
+    const res = await request(app)
+      .post("/api/v1/achievements")
+      .set("Authorization", bearer(userToken))
+      .send({ title: "Won Hackathon", description: "First place at XYZ", link });
+    expect(res.status).toBe(422);
+    expect(prisma.achievement.create).not.toHaveBeenCalled();
+  });
+
+  it("422 when a hostile link is smuggled in through PATCH", async () => {
+    const res = await request(app)
+      .patch("/api/v1/achievements/a1")
+      .set("Authorization", bearer(userToken))
+      .send({ link: "javascript:alert(1)" });
+    expect(res.status).toBe(422);
+    expect(prisma.achievement.update).not.toHaveBeenCalled();
+  });
+
+  it("201 create with an ordinary https link", async () => {
+    prisma.achievement.create.mockResolvedValueOnce({ id: "a3" } as any);
+    const res = await request(app)
+      .post("/api/v1/achievements")
+      .set("Authorization", bearer(userToken))
+      .send({ title: "Won Hackathon", description: "First place at XYZ", link: "https://news.example/x" });
     expect(res.status).toBe(201);
   });
 

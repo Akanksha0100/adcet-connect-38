@@ -118,7 +118,7 @@ describe("modules/admin/service — role assignment", () => {
 
   it("revokeRole deletes matching rows", async () => {
     prismaMock.userRole.deleteMany.mockResolvedValueOnce({ count: 1 });
-    await svc.revokeRole("u-1", "ADMIN");
+    await svc.revokeRole("admin-9", "u-1", "ADMIN");
     expect(prismaMock.userRole.deleteMany).toHaveBeenCalledWith({
       where: { userId: "u-1", role: "ADMIN" },
     });

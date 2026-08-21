@@ -106,7 +106,10 @@ export const registerSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, "Enter the 6-digit verification code"),
   firstName: requiredText(80, "First name is required"),
   lastName: requiredText(80, "Last name is required"),
-  role: z.enum(["ALUMNI", "STUDENT", "RECRUITER"]).default("ALUMNI"),
+  // There is deliberately no `role` field. Sign-up always produces an ALUMNI
+  // account; a `role` that arrives in the body is an unknown key, and Zod's
+  // default strip drops it before the service ever sees it. No request can
+  // choose the privileges of the account it creates.
   ...requiredProfileFields,
 }).superRefine(checkProfileFields);
 

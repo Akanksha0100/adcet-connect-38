@@ -3,6 +3,7 @@ import { Calendar, ExternalLink, FileText, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { storageUrl } from "@/lib/storage";
+import { safeExternalUrl } from "@/lib/urls";
 
 /**
  * One achievement, rendered in full.
@@ -93,7 +94,7 @@ export default function AchievementArticle({ item }: { item: AchievementArticleD
         <div className="flex flex-wrap gap-3 pt-2">
           {item.link && (
             <Button variant="outline" size="sm" className="gap-1.5" asChild>
-              <a href={item.link} target="_blank" rel="noreferrer">
+              <a href={safeExternalUrl(item.link)} target="_blank" rel="noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" /> Related link
               </a>
             </Button>

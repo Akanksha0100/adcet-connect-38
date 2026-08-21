@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { paginationSchema } from "../../lib/pagination.js";
+import { httpUrl } from "../../lib/urls.js";
 
 /** Accepts an ISO date string and hands the service a `Date`. */
 const dateInput = z.coerce.date();
@@ -7,12 +8,12 @@ const dateInput = z.coerce.date();
 export const newsInputSchema = z.object({
   title: z.string().min(2).max(200),
   body: z.string().min(2).max(20000),
-  link: z.string().url().optional(),
+  link: httpUrl(2000).optional(),
   tag: z.string().trim().max(40).optional(),
   publishedAt: dateInput.optional(),
 });
 export const newsUpdateSchema = newsInputSchema.partial().extend({
-  link: z.string().url().nullable().optional(),
+  link: httpUrl(2000).nullable().optional(),
   tag: z.string().trim().max(40).nullable().optional(),
 });
 

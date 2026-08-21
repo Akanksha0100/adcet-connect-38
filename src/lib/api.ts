@@ -13,7 +13,11 @@
 
 const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:4000/api/v1";
 
-export type AppRole = "ALUMNI" | "STUDENT" | "ADMIN" | "RECRUITER";
+/**
+ * The only two roles. STUDENT and RECRUITER were removed from the backend
+ * enum; mirror `ROLES` in `backend/src/config/constants.ts`.
+ */
+export type AppRole = "ALUMNI" | "ADMIN";
 export type ApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export interface AuthUser {

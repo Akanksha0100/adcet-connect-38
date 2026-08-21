@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import EventCardMedia from "@/components/EventCardMedia";
 import { api } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface EventDetail {
   id: string;
@@ -138,7 +139,7 @@ const EventDetailPage = () => {
                   <span className="font-medium text-foreground">Online event</span>
                 </div>
                 <Button size="sm" asChild>
-                  <a href={event.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a>
+                  <a href={safeExternalUrl(event.meetingUrl)} target="_blank" rel="noreferrer">Join meeting</a>
                 </Button>
               </div>
             )}

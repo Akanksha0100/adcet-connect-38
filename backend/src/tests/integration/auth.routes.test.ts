@@ -137,6 +137,44 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.body.refreshToken).toEqual(expect.any(String));
   });
 
+  /**
+   * Privilege escalation. `registerSchema` has no `role` field, so a `role` in
+   * the body is an unknown key Zod drops, and `register()` hardcodes ALUMNI.
+   * Neither an outright "ADMIN" nor one of the two roles that used to be
+   * accepted may reach the UserRole row that gets created.
+   */
+  it.each(["ADMIN", "STUDENT", "RECRUITER", "alumni"])(
+    "ignores a client-supplied role of %s and always creates an ALUMNI",
+    async (role) => {
+      prisma.user.findUnique.mockResolvedValueOnce(null);
+      prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+      prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+      prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+      prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+      const res = await request(app).post("/api/v1/auth/register").send(registerBody({ role }));
+
+      expect(res.status).toBe(201);
+      expect(res.body.user.roles).toEqual(["ALUMNI"]);
+      const created = (prisma.user.create as any).mock.calls.at(-1)[0];
+      expect(created.data.roles).toEqual({ create: { role: "ALUMNI" } });
+    },
+  );
+
+  it("registers as PENDING so a new account has no access before approval", async () => {
+    prisma.user.findUnique.mockResolvedValueOnce(null);
+    prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);
+    prisma.emailVerificationOtp.update.mockResolvedValueOnce({} as any);
+    prisma.user.create.mockResolvedValueOnce(baseUser() as any);
+    prisma.refreshToken.create.mockResolvedValueOnce({} as any);
+
+    // A status in the body must be ignored the same way a role is.
+    await request(app).post("/api/v1/auth/register").send(registerBody({ status: "APPROVED" }));
+
+    const created = (prisma.user.create as any).mock.calls.at(-1)[0];
+    expect(created.data.status).toBe("PENDING");
+  });
+
   it("derives admissionYear from the graduation year and the degree's length", async () => {
     prisma.user.findUnique.mockResolvedValueOnce(null);
     prisma.emailVerificationOtp.findFirst.mockResolvedValueOnce(baseOtpRow() as any);

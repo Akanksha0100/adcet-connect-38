@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { api } from "@/lib/api";
 import { DEPARTMENTS } from "@/lib/departments";
 import { toast } from "@/hooks/use-toast";
+import { csvCell } from "@/lib/csv";
 
 interface ExportRow {
   userId: string;
@@ -52,10 +53,6 @@ const CSV_HEADERS = [
   "Degree", "Graduation Year", "LinkedIn", "Registered On", "Verified (YES/NO)",
 ];
 
-const csvEscape = (v: unknown) => {
-  const s = v == null ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 const errMessage = (e: unknown) => (e instanceof Error ? e.message : "Something went wrong");
 
@@ -92,10 +89,10 @@ const DepartmentVerificationCard = () => {
         return;
       }
       const lines = [
-        CSV_HEADERS.join(","),
+        CSV_HEADERS.map(csvCell).join(","),
         ...items.map((r) =>
           [r.userId, r.firstName, r.lastName, r.email, r.department, r.degree, r.graduationYear, r.linkedinUrl, r.registeredOn, ""]
-            .map(csvEscape)
+            .map(csvCell)
             .join(","),
         ),
       ];

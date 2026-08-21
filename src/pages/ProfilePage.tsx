@@ -16,6 +16,7 @@ import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import ChangePasswordCard from "@/components/ChangePasswordCard";
 import type { DegreeValue } from "@/lib/degrees";
+import { safeExternalUrl } from "@/lib/urls";
 
 interface Profile {
   bio?: string | null; phone?: string | null; city?: string | null; country?: string | null;
@@ -210,7 +211,7 @@ const ProfilePage = () => {
                   <p className="text-xs text-muted-foreground">{link.label}</p>
                   {link.url ? (
                     <a
-                      href={link.url}
+                      href={safeExternalUrl(link.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm font-medium text-primary hover:underline flex items-center gap-1"
